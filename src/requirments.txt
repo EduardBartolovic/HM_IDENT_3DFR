@@ -1,0 +1,9 @@
+torch
+torchvision
+opencv-python
+mlflow
+scikit-learn
+pandas
+tqdm
+tensorboardX
+matplotlib

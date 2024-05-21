@@ -1,0 +1,6 @@
+.git*
+new-prj.py
+README.model
+/__pycache__/
+data/*
+dist/*

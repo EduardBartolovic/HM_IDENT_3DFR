@@ -1,0 +1,64 @@
+
+exp_name: "mnist"
+model: "keras"
+
+dataset:
+  data_dir: "${DATA_DIR}"
+  data_path:
+    train: '${TRAIN_DIR}/train' # default name for training data
+    validation: '${TRAIN_DIR}/validation'
+    test: '${TRAIN_DIR}/test'
+
+  img_size: [30,30]
+
+model_selection:
+  load_training: False
+  training_checkpoint: '${OUT_DIR}/training_ckpts/'
+  load_model: False
+  model_checkpoint: '${OUT_DIR}/model_ckpts/'
+  retrained_ckpt_path: '${OUT_DIR}/model_ckpts/'
+
+training:
+  lr: 0.001
+  optimizer: "adam"
+  loss: "sparse_categorical_crossentropy"
+  metric: "sparse_categorical_accuracy"
+  epochs: 200
+  batch_size: 128
+  class_names: ['0','1','2','3','4','5','6','7','8','9']
+  preprocessing:
+    data_aug: False
+    augmentation:
+      zoom: 0.04
+      translation_height: 0.04
+      translation_width: 0.04
+      rotation: 0.04
+      contrast: 0.2
+      brightness: 0.2
+  early_stop_patience: 20
+
+
+model_conversion:
+  keras_input: '${OUT_DIR}/models/'
+  tflite: True
+  tflite_quant_modes: ['no_quant', 'float', 'int' ]
+  onnx: True
+  onnx_types: ['float', 'int']
+  onnx_opset: 16
+
+inference_test:
+  model_list: ['tflite','onnx']
+  tflite_type: ['float','int']
+  onnx_type: ['float','int']
+  image_per_class: 3
+  input_dir: '${OUT_DIR}/inference_test_images/'
+
+
+
+
+export_paths:
+  output: '${OUT_DIR}/'
+  models: '${OUT_DIR}/models/'
+  mlrun : '${OUT_DIR}/mlruns/'
+  training_checkpoint: '${OUT_DIR}/training_ckpts/'
+  model_checkpoint: '${OUT_DIR}/model_ckpts/'

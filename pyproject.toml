@@ -1,0 +1,65 @@
+[tool.poetry]
+authors = ["T DS VFS V <t-ds-vfs-v@bdr.de>"]
+description = ""
+name = "hm_ki_ident"
+version = "0.1.1"
+[tool.poetry.dependencies]
+# hardpin dependencies
+python = ">=3.10"
+envyaml = "^1.10.211231"
+mlflow = "^2.7.1"
+matplotlib = "^3.5.2"
+opencv-python = "^4.8.0.76"
+#ml-template-utils = { url = "https://artprod.issh.de:443/artifactory/len-generic/dev/mltemplate/ml-template-utils/ml_template_utils-0.1.1.tar.gz"}
+#ml-template-utils = { git = "https://git.issh.de/vfsv/ml_template.git" , branch="ml_template_utils"}
+#ml-template-utils = { path = "../ml_template_utils", develop = true}
+
+# How to pick the right link : https://towardsdev.com/how-to-manage-pytorch-dependency-with-poetry-14da0057af5a?gi=399e633b9342
+# Alternative? https://github.com/python-poetry/poetry/issues/6409
+torch = {url = "https://download.pytorch.org/whl/cu121/torch-2.3.0%2Bcu121-cp310-cp310-win_amd64.whl"}
+torchvision = {url = "https://download.pytorch.org/whl/cu121/torchvision-0.18.0%2Bcu121-cp310-cp310-win_amd64.whl"}
+scikit-learn = "^1.4.2"
+pandas = "^2.2.2"
+tqdm = "^4.66.4"
+tensorboardx = "^2.6.2.2"
+[tool.poetry.dev-dependencies]
+gitpython = "^3.1.27"
+ipython = "^7.21.0"
+jupyter = "^1.0.0"
+autopep8 = "^1.5.7"
+isort = "^5.8.0"
+jupyterlab = "^3.0.16"
+jupytext = "^1.11.1"
+mkdocs = "^1.1.2"
+mkdocs-macros-plugin = "^0.5.5"
+mkdocs-material = "^7.1.1"
+#mkdocstrings = "^0.15.0"
+notebook = "^6.3.0"
+pynvim = "^0.4.3"
+pytest = "^6.2"
+pytest-watch = "^4.2.0"
+
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
+
+[tool.poetry.scripts]
+mknb = 'lab_infrastructure.cli.mknb:main'
+
+#[[tool.poetry.source]]
+#name = "artifactory"
+#url = "https://artprod.issh.de/artifactory/api/pypi/python-remote/simple"
+#priority = 'default'
+
+[tool.pytest.ini_options]
+addopts = "-ra -q --doctest-modules"
+minversion = "6.2"
+testpaths = [
+  "tests",
+  "lab_infrastructure",
+]
+
+#[backend]
+#default-keyring=keyring.backends.null.Keyring
+
