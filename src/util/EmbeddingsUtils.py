@@ -1,22 +1,33 @@
+from collections import namedtuple
+
 import numpy as np
 import torch
 from tqdm import tqdm
 
 
-def build_embedding_library(device, model, dataloader):
+@torch.no_grad()
+def build_embedding_library(device, model, data_loader):
     embedding_library = []
     embedding_labels = []
-    with torch.no_grad():
-        for images, labels in tqdm(dataloader, desc="Generate Embeddings"):
-            # Enable autocast for the forward pass, running the model in mixed precision
-            with torch.cuda.amp.autocast():
-                embeddings = model(images.to(device))
-            embedding_library.extend(embeddings.cpu().numpy())
-            embedding_labels.extend(labels.cpu().numpy())
+    embedding_scan_id = []
+    embedding_perspective = []
 
-    embedding_library = np.asarray(embedding_library)
-    embedding_labels = np.asarray(embedding_labels)
-    return embedding_library, embedding_labels
+    for images, labels, scan_id, perspective in tqdm(data_loader, desc="Generate Embeddings"):
+        # Enable autocast for the forward pass, running the model in mixed precision
+        #with torch.cuda.amp.autocast():
+        embeddings = model(images.to(device))
+        embedding_library.extend(embeddings.cpu().numpy())
+        embedding_labels.extend(labels.cpu().numpy())
+        embedding_scan_id.extend(np.array(scan_id))
+        embedding_perspective.extend(np.array(perspective))
+
+    embeddings = np.asarray(embedding_library)
+    labels = np.asarray(embedding_labels)
+    scan_id = np.asarray(embedding_scan_id)
+    perspective = np.asarray(embedding_perspective)
+
+    library = namedtuple("library", ["embeddings", "labels", "scan_ids", "perspectives"])
+    return library(embeddings, labels, scan_id, perspective)
 
 
 def batched_distances(embeddings_val: np.array, embeddings_database: np.array, batch_size=1000):
@@ -49,7 +60,7 @@ def batched_distances_gpu(device, embeddings_val: np.array, embeddings_database:
         # Expand val_batch for broadcasting: (current_batch_size, 1, num_features)
         val_batch_expanded = val_batch.unsqueeze(1)
 
-        # Calculate distances with broadcasting, and then take the norm
+        # Calculate distances with broadcasting
         dist_batch = torch.cdist(val_batch_expanded, embeddings_database_expanded, p=2)  # L2-norm / Euclidean
 
         distances[i:i + batch_size] = dist_batch.squeeze(1).cpu().numpy()

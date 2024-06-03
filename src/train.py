@@ -1,3 +1,5 @@
+import time
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -8,10 +10,9 @@ from backbone.model_resnet import ResNet_50, ResNet_101, ResNet_152
 from backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
-from util.eval_model import eval_model
+from util.eval_model import evaluate_and_log
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
-    separate_resnet_bn_paras, warm_up_lr, schedule_lr, get_time, AverageMeter, accuracy, \
-    buffer_val_min
+    separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
 
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
@@ -34,7 +35,8 @@ if __name__ == '__main__':
     BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']  # the root to resume training from a saved checkpoint
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
 
-    BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
+    BACKBONE_NAME = cfg[
+        'BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
 
@@ -160,7 +162,9 @@ if __name__ == '__main__':
                 print("Loading ONLY Backbone Checkpoint '{}'".format(BACKBONE_RESUME_ROOT))
                 BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT))
             else:
-                print("No Checkpoint Found at '{}' and '{}'. Please Have a Check or Continue to Train from Scratch".format(BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT))
+                print(
+                    "No Checkpoint Found at '{}' and '{}'. Please Have a Check or Continue to Train from Scratch".format(
+                        BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT))
             print("=" * 60)
 
         if MULTI_GPU:
@@ -172,15 +176,15 @@ if __name__ == '__main__':
             BACKBONE = BACKBONE.to(DEVICE)
 
         # ======= train & validation & save checkpoint =======#
-        DISP_FREQ = len(train_loader) // 10  # frequency to display training loss & acc # was 100
+        DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc # was 100
 
         NUM_EPOCH_WARM_UP = NUM_EPOCH // 25  # use the first 1/25 epochs to warm up
         NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP  # use the first 1/25 epochs to warm up
         batch = 0  # batch index
 
         for epoch in range(NUM_EPOCH):  # start training process
-
-            if epoch == STAGES[0]:  # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plaueau observed
+            # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
+            if epoch == STAGES[0]:
                 schedule_lr(OPTIMIZER)
             if epoch == STAGES[1]:
                 schedule_lr(OPTIMIZER)
@@ -236,17 +240,15 @@ if __name__ == '__main__':
             writer.add_scalar("Training_Accuracy", epoch_acc, epoch + 1)
             mlflow.log_metric('train_loss', epoch_loss, step=epoch + 1)
             mlflow.log_metric('Training_Accuracy', epoch_acc, step=epoch + 1)
-            print("=" * 60)
+            print("#" * 60)
             print('Epoch: {}/{}\t'
                   'Training Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch + 1, NUM_EPOCH, loss=losses, top1=top1, top5=top5))
-            print("=" * 60)
+            print("#" * 60)
 
             # perform validation & save checkpoints per epoch
-            print("=" * 60)
-
             if 'rgb' in TRAIN_SET:
                 print('Evaluation on RGB')
                 test_bellus = 'test_rgb_bellus'
@@ -260,39 +262,15 @@ if __name__ == '__main__':
                 test_faceverse = 'test_depth_faceverse'
                 test_texas = 'test_depth_texas'
 
-            print("Perform Evaluation on Bellus")
-            acc, accuracy5 = eval_model(DEVICE, EMBEDDING_SIZE, 8, BACKBONE, os.path.join(DATA_ROOT, test_bellus))
-            buffer_val_min(writer, "Bellus", acc, epoch + 1)
-            mlflow.log_metric('Bellus_Accuracy', acc, step=epoch + 1)
-            mlflow.log_metric('Bellus_Accuracy5', accuracy5, step=epoch + 1)
-            print("Epoch {}/{}, Evaluation: Bellus Acc: {}".format(epoch + 1, NUM_EPOCH, acc))
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH)
 
             if (epoch + 1) % 5 == 0:
-                print("Perform Evaluation on Facescape")
-                acc, accuracy5 = eval_model(DEVICE, EMBEDDING_SIZE, 8, BACKBONE,
-                                            os.path.join(DATA_ROOT, test_facescape))
-                buffer_val_min(writer, "Facescape", acc, epoch + 1)
-                mlflow.log_metric('Facescape_Accuracy', acc, step=epoch + 1)
-                mlflow.log_metric('Facescape_Accuracy5', accuracy5, step=epoch + 1)
-                print("Epoch {}/{}, Evaluation: Facescape Acc: {}".format(epoch + 1, NUM_EPOCH, acc))
-
-                print("Perform Evaluation on Faceverse")
-                acc, accuracy5 = eval_model(DEVICE, EMBEDDING_SIZE, 8, BACKBONE,
-                                            os.path.join(DATA_ROOT, test_faceverse))
-                buffer_val_min(writer, "Faceverse", acc, epoch + 1)
-                mlflow.log_metric('Faceverse_Accuracy', acc, step=epoch + 1)
-                mlflow.log_metric('Faceverse_Accuracy5', accuracy5, step=epoch + 1)
-                print("Epoch {}/{}, Evaluation: Faceverse Acc: {}".format(epoch + 1, NUM_EPOCH, acc))
-
-                print("Perform Evaluation on Texas3D")
-                acc, accuracy5 = eval_model(DEVICE, EMBEDDING_SIZE, 8, BACKBONE, os.path.join(DATA_ROOT, test_texas))
-                buffer_val_min(writer, "Texas3D", acc, epoch + 1)
-                mlflow.log_metric('Texas3D_Accuracy', acc, step=epoch + 1)
-                mlflow.log_metric('Texas3D_Accuracy5', accuracy5, step=epoch + 1)
-                print("Epoch {}/{}, Evaluation: Texas3D Acc: {}".format(epoch + 1, NUM_EPOCH, acc))
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, epoch, NUM_EPOCH)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, epoch, NUM_EPOCH)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, epoch, NUM_EPOCH)
 
             print("=" * 60)
-
+            time.sleep(0.5)
             # save checkpoints per epoch
             # if MULTI_GPU:
             #     torch.save(BACKBONE.module.state_dict(), os.path.join(MODEL_ROOT, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(BACKBONE_NAME, epoch + 1, batch, get_time())))

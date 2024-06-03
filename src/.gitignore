@@ -3,3 +3,4 @@ test
 config_f.py
 train_f.py
 mlruns
+log
