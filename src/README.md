@@ -1,42 +1,12 @@
-# face.evoLVe: High-Performance Face Recognition Library based on PaddlePaddle & PyTorch
-* Evolve to be more comprehensive, effective and efficient for face related analytics \& applications! ([WeChat News](https://mp.weixin.qq.com/s/V8VoyMqVvjblH358ozcWEg))
-* About the name:
-  * "face" means this repo is dedicated for face related analytics \& applications.
-  * "evolve" means unleash your greatness to be better and better. "LV" are capitalized to acknowledge the nurturing of Learning and Vision ([LV](http://www.lv-nus.org)) group, Nation University of Singapore (NUS).
-* This work was done during Jian Zhao served as a short-term "Texpert" Research Scientist at Tencent FiT DeepSea AI Lab, Shenzhen, China.
+# HM_IDENT_3DFR
 
-|Author|Jian Zhao|
-|:---:|:---:|
-|Homepage|https://zhaoj9014.github.io|
+* Based on face.evoLVe: High-Performance Face Recognition Library based on PaddlePaddle & PyTorch
 
 ****
 ## License
 
-The code of [face.evoLVe](#Introduction) is released under the MIT License.
+The code is released under the ... License.
 
-****
-## News
-
-:white_check_mark: **`CLOSED 02 September 2021`**: ~~Baidu PaddlePaddle officially merged [face.evoLVe](#Introduction) to faciliate researches and applications on face-related analytics ([Official Announcement](https://mp.weixin.qq.com/s/JT_4pqRvSsAOhQln0GSH_g)).~~
-
-:white_check_mark: **`CLOSED 03 July 2021`**: ~~Provides training code for the paddlepaddle framework.~~
-
-:white_check_mark: **`CLOSED 04 July 2019`**: ~~We will share several publicly available datasets on face anti-spoofing/liveness detection to facilitate related research and analytics.~~
-
-:white_check_mark: **`CLOSED 07 June 2019`**: ~~We are training a better-performing [IR-152](https://arxiv.org/pdf/1512.03385.pdf) model on [MS-Celeb-1M_Align_112x112](https://arxiv.org/pdf/1607.08221.pdf), and will release the model soon.~~
-
-:white_check_mark: **`CLOSED 23 May 2019`**: ~~We share three publicly available datasets to facilitate research on heterogeneous face recognition and analytics. Please refer to Sec. [Data Zoo](#Data-Zoo) for details.~~
-
-:white_check_mark: **`CLOSED 23 Jan 2019`**: ~~We share the name lists and pair-wise overlapping lists of several widely-used face recognition datasets to help researchers/engineers quickly remove the overlapping parts between their own private datasets and the public datasets. Please refer to Sec. [Data Zoo](#Data-Zoo) for details.~~
-
-:white_check_mark: **`CLOSED 23 Jan 2019`**: ~~The current distributed training schema with multi-GPUs under PyTorch and other mainstream platforms parallels the backbone across multi-GPUs while relying on a single master to compute the final bottleneck (fully-connected/softmax) layer. This is not an issue for conventional face recognition with moderate number of identities. However, it struggles with large-scale face recognition, which requires recognizing millions of identities in the real world. The master can hardly hold the oversized final layer while the slaves still have redundant computation resource, leading to small-batch training or even failed training. To address this problem, we are developing a highly-elegant, effective and efficient distributed training schema with multi-GPUs under PyTorch, supporting not only the backbone, but also the head with the fully-connected (softmax) layer, to facilitate high-performance large-scale face recognition. We will added this support into our repo.~~
-
-:white_check_mark: **`CLOSED 22 Jan 2019`**: ~~We have released two feature extraction APIs for extracting features from pre-trained models, implemented with PyTorch build-in functions and OpenCV, respectively. Please check ```./util/extract_feature_v1.py``` and ```./util/extract_feature_v2.py```.~~
-
-:white_check_mark: **`CLOSED 22 Jan 2019`**: ~~We are fine-tuning our released [IR-50](https://arxiv.org/pdf/1512.03385.pdf) model on our private Asia face data, which will be released soon to facilitate high-performance Asia face recognition.~~
-
-:white_check_mark: **`CLOSED 21 Jan 2019`**: ~~We are training a better-performing [IR-50](https://arxiv.org/pdf/1512.03385.pdf) model on [MS-Celeb-1M_Align_112x112](https://arxiv.org/pdf/1607.08221.pdf), and will replace the current model soon.~~
-  
 ****
 ## Contents
 * [Introduction](#Introduction)
@@ -70,13 +40,10 @@ The code of [face.evoLVe](#Introduction) is released under the MIT License.
 :cake:
 
 * Linux or macOS
-* [Python 3.7](https://repo.continuum.io/archive/Anaconda3-2018.12-Linux-x86_64.sh) (for training \& validation) and [Python 2.7](https://repo.continuum.io/archive/Anaconda2-2018.12-Linux-x86_64.sh) (for visualization w/ tensorboardX)
+* [Python 3.10](https://repo.continuum.io/archive/Anaconda3-2018.12-Linux-x86_64.sh) (for training \& validation)
 * PyTorch 1.0 (for traininig \& validation, install w/ `pip install torch torchvision`)
-* MXNet 1.3.1 (optional, for data processing, install w/ `pip install mxnet-cu90`)
-* TensorFlow 1.12 (optional, for visualization, install w/ `pip install tensorflow-gpu`)
 * tensorboardX 1.6 (optional, for visualization, install w/ `pip install tensorboardX`)
 * OpenCV 3.4.5 (install w/ `pip install opencv-python`)
-* bcolz 1.2.0 (install w/ `pip install bcolz`)
 
 While not required, for optimal performance it is **highly** recommended to run the code using a CUDA enabled GPU. We used 4-8 NVIDIA Tesla P40 in parallel.
 
@@ -85,7 +52,6 @@ While not required, for optimal performance it is **highly** recommended to run 
 :orange_book:
 
 * Clone the repo: `git clone https://github.com/ZhaoJ9014/face.evoLVe.PyTorch.git`.
-* `mkdir data checkpoint log` at appropriate directory to store your train/val/test data, checkpoints and training logs.
 * Prepare your train/val/test data (refer to Sec. [Data Zoo](#Data-Zoo) for publicly available face related databases), and ensure each database folder has the following structure:
   ```
   ./data/db_name/
@@ -133,20 +99,7 @@ While not required, for optimal performance it is **highly** recommended to run 
   ```
 
 ****
-### Data Processing 
-:bar_chart:
 
-* Folder: ```./balance```
-* Remove low-shot data API (remove the low-shot classes with less than ```min_num``` samples in the training set ```root``` with the directory structure as demonstrated in Sec. [Usage](#Usage) for data balance and effective model training):
-  ```
-  python remove_lowshot.py -root [root] -min_num [min_num]
-
-  # python remove_lowshot.py -root './data/train' -min_num 10
-  ```
-* Keynotes for customed use: specify the arguments of ```root``` and ```min_num``` to your own values when you run ```remove_lowshot.py```.
-* We prefer to include other data processing tricks, *e.g.*, augmentation (flip horizontally, scale hue/satuation/brightness with coefficients uniformly drawn from \[0.6,1.4\], add PCA noise with a coefficient sampled from a normal distribution N(0,0.1), *etc.*), weighted random sampling, normalization, *etc.* to the main training script in Sec. [Training and Validation](#Training-and-Validation) to be self-contained.
-
-****
 ### Training and Validation 
 :coffee:
 
@@ -158,10 +111,11 @@ While not required, for optimal performance it is **highly** recommended to run 
   configurations = {
       1: dict(
           SEED = 1337, # random seed for reproduce results
-
-          DATA_ROOT = '/media/pc/6T/jasonjzhao/data/faces_emore', # the parent root where your train/val/test data are stored
-          MODEL_ROOT = '/media/pc/6T/jasonjzhao/buffer/model', # the root to buffer your checkpoints
-          LOG_ROOT = '/media/pc/6T/jasonjzhao/buffer/log', # the root to log your train/val status
+            
+          RUN_NAME = 'EXP1:-----',  # experiment name
+          DATA_ROOT = '\dataset', # the parent root where your train/val/test data are stored
+          MODEL_ROOT = '.\model', # the root to buffer your checkpoints
+          LOG_ROOT = '.\log', # the root to log your train/val status
           BACKBONE_RESUME_ROOT = './', # the root to resume training from a saved checkpoint
           HEAD_RESUME_ROOT = './', # the root to resume training from a saved checkpoint
 

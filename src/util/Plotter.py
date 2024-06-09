@@ -68,7 +68,12 @@ def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matpl
         # Ensure the mapping includes all class indices
 
         # Relabel the confusion matrix
-        cm.relabel(idx_to_class)
+
+        try:
+            cm.relabel(idx_to_class)
+        except:
+            print(idx_to_class)
+            raise Exception('')
         cm.save_html(os.path.join(tmp_dir, 'confusion_matrix'+extension))
         cm.save_html(os.path.join(tmp_dir, 'normalized_confusion_matrix_'+extension), normalize=True)
 

@@ -4,15 +4,15 @@ configurations = {
     1: dict(
         SEED=1337,  # random seed for reproduce results
 
-        RUN_NAME= 'test2', #EXP19-rgb_bellus-126T-enc_512-ArcFace-FocalLoss-112_112-batchsize_64-IR_50_Pretrained', # experiment name
+        RUN_NAME= 'EXP5-rgb_bellus-39T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_32-epochs25-IR_SE_101',  # experiment name
         DATA_ROOT='F:\\Face\\data\\datasets\\',  # the parent root
         TRAIN_SET='rgb_bellus',  # where your train/val/test data are stored
         MODEL_ROOT='.\model',  # the root to buffer your checkpoints
         LOG_ROOT='.\log',  # the root to log your train/val status
-        BACKBONE_RESUME_ROOT='./',#pretrained/backbone_ir50_ms1m_epoch63.pth',  # the root to resume training from a saved checkpoint
+        BACKBONE_RESUME_ROOT='./',  # pretrained/backbone_ir50_ms1m_epoch63.pth',  # the root to resume training from a saved checkpoint
         HEAD_RESUME_ROOT='./',  # the root to resume training from a saved checkpoint
 
-        BACKBONE_NAME='IR_SE_50',  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
+        BACKBONE_NAME='IR_SE_101',  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
         HEAD_NAME='ArcFace',  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
         LOSS_NAME='Focal',  # support: ['Focal', 'Softmax']
 

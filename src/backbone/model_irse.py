@@ -164,9 +164,11 @@ class Backbone(Module):
 
         self._initialize_weights()
 
-    def forward(self, x):
+    def forward(self, x, return_featuremaps=False):
         x = self.input_layer(x)
         x = self.body(x)
+        #if return_featuremaps:
+        #    return x
         x = self.output_layer(x)
 
         return x

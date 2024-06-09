@@ -8,8 +8,8 @@ import torch
 import torchvision
 from torchvision.transforms import transforms
 from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_gpu
-from src.util.ImageFolderWithScanID import ImageFolderWithSanID
-from src.util.Metrics import calc_metrics
+from src.util.ImageFolderWithScanID import ImageFolderWithScanID
+from src.util.Metrics import calc_metrics, calc_embedding_facts
 from src.util.Plotter import plot_confusion_matrix
 from src.util.utils import buffer_val_min
 
@@ -67,7 +67,7 @@ def voting(y_pred, scan_ids, val_labels):
 
 def load_data(data_dir, transform, max_batch_size: int) -> (
         torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
-    dataset = ImageFolderWithSanID(root=data_dir, transform=transform)
+    dataset = ImageFolderWithScanID(root=data_dir, transform=transform)
 
     dataset_size = len(dataset)
     # Ensure the last batch is always larger than 1
@@ -75,8 +75,7 @@ def load_data(data_dir, transform, max_batch_size: int) -> (
     while (dataset_size % batch_size == 1) and (batch_size > 2):
         batch_size -= 1
 
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=6,
-                                              drop_last=False)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=6, drop_last=False)  # Todo: Check why Shuffle False makes everything worse
     return dataset, data_loader
 
 
@@ -101,6 +100,9 @@ def evaluate(device, batch_size, backbone, test_path):
     # Sort indices/classes of the closest vectors for each validation embedding
     y_pred = np.argsort(embedding_library.distances, axis=1)
 
+
+    embedding_metric = calc_embedding_facts(embedding_library)
+
     y_pred_top1 = y_pred[:, 0]
     y_pred_top5 = y_pred[:, :5]
     metrics = calc_metrics(embedding_library.val_labels, y_pred_top1, y_pred_top5)
@@ -110,7 +112,7 @@ def evaluate(device, batch_size, backbone, test_path):
     y_pred_voting_top1 = y_pred_voting[:, 0]
     y_pred_voting_top5 = y_pred_voting[:, :5]
     metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
-    # plot_confusion_matrix(y_true_scan, y_pred_scan_top1, test_database_dataset, os.path.basename(test_path), matplotlib=False)
+    plot_confusion_matrix(y_true_voting, y_pred_voting_top1, dataset_enrolled, (os.path.basename(test_path)+'_voting'), matplotlib=False)
 
     return metrics, metrics_voting
 
@@ -127,5 +129,4 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
     mlflow.log_metric(f"{dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f'{dataset}_Voting_RR5', metrics_voting['Rank-1 Rate'], step=epoch + 1)
 
-    print(
-        f"Epoch {epoch + 1}/{num_epoch}, {dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']}")
+    print(f"Epoch {epoch + 1}/{num_epoch}, {dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']}")
