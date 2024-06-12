@@ -8,6 +8,7 @@ import torch
 import torchvision
 from torchvision.transforms import transforms
 from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_gpu
+from src.util.ImageFolderRGBDWithScanID import ImageFolderRGBDWithScanID
 from src.util.ImageFolderWithScanID import ImageFolderWithScanID
 from src.util.Metrics import calc_metrics, calc_embedding_facts
 from src.util.Plotter import plot_confusion_matrix
@@ -67,7 +68,11 @@ def voting(y_pred, scan_ids, val_labels):
 
 def load_data(data_dir, transform, max_batch_size: int) -> (
         torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
-    dataset = ImageFolderWithScanID(root=data_dir, transform=transform)
+
+    if 'rgbd' in data_dir:
+        dataset = ImageFolderRGBDWithScanID(root=data_dir, transform=transform)
+    else:
+        dataset = ImageFolderWithScanID(root=data_dir, transform=transform)
 
     dataset_size = len(dataset)
     # Ensure the last batch is always larger than 1
@@ -101,7 +106,7 @@ def evaluate(device, batch_size, backbone, test_path):
     y_pred = np.argsort(embedding_library.distances, axis=1)
 
 
-    embedding_metric = calc_embedding_facts(embedding_library)
+    # embedding_metric = calc_embedding_facts(embedding_library)
 
     y_pred_top1 = y_pred[:, 0]
     y_pred_top5 = y_pred[:, :5]

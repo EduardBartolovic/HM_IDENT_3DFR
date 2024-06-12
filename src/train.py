@@ -10,6 +10,8 @@ from backbone.model_resnet import ResNet_50, ResNet_101, ResNet_152
 from backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
+from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
+from src.util.ImageFolder4Channel import ImageFolder4Channel
 from util.eval_model import evaluate_and_log
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
     separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
@@ -35,8 +37,7 @@ if __name__ == '__main__':
     BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']  # the root to resume training from a saved checkpoint
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
 
-    BACKBONE_NAME = cfg[
-        'BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
+    BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
 
@@ -79,7 +80,10 @@ if __name__ == '__main__':
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
         ])
 
-        dataset_train = datasets.ImageFolder(os.path.join(DATA_ROOT, TRAIN_SET), train_transform)
+        if 'rgbd' in TRAIN_SET:
+            dataset_train = ImageFolder4Channel(os.path.join(DATA_ROOT, TRAIN_SET), train_transform)
+        else:
+            dataset_train = datasets.ImageFolder(os.path.join(DATA_ROOT, TRAIN_SET), train_transform)
 
         # create a weighted random sampler to process imbalanced data
         weights = make_weights_for_balanced_classes(dataset_train.imgs, len(dataset_train.classes))
@@ -98,6 +102,9 @@ if __name__ == '__main__':
         BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE),
                          'ResNet_101': ResNet_101(INPUT_SIZE),
                          'ResNet_152': ResNet_152(INPUT_SIZE),
+                         'ResNetRGBD_50': ResNet_50_rgbd(INPUT_SIZE),
+                         'ResNetRGBD_101': ResNet_101_rgbd(INPUT_SIZE),
+                         'ResNetRGBD_152': ResNet_152_rgbd(INPUT_SIZE),
                          'IR_50': IR_50(INPUT_SIZE),
                          'IR_101': IR_101(INPUT_SIZE),
                          'IR_152': IR_152(INPUT_SIZE),
@@ -249,7 +256,13 @@ if __name__ == '__main__':
             print("#" * 60)
 
             # perform validation & save checkpoints per epoch
-            if 'rgb' in TRAIN_SET:
+            if 'rgbd' in TRAIN_SET:
+                print('Evaluation on RGB')
+                test_bellus = 'test_rgbd_bellus'
+                test_facescape = 'test_rgbd_facescape'
+                test_faceverse = 'test_rgbd_faceverse'
+                test_texas = 'test_rgbd_texas'
+            elif 'rgb' in TRAIN_SET:
                 print('Evaluation on RGB')
                 test_bellus = 'test_rgb_bellus'
                 test_facescape = 'test_rgb_facescape'

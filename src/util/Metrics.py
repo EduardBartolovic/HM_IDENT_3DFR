@@ -89,24 +89,20 @@ def calc_embedding_facts(embedding_library):
     query_perspective = embedding_library.val_perspectives
     query_scan_ids = embedding_library.val_scan_ids
 
-    unique_labels = np.unique(enrolled_labels)
+    distance_enrolled_mean_query = embedding_library.distances
 
-    # Calculate intra_enrolled_distances
+    unique_labels = np.unique(enrolled_labels)
+    unique_query_labels = np.unique(query_scan_ids)
+
+    #  ------------------- Calculate intra_enrolled_distances -------------------
     intra_enrolled_distances = {}
     intra_enrolled_total_distance = 0
+    number_of_embeddings = 0
     for label in unique_labels:
         label_indices = np.where(enrolled_labels == label)[0]
         label_embeddings = enrolled_embeddings[label_indices]
-
         if len(label_embeddings) > 1:
-
-            #start_time = time.time()
             distances = cdist(label_embeddings, label_embeddings, 'cosine')
-            #print("SciPy cdist time: %s seconds" % (time.time() - start_time))
-            #start_time = time.time()
-            #distances_torch = torch.cdist(torch.Tensor(label_embeddings), torch.Tensor(label_embeddings), p=2)
-            #print("PyTorch cdist time: %s seconds" % (time.time() - start_time))
-
             # Extract the upper triangular part of the matrix, excluding the diagonal
             upper_triangular_indices = np.triu_indices_from(distances, k=1)
             upper_triangular_values = distances[upper_triangular_indices]
@@ -114,17 +110,19 @@ def calc_embedding_facts(embedding_library):
             label_distance = np.sum(upper_triangular_values)
             intra_enrolled_distances[label] = label_distance
             intra_enrolled_total_distance += label_distance
+            number_of_embeddings += len(label_embeddings)
+    if number_of_embeddings > 0:
+        print('number_of_embeddings', number_of_embeddings)
+        intra_enrolled_avg_distance = intra_enrolled_total_distance / number_of_embeddings
+        print('intra_enrolled_avg_distance', intra_enrolled_avg_distance)
 
-    intra_enrolled_avg_distance = intra_enrolled_total_distance / len(unique_labels)
-    print('intra_enrolled_avg_distance', intra_enrolled_avg_distance)
-
-    # Calculate intra_query_distances
+    #  ------------------- Calculate intra_query_distances -------------------
     intra_query_distances = {}
     intra_query_total_distance = 0
+    number_of_embeddings = 0
     for label in unique_labels:
-        label_indices = np.where(enrolled_labels == label)[0]
+        label_indices = np.where(query_labels == label)[0]
         label_embeddings = query_embeddings[label_indices]
-
         if len(label_embeddings) > 1:
             distances = cdist(label_embeddings, label_embeddings, 'cosine') #euclidean
             # Extract the upper triangular part of the matrix, excluding the diagonal
@@ -134,11 +132,57 @@ def calc_embedding_facts(embedding_library):
             label_distance = np.sum(upper_triangular_values)
             intra_query_distances[label] = label_distance
             intra_query_total_distance += label_distance
+            number_of_embeddings += len(label_embeddings)
+    if number_of_embeddings > 0:
+        print('number_of_embeddings', number_of_embeddings)
+        intra_query_avg_distance = intra_query_total_distance / number_of_embeddings
+        print('intra_query_avg_distance', intra_query_avg_distance)
 
-    intra_query_avg_distance = intra_query_total_distance / len(unique_labels)
-    print('intra_query_avg_distance', intra_query_avg_distance)
+    #  ------------------- Calculate intra_scan_distances -------------------
+    intra_scan_distances = {}
+    intra_scan_total_distance = 0
+    number_of_embeddings = 0
+    for scan_id in unique_query_labels:
+        scan_id_indices = np.where(query_scan_ids == scan_id)[0]
+        scan_id_embeddings = query_embeddings[scan_id_indices]
 
-    # TODO: Calculate distance to mean
+        if len(scan_id_embeddings) > 1:
+            distances = cdist(scan_id_embeddings, scan_id_embeddings, 'cosine') #euclidean
+            # Extract the upper triangular part of the matrix, excluding the diagonal
+            upper_triangular_indices = np.triu_indices_from(distances, k=1)
+            upper_triangular_values = distances[upper_triangular_indices]
+            # Calculate the total distance of the upper triangular matrix
+            scan_distance = np.sum(upper_triangular_values)
+            intra_scan_distances[scan_id] = scan_distance
+            intra_scan_total_distance += scan_distance
+            number_of_embeddings += len(scan_id_embeddings)
+    if number_of_embeddings > 0:
+        print('number_of_embeddings', number_of_embeddings)
+        intra_scan_avg_distance = intra_scan_total_distance / number_of_embeddings
+        print('intra_scan_avg_distance', intra_scan_avg_distance)
 
-    return intra_enrolled_avg_distance, intra_enrolled_distances, intra_query_avg_distance, intra_query_distances
+    #  ------------------- Calculate intra_query_to_enrolled_center_distances -------------------
+    intra_query_to_enrolled_center_distances = {}
+    intra_query_to_enrolled_center_total_distance = 0
+    number_of_embeddings = 0
+    for label in unique_labels:
+        label_indices = np.where(query_labels == label)[0]
+        label_embeddings = distance_enrolled_mean_query[label_indices]
+
+        label_distance = np.sum(label_embeddings)
+        intra_query_to_enrolled_center_distances[label] = label_distance
+        intra_query_to_enrolled_center_total_distance += label_distance
+        number_of_embeddings += len(label_embeddings)
+
+    if number_of_embeddings > 0:
+        print('number_of_embeddings', number_of_embeddings)
+        intra_query_to_enrolled_center_avg_distance = intra_query_to_enrolled_center_total_distance / number_of_embeddings
+        print('intra_query_to_enrolled_center_avg_distance', intra_query_to_enrolled_center_avg_distance)
+
+
+    #mean_embeddings_per_label = np.array([enrolled_embeddings[enrolled_labels == label].mean(axis=0) for label in unique_labels])
+
+
+
+    return 0
 

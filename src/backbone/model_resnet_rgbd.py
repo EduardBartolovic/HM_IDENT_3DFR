@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from torch.nn import Linear, Conv2d, BatchNorm1d, BatchNorm2d, ReLU, Dropout, MaxPool2d, Sequential, Module
 
@@ -88,27 +89,41 @@ class Bottleneck(Module):
         return out
 
 
-class ResNet(Module):
+class ResNetRGBD(Module):
 
     def __init__(self, input_size, block, layers, zero_init_residual=True):
-        super(ResNet, self).__init__()
+        super(ResNetRGBD, self).__init__()
         assert input_size[0] in [112, 224], "input_size should be [112, 112] or [224, 224]"
-        self.inplanes = 64
-        self.conv1 = Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        self.bn1 = BatchNorm2d(64)
-        self.relu = ReLU(inplace=True)
-        self.maxpool = MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0])
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
 
-        self.bn_o1 = BatchNorm2d(2048)
+        self.inplanes = 64
+
+        # RGB branch
+        self.rgb_conv1 = Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.rgb_bn1 = BatchNorm2d(64)
+        self.rgb_relu = ReLU(inplace=True)
+        self.rgb_maxpool = MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.rgb_layer1 = self._make_layer(block, 64, layers[0])
+        self.rgb_layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.rgb_layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.rgb_layer4 = self._make_layer(block, 512, layers[3], stride=2)
+
+        # Depth branch
+        self.inplanes = 64
+        self.depth_conv1 = Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.depth_bn1 = BatchNorm2d(64)
+        self.depth_relu = ReLU(inplace=True)
+        self.depth_maxpool = MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.depth_layer1 = self._make_layer(block, 64, layers[0])
+        self.depth_layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.depth_layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.depth_layer4 = self._make_layer(block, 512, layers[3], stride=2)
+
+        self.bn_o1 = BatchNorm2d(4096)
         self.dropout = Dropout()
         if input_size[0] == 112:
-            self.fc = Linear(2048 * 4 * 4, 512)
+            self.fc = Linear(4096 * 4 * 4, 512)
         else:
-            self.fc = Linear(2048 * 8 * 8, 512)
+            self.fc = Linear(4096 * 8 * 8, 512)
         self.bn_o2 = BatchNorm1d(512)
 
         for m in self.modules():
@@ -144,44 +159,64 @@ class ResNet(Module):
         return Sequential(*layers)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        # Assuming x is the input tensor with shape [batch_size, 4, 244, 244]
+        # Split the 4-channel input into 3-channel RGB and 1-channel depth images
+        rgb_x = x[:, :3, :, :]  # Take the first 3 channels for RGB
+        depth_x = x[:, 3:4, :, :]  # Take the fourth channel for depth
+        depth_x = torch.cat((depth_x, depth_x, depth_x), dim=1)
 
-        x = self.bn_o1(x)
-        x = self.dropout(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        x = self.bn_o2(x)
+        # RGB branch
+        rgb_x = self.rgb_conv1(rgb_x)
+        rgb_x = self.rgb_bn1(rgb_x)
+        rgb_x = self.rgb_relu(rgb_x)
+        rgb_x = self.rgb_maxpool(rgb_x)
+        rgb_x = self.rgb_layer1(rgb_x)
+        rgb_x = self.rgb_layer2(rgb_x)
+        rgb_x = self.rgb_layer3(rgb_x)
+        rgb_x = self.rgb_layer4(rgb_x)
 
-        return x
+        # Depth branch
+        depth_x = self.depth_conv1(depth_x)
+        depth_x = self.depth_bn1(depth_x)
+        depth_x = self.depth_relu(depth_x)
+        depth_x = self.depth_maxpool(depth_x)
+        depth_x = self.depth_layer1(depth_x)
+        depth_x = self.depth_layer2(depth_x)
+        depth_x = self.depth_layer3(depth_x)
+        depth_x = self.depth_layer4(depth_x)
+
+        # Fusion
+        fusion_x = torch.cat((rgb_x, depth_x), 1)
+
+        fusion_x = self.bn_o1(fusion_x)
+        fusion_x = self.dropout(fusion_x)
+        fusion_x = fusion_x.view(fusion_x.size(0), -1)
+        fusion_x = self.fc(fusion_x)
+        fusion_x = self.bn_o2(fusion_x)
+
+        return fusion_x
 
 
-def ResNet_50(input_size, **kwargs):
+def ResNet_50_rgbd(input_size, **kwargs):
     """Constructs a ResNet-50 model.
     """
-    model = ResNet(input_size, Bottleneck, [3, 4, 6, 3], **kwargs)
+    model = ResNetRGBD(input_size, Bottleneck, [3, 4, 6, 3], **kwargs)
 
     return model
 
 
-def ResNet_101(input_size, **kwargs):
+def ResNet_101_rgbd(input_size, **kwargs):
     """Constructs a ResNet-101 model.
     """
-    model = ResNet(input_size, Bottleneck, [3, 4, 23, 3], **kwargs)
+    model = ResNetRGBD(input_size, Bottleneck, [3, 4, 23, 3], **kwargs)
 
     return model
 
 
-def ResNet_152(input_size, **kwargs):
+def ResNet_152_rgbd(input_size, **kwargs):
     """Constructs a ResNet-152 model.
     """
-    model = ResNet(input_size, Bottleneck, [3, 8, 36, 3], **kwargs)
+    model = ResNetRGBD(input_size, Bottleneck, [3, 8, 36, 3], **kwargs)
 
     return model
