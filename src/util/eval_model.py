@@ -16,12 +16,12 @@ from src.util.utils import buffer_val_min
 
 
 def get_embeddings_and_distances(device, model, library_loader, val_loader):
-
     enrolled = build_embedding_library(device, model, library_loader)
 
     # Compute mean embeddings for each label
     unique_labels = np.unique(enrolled.labels)
-    enrolled_embeddings_mean = np.array([enrolled.embeddings[enrolled.labels == label].mean(axis=0) for label in unique_labels])
+    enrolled_embeddings_mean = np.array(
+        [enrolled.embeddings[enrolled.labels == label].mean(axis=0) for label in unique_labels])
 
     val = build_embedding_library(device, model, val_loader)
 
@@ -68,7 +68,6 @@ def voting(y_pred, scan_ids, val_labels):
 
 def load_data(data_dir, transform, max_batch_size: int) -> (
         torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
-
     if 'rgbd' in data_dir:
         dataset = ImageFolderRGBDWithScanID(root=data_dir, transform=transform)
     else:
@@ -80,7 +79,8 @@ def load_data(data_dir, transform, max_batch_size: int) -> (
     while (dataset_size % batch_size == 1) and (batch_size > 2):
         batch_size -= 1
 
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=6, drop_last=False)  # Todo: Check why Shuffle False makes everything worse
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=6,
+                                              drop_last=False)  # Todo: Check why Shuffle False makes everything worse
     return dataset, data_loader
 
 
@@ -105,19 +105,20 @@ def evaluate(device, batch_size, backbone, test_path):
     # Sort indices/classes of the closest vectors for each validation embedding
     y_pred = np.argsort(embedding_library.distances, axis=1)
 
-
     # embedding_metric = calc_embedding_facts(embedding_library)
 
     y_pred_top1 = y_pred[:, 0]
     y_pred_top5 = y_pred[:, :5]
     metrics = calc_metrics(embedding_library.val_labels, y_pred_top1, y_pred_top5)
-    plot_confusion_matrix(embedding_library.val_labels, y_pred_top1, dataset_enrolled, os.path.basename(test_path), matplotlib=False)
+    plot_confusion_matrix(embedding_library.val_labels, y_pred_top1, dataset_enrolled, os.path.basename(test_path),
+                          matplotlib=False)
 
     y_true_voting, y_pred_voting = voting(y_pred, embedding_library.val_scan_ids, embedding_library.val_labels)
     y_pred_voting_top1 = y_pred_voting[:, 0]
     y_pred_voting_top5 = y_pred_voting[:, :5]
     metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
-    plot_confusion_matrix(y_true_voting, y_pred_voting_top1, dataset_enrolled, (os.path.basename(test_path)+'_voting'), matplotlib=False)
+    plot_confusion_matrix(y_true_voting, y_pred_voting_top1, dataset_enrolled,
+                          (os.path.basename(test_path) + '_voting'), matplotlib=False)
 
     return metrics, metrics_voting
 
@@ -126,12 +127,15 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
     print(f"Perform 1:N Evaluation on {dataset}")
     metrics, metrics_voting = evaluate(device, 32, backbone, os.path.join(data_root, dataset))
 
-    buffer_val_min(writer, dataset, metrics['Rank-1 Rate'], epoch + 1)
-    buffer_val_min(writer, dataset, metrics_voting['Rank-1 Rate'], epoch + 1)
+    neutral_dataset = dataset.replace('depth', '').replace('rgbd', '').replace('rgb', '')
 
-    mlflow.log_metric(f"{dataset}_RR1", metrics['Rank-1 Rate'], step=epoch + 1)
-    mlflow.log_metric(f'{dataset}_RR5', metrics['Rank-5 Rate'], step=epoch + 1)
-    mlflow.log_metric(f"{dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
-    mlflow.log_metric(f'{dataset}_Voting_RR5', metrics_voting['Rank-1 Rate'], step=epoch + 1)
+    buffer_val_min(writer, neutral_dataset, metrics['Rank-1 Rate'], epoch + 1)
+    buffer_val_min(writer, neutral_dataset, metrics_voting['Rank-1 Rate'], epoch + 1)
 
-    print(f"Epoch {epoch + 1}/{num_epoch}, {dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']}")
+    mlflow.log_metric(f"{neutral_dataset}_RR1", metrics['Rank-1 Rate'], step=epoch + 1)
+    mlflow.log_metric(f'{neutral_dataset}_RR5', metrics['Rank-5 Rate'], step=epoch + 1)
+    mlflow.log_metric(f"{neutral_dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
+    mlflow.log_metric(f'{neutral_dataset}_Voting_RR5', metrics_voting['Rank-1 Rate'], step=epoch + 1)
+
+    print(
+        f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']}")
