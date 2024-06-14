@@ -23,6 +23,7 @@ def calc_embedding_analysis(embedding_library, distance_metric):
     embedding_metrics = {}
 
     #  ------------------- Calculate intra_enrolled_distances -------------------
+    # Average Distance between enrolled centers
     intra_enrolled_distances = {}
     intra_enrolled_total_distance = 0
     number_of_embeddings = 0
@@ -39,10 +40,11 @@ def calc_embedding_analysis(embedding_library, distance_metric):
             number_of_embeddings += len(label_embeddings)
     if number_of_embeddings > 0:
         intra_enrolled_avg_distance = intra_enrolled_total_distance / number_of_embeddings
-        print('intra_enrolled_avg_distance', intra_enrolled_avg_distance)
+        # print('intra_enrolled_avg_distance', intra_enrolled_avg_distance)
         embedding_metrics['intra_enrolled_avg_distance'] = intra_enrolled_avg_distance
 
     #  ------------------- Calculate intra_query_distances -------------------
+    # Average Distances between queries of same labels
     intra_query_distances = {}
     intra_query_total_distance = 0
     number_of_embeddings = 0
@@ -61,10 +63,11 @@ def calc_embedding_analysis(embedding_library, distance_metric):
             number_of_embeddings += len(label_embeddings)
     if number_of_embeddings > 0:
         intra_query_avg_distance = intra_query_total_distance / number_of_embeddings
-        print('intra_query_avg_distance', intra_query_avg_distance)
+        # print('intra_query_avg_distance', intra_query_avg_distance)
         embedding_metrics['intra_query_avg_distance'] = intra_query_avg_distance
 
     #  ------------------- Calculate intra_scan_distances -------------------
+    # Average Distances between queries of same query scan_id
     intra_scan_distances = {}
     intra_scan_total_distance = 0
     number_of_embeddings = 0
@@ -84,34 +87,35 @@ def calc_embedding_analysis(embedding_library, distance_metric):
             number_of_embeddings += len(scan_id_embeddings)
     if number_of_embeddings > 0:
         intra_scan_avg_distance = intra_scan_total_distance / number_of_embeddings
-        print('intra_scan_avg_distance', intra_scan_avg_distance)
+        # print('intra_scan_avg_distance', intra_scan_avg_distance)
         embedding_metrics['intra_scan_avg_distance'] = intra_scan_avg_distance
 
     #  ------------------- Calculate intra_query_to_enrolled_center_distances -------------------
-    intra_query_to_enrolled_center_distances = {}
-    intra_query_to_enrolled_center_total_distance = 0
-    number_of_embeddings = 0
-    for label in unique_labels:
-        label_indices = np.where(query_labels == label)[0]
-        label_embeddings = distance_enrolled_mean_query[label_indices]
-
-        label_distance = np.sum(label_embeddings)
-        intra_query_to_enrolled_center_distances[label] = label_distance
-        intra_query_to_enrolled_center_total_distance += label_distance
-        number_of_embeddings += len(label_embeddings)
-    intra_query_to_enrolled_center_avg_distance = intra_query_to_enrolled_center_total_distance / number_of_embeddings
-    print('intra_query_to_enrolled_center_avg_distance', intra_query_to_enrolled_center_avg_distance)
-    embedding_metrics['intra_query_to_enrolled_center_avg_distance'] = intra_query_to_enrolled_center_avg_distance
+    # TODO: Check if this is correct
+    #intra_query_to_enrolled_center_distances = {}
+    #intra_query_to_enrolled_center_total_distance = 0
+    #number_of_embeddings = 0
+    #for label in unique_labels:
+    #    label_indices = np.where(query_labels == label)[0]
+    #    label_embeddings = distance_enrolled_mean_query[label_indices]
+#
+#        label_distance = np.sum(label_embeddings)
+#        intra_query_to_enrolled_center_distances[label] = label_distance
+#        intra_query_to_enrolled_center_total_distance += label_distance
+#        number_of_embeddings += len(label_embeddings)
+#    intra_query_to_enrolled_center_avg_distance = intra_query_to_enrolled_center_total_distance / number_of_embeddings
+#    # print('intra_query_to_enrolled_center_avg_distance', intra_query_to_enrolled_center_avg_distance)
+#    embedding_metrics['intra_query_to_enrolled_center_avg_distance'] = intra_query_to_enrolled_center_avg_distance
 
     #  ------------------- Calculate inter_enrolled_center_distances -------------------
-
+    # Distance between enrolled centers
     distance_matrix = cdist(enrolled_embeddings_mean, enrolled_embeddings_mean, metric=distance_metric)
     triu_indices = np.triu_indices_from(distance_matrix, k=1)
     # Extract the upper triangle values
     upper_triangle_values = distance_matrix[triu_indices]
     # Calculate the average distance
     inter_enrolled_center_avg_distance = np.mean(upper_triangle_values)
-    print('inter_enrolled_center_avg_distance', inter_enrolled_center_avg_distance)
+    # print('inter_enrolled_center_avg_distance', inter_enrolled_center_avg_distance)
     embedding_metrics['inter_enrolled_center_avg_distance'] = inter_enrolled_center_avg_distance
 
 

@@ -11,7 +11,7 @@ from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_
 from src.util.ImageFolderRGBDWithScanID import ImageFolderRGBDWithScanID
 from src.util.ImageFolderWithScanID import ImageFolderWithScanID
 from src.util.Metrics import calc_metrics
-from src.util.Plotter import plot_confusion_matrix
+from src.util.Plotter import plot_confusion_matrix, write_embeddings
 from src.util.embeddungs_metrics import calc_embedding_analysis
 from src.util.utils import buffer_val_min
 
@@ -121,12 +121,12 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric):
     plot_confusion_matrix(y_true_voting, y_pred_voting_top1, dataset_enrolled,
                           (os.path.basename(test_path) + '_voting'), matplotlib=False)
 
-    return metrics, metrics_voting, embedding_metrics
+    return metrics, metrics_voting, embedding_metrics, embedding_library
 
 
 def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_epoch, distance_metric):
     print(f"Perform 1:N Evaluation on {dataset}")
-    metrics, metrics_voting, embedding_metrics = evaluate(device, 32, backbone, os.path.join(data_root, dataset), distance_metric)
+    metrics, metrics_voting, embedding_metrics, embedding_library = evaluate(device, 32, backbone, os.path.join(data_root, dataset), distance_metric)
 
     neutral_dataset = dataset.replace('test_', '').replace('_depth', '').replace('_rgbd', '').replace('_rgb', '')
 
@@ -138,10 +138,13 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
     mlflow.log_metric(f"{neutral_dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f'{neutral_dataset}_Voting_RR5', metrics_voting['Rank-1 Rate'], step=epoch + 1)
 
+    write_embeddings(embedding_library, neutral_dataset)
+
     if 'texas' not in dataset:
         mlflow.log_metric(f"{neutral_dataset}_intra_enrolled_avg_distance", embedding_metrics['intra_enrolled_avg_distance'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_intra_query_avg_distance", embedding_metrics['intra_query_avg_distance'], step=epoch + 1)
-        mlflow.log_metric(f"{neutral_dataset}_intra_query_to_enrolled_center_avg_distance", embedding_metrics['intra_query_to_enrolled_center_avg_distance'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_intra_scan_avg_distance", embedding_metrics['intra_scan_avg_distance'], step=epoch + 1)
+        # mlflow.log_metric(f"{neutral_dataset}_intra_query_to_enrolled_center_avg_distance", embedding_metrics['intra_query_to_enrolled_center_avg_distance'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_inter_enrolled_center_avg_distance", embedding_metrics['inter_enrolled_center_avg_distance'], step=epoch + 1)
 
     print(f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']}")

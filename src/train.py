@@ -146,12 +146,10 @@ if __name__ == '__main__':
         print("=" * 60)
 
         if BACKBONE_NAME.find("IR") >= 0:
-            backbone_paras_only_bn, backbone_paras_wo_bn = separate_irse_bn_paras(
-                BACKBONE)  # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
+            backbone_paras_only_bn, backbone_paras_wo_bn = separate_irse_bn_paras(BACKBONE)  # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
             _, head_paras_wo_bn = separate_irse_bn_paras(HEAD)
         else:
-            backbone_paras_only_bn, backbone_paras_wo_bn = separate_resnet_bn_paras(
-                BACKBONE)  # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
+            backbone_paras_only_bn, backbone_paras_wo_bn = separate_resnet_bn_paras(BACKBONE)  # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
             _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
         OPTIMIZER = optim.SGD([{'params': backbone_paras_wo_bn + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY},
                                {'params': backbone_paras_only_bn}], lr=LR, momentum=MOMENTUM)
@@ -171,9 +169,7 @@ if __name__ == '__main__':
                 print("Loading ONLY Backbone Checkpoint '{}'".format(BACKBONE_RESUME_ROOT))
                 BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT))
             else:
-                print(
-                    "No Checkpoint Found at '{}' and '{}'. Please Have a Check or Continue to Train from Scratch".format(
-                        BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT))
+                print("No Checkpoint Found at '{}' and '{}'. Please Have a Check or Continue to Train from Scratch".format(BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT))
             print("=" * 60)
 
         if MULTI_GPU:
@@ -259,7 +255,7 @@ if __name__ == '__main__':
 
             # perform validation & save checkpoints per epoch
             if 'rgbd' in TRAIN_SET:
-                print('Evaluation on RGB')
+                print('Evaluation on RGBD')
                 test_bellus = 'test_rgbd_bellus'
                 test_facescape = 'test_rgbd_facescape'
                 test_faceverse = 'test_rgbd_faceverse'
