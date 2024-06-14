@@ -40,6 +40,7 @@ if __name__ == '__main__':
     BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
+    DISTANCE_METRIC = cfg['DISTANCE_METRIC']  # support: ['euclidian', 'cosine']
 
     INPUT_SIZE = cfg['INPUT_SIZE']
     RGB_MEAN = cfg['RGB_MEAN']  # for normalize inputs
@@ -65,9 +66,10 @@ if __name__ == '__main__':
 
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
     mlflow.set_experiment(RUN_NAME)
-    with mlflow.start_run():
-        mlflow.log_param('config', cfg)
+    with mlflow.start_run() as run:
 
+        mlflow.log_param('config', cfg)
+        print(run.info.run_id)
         log_dir = f'{LOG_ROOT}/tensorboard/{RUN_NAME}'
         writer = SummaryWriter(log_dir)
 
@@ -275,12 +277,11 @@ if __name__ == '__main__':
                 test_faceverse = 'test_depth_faceverse'
                 test_texas = 'test_depth_texas'
 
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH)
-
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH, DISTANCE_METRIC)
             if (epoch + 1) % 5 == 0:
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, epoch, NUM_EPOCH)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, epoch, NUM_EPOCH)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, epoch, NUM_EPOCH)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, epoch, NUM_EPOCH, DISTANCE_METRIC)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, epoch, NUM_EPOCH, DISTANCE_METRIC)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, epoch, NUM_EPOCH, DISTANCE_METRIC)
 
             print("=" * 60)
             time.sleep(0.5)

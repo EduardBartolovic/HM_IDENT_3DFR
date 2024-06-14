@@ -41,28 +41,50 @@ def batched_distances(embeddings_val: np.array, embeddings_database: np.array, b
     return distances
 
 
-def batched_distances_gpu(device, embeddings_val: np.array, embeddings_database: np.array, batch_size=30):
-    num_samples = len(embeddings_val)
+@torch.no_grad()
+def batched_distances_gpu(device, embeddings_query: np.array, embeddings_enrolled: np.array, batch_size=64, distance_metric='cosine'):
 
-    embeddings_val = torch.tensor(embeddings_val, device=device, dtype=torch.float32)
-    embeddings_database = torch.tensor(embeddings_database, device=device, dtype=torch.float32)
+    if distance_metric == 'euclidean':
+        distances = batched_distances_gpu_euclidian(device, embeddings_query, embeddings_enrolled, batch_size)
+    elif distance_metric == 'cosine':
+        distances = batched_distances_gpu_cosine(device, embeddings_query, embeddings_enrolled, batch_size)
+    else:
+        raise ValueError('Wrong Distance Metric Selected')
+    return distances
 
-    # Expand embeddings_database for broadcasting: (1, num_embeddings, num_features)
-    embeddings_database_expanded = embeddings_database.unsqueeze(0)
 
-    # Preallocate memory for distances
-    distances = np.empty((num_samples, len(embeddings_database)), dtype=np.float32)
+@torch.no_grad()
+def batched_distances_gpu_euclidian(device, embeddings_query: np.array, embeddings_enrolled: np.array, batch_size):
+    num_samples = len(embeddings_query)
 
-    for i in tqdm(range(0, num_samples, batch_size), desc="Calculate Distances"):
-        # Get the current batch of embeddings, which could be smaller than batch_size for last batch
-        val_batch = embeddings_val[i:i + batch_size]
+    embeddings_query = torch.tensor(embeddings_query, device=device, dtype=torch.float32)
+    embeddings_enrolled = torch.tensor(embeddings_enrolled, device=device, dtype=torch.float32)
 
-        # Expand val_batch for broadcasting: (current_batch_size, 1, num_features)
-        val_batch_expanded = val_batch.unsqueeze(1)
+    distances = np.empty((num_samples, len(embeddings_enrolled)), dtype=np.float32)
+    for start_idx in tqdm(range(0, num_samples, batch_size), desc="Calculate Distances"):
+        end_idx = min(start_idx + batch_size, num_samples)
+        query_batch = embeddings_query[start_idx:end_idx]
+        dist_batch = torch.cdist(query_batch, embeddings_enrolled, p=2)  # L2-norm / Euclidean
+        distances[start_idx:end_idx] = dist_batch.cpu().numpy()
 
-        # Calculate distances with broadcasting
-        dist_batch = torch.cdist(val_batch_expanded, embeddings_database_expanded, p=2)  # L2-norm / Euclidean
+    return distances
 
-        distances[i:i + batch_size] = dist_batch.squeeze(1).cpu().numpy()
+
+@torch.no_grad()
+def batched_distances_gpu_cosine(device, embeddings_query: np.array, embeddings_enrolled: np.array, batch_size):
+    num_samples = len(embeddings_query)
+
+    embeddings_query = torch.tensor(embeddings_query, device=device, dtype=torch.float32)
+    embeddings_enrolled = torch.tensor(embeddings_enrolled, device=device, dtype=torch.float32)
+    enrolled_norm = torch.nn.functional.normalize(embeddings_enrolled, p=2, dim=1)
+
+    distances = np.empty((num_samples, len(embeddings_enrolled)), dtype=np.float32)
+    for start_idx in tqdm(range(0, num_samples, batch_size), desc="Calculate Distances"):
+        end_idx = min(start_idx + batch_size, num_samples)
+        query_batch = embeddings_query[start_idx:end_idx]
+        query_batch_norm = torch.nn.functional.normalize(query_batch, p=2, dim=1)
+        cos_sim_batch = torch.mm(query_batch_norm, enrolled_norm.t())
+        dist_batch = 1 - cos_sim_batch  # Convert cosine similarity to cosine distance
+        distances[start_idx:end_idx] = dist_batch.cpu().numpy()
 
     return distances

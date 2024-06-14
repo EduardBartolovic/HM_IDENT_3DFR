@@ -10,12 +10,13 @@ from torchvision.transforms import transforms
 from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_gpu
 from src.util.ImageFolderRGBDWithScanID import ImageFolderRGBDWithScanID
 from src.util.ImageFolderWithScanID import ImageFolderWithScanID
-from src.util.Metrics import calc_metrics, calc_embedding_facts
+from src.util.Metrics import calc_metrics
 from src.util.Plotter import plot_confusion_matrix
+from src.util.embeddungs_metrics import calc_embedding_analysis
 from src.util.utils import buffer_val_min
 
 
-def get_embeddings_and_distances(device, model, library_loader, val_loader):
+def get_embeddings_and_distances(device, model, library_loader, val_loader, distance_metric):
     enrolled = build_embedding_library(device, model, library_loader)
 
     # Compute mean embeddings for each label
@@ -26,7 +27,7 @@ def get_embeddings_and_distances(device, model, library_loader, val_loader):
     val = build_embedding_library(device, model, val_loader)
 
     # Calculate distances between embeddings of validation and library data
-    distances = batched_distances_gpu(device, val.embeddings, enrolled_embeddings_mean)
+    distances = batched_distances_gpu(device, val.embeddings, enrolled_embeddings_mean, distance_metric=distance_metric)
 
     Results = namedtuple("Results",
                          ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives",
@@ -84,7 +85,7 @@ def load_data(data_dir, transform, max_batch_size: int) -> (
     return dataset, data_loader
 
 
-def evaluate(device, batch_size, backbone, test_path):
+def evaluate(device, batch_size, backbone, test_path, distance_metric):
     input_size = [112, 112]
     test_transform = transforms.Compose([
         transforms.Resize([int(128 * input_size[0] / 112), int(128 * input_size[0] / 112)]),  # smaller side resized
@@ -100,12 +101,12 @@ def evaluate(device, batch_size, backbone, test_path):
 
     time.sleep(0.1)
 
-    embedding_library = get_embeddings_and_distances(device, backbone, enrolled_loader, val_loader)
+    embedding_library = get_embeddings_and_distances(device, backbone, enrolled_loader, val_loader, distance_metric)
 
     # Sort indices/classes of the closest vectors for each validation embedding
     y_pred = np.argsort(embedding_library.distances, axis=1)
 
-    # embedding_metric = calc_embedding_facts(embedding_library)
+    embedding_metrics = calc_embedding_analysis(embedding_library, distance_metric)
 
     y_pred_top1 = y_pred[:, 0]
     y_pred_top5 = y_pred[:, :5]
@@ -120,14 +121,14 @@ def evaluate(device, batch_size, backbone, test_path):
     plot_confusion_matrix(y_true_voting, y_pred_voting_top1, dataset_enrolled,
                           (os.path.basename(test_path) + '_voting'), matplotlib=False)
 
-    return metrics, metrics_voting
+    return metrics, metrics_voting, embedding_metrics
 
 
-def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_epoch):
+def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_epoch, distance_metric):
     print(f"Perform 1:N Evaluation on {dataset}")
-    metrics, metrics_voting = evaluate(device, 32, backbone, os.path.join(data_root, dataset))
+    metrics, metrics_voting, embedding_metrics = evaluate(device, 32, backbone, os.path.join(data_root, dataset), distance_metric)
 
-    neutral_dataset = dataset.replace('depth', '').replace('rgbd', '').replace('rgb', '')
+    neutral_dataset = dataset.replace('test_', '').replace('_depth', '').replace('_rgbd', '').replace('_rgb', '')
 
     buffer_val_min(writer, neutral_dataset, metrics['Rank-1 Rate'], epoch + 1)
     buffer_val_min(writer, neutral_dataset, metrics_voting['Rank-1 Rate'], epoch + 1)
@@ -137,5 +138,10 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
     mlflow.log_metric(f"{neutral_dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f'{neutral_dataset}_Voting_RR5', metrics_voting['Rank-1 Rate'], step=epoch + 1)
 
-    print(
-        f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']}")
+    if 'texas' not in dataset:
+        mlflow.log_metric(f"{neutral_dataset}_intra_enrolled_avg_distance", embedding_metrics['intra_enrolled_avg_distance'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_intra_query_avg_distance", embedding_metrics['intra_query_avg_distance'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_intra_query_to_enrolled_center_avg_distance", embedding_metrics['intra_query_to_enrolled_center_avg_distance'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_inter_enrolled_center_avg_distance", embedding_metrics['inter_enrolled_center_avg_distance'], step=epoch + 1)
+
+    print(f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']}")
