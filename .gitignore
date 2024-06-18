@@ -1,6 +1,7 @@
 # PROJECT SPECIFIC
 /data/
 data/
+src/log/
 
 # GENERLA STUFF
 .DS_Store
@@ -61,3 +62,7 @@ dmypy.json
 
 docs/index.md
 out_dir
+
+*.zip
+*.7z
+

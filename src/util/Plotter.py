@@ -213,18 +213,18 @@ def plot_metrics(output_path, num_epochs, train_loss_list: List, val_loss_list: 
         plot_metric(output_path, epochs, metric_values, metric_name, ylabel=metric_name.split()[-1])
 
 
-def write_embeddings(embedding_library, dataset):
+def write_embeddings(embedding_library, dataset, epoch):
 
     with tempfile.TemporaryDirectory() as tmp_dir:
 
-        np.save(os.path.join(tmp_dir, f'{dataset}_enrolled_embeddings.npy'), embedding_library.enrolled_embeddings)
-        np.save(os.path.join(tmp_dir, f'{dataset}_enrolled_labels.npy'), embedding_library.enrolled_labels)
-        np.save(os.path.join(tmp_dir, f'{dataset}_enrolled_scan_ids.npy'), embedding_library.enrolled_scan_ids)
-        np.save(os.path.join(tmp_dir, f'{dataset}_enrolled_perspectives.npy'), embedding_library.enrolled_perspectives)
-        np.save(os.path.join(tmp_dir, f'{dataset}_query_embeddings.npy'), embedding_library.val_embeddings)
-        np.save(os.path.join(tmp_dir, f'{dataset}_query_labels.npy'), embedding_library.val_labels)
-        np.save(os.path.join(tmp_dir, f'{dataset}_query_scan_ids.npy'), embedding_library.val_scan_ids)
-        np.save(os.path.join(tmp_dir, f'{dataset}_query_perspectives.npy'), embedding_library.val_perspectives)
-        np.save(os.path.join(tmp_dir, f'{dataset}_distances.npy'), embedding_library.distances)
+        np.save(os.path.join(tmp_dir, f'{dataset}_enrolled_embeddings_{epoch}.npy'), embedding_library.enrolled_embeddings)
+        np.save(os.path.join(tmp_dir, f'{dataset}_enrolled_labels_{epoch}.npy'), embedding_library.enrolled_labels)
+        np.save(os.path.join(tmp_dir, f'{dataset}_enrolled_scan_ids_{epoch}.npy'), embedding_library.enrolled_scan_ids)
+        np.save(os.path.join(tmp_dir, f'{dataset}_enrolled_perspectives_{epoch}.npy'), embedding_library.enrolled_perspectives)
+        np.save(os.path.join(tmp_dir, f'{dataset}_query_embeddings_{epoch}.npy'), embedding_library.val_embeddings)
+        np.save(os.path.join(tmp_dir, f'{dataset}_query_labels_{epoch}.npy'), embedding_library.val_labels)
+        np.save(os.path.join(tmp_dir, f'{dataset}_query_scan_ids_{epoch}.npy'), embedding_library.val_scan_ids)
+        np.save(os.path.join(tmp_dir, f'{dataset}_query_perspectives_{epoch}.npy'), embedding_library.val_perspectives)
+        np.save(os.path.join(tmp_dir, f'{dataset}_distances_{epoch}.npy'), embedding_library.distances)
 
         mlflow.log_artifacts(tmp_dir, artifact_path="embeddings")

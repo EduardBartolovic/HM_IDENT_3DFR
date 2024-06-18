@@ -10,6 +10,8 @@ from backbone.model_resnet import ResNet_50, ResNet_101, ResNet_152
 from backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
+from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, IR_SE_50_rgbd, IR_SE_101_rgbd, \
+    IR_SE_152_rgbd
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
 from src.util.ImageFolder4Channel import ImageFolder4Channel
 from util.eval_model import evaluate_and_log
@@ -104,15 +106,21 @@ if __name__ == '__main__':
         BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE),
                          'ResNet_101': ResNet_101(INPUT_SIZE),
                          'ResNet_152': ResNet_152(INPUT_SIZE),
-                         'ResNetRGBD_50': ResNet_50_rgbd(INPUT_SIZE),
-                         'ResNetRGBD_101': ResNet_101_rgbd(INPUT_SIZE),
-                         'ResNetRGBD_152': ResNet_152_rgbd(INPUT_SIZE),
+                         'ResNet_50_RGBD': ResNet_50_rgbd(INPUT_SIZE),
+                         'ResNet_101_RGBD': ResNet_101_rgbd(INPUT_SIZE),
+                         'ResNet_152_RGBD': ResNet_152_rgbd(INPUT_SIZE),
                          'IR_50': IR_50(INPUT_SIZE),
                          'IR_101': IR_101(INPUT_SIZE),
                          'IR_152': IR_152(INPUT_SIZE),
+                         'IR_50_RGBD': IR_50_rgbd(INPUT_SIZE),
+                         'IR_101_RGBD': IR_101_rgbd(INPUT_SIZE),
+                         'IR_152_RGBD': IR_152_rgbd(INPUT_SIZE),
                          'IR_SE_50': IR_SE_50(INPUT_SIZE),
                          'IR_SE_101': IR_SE_101(INPUT_SIZE),
-                         'IR_SE_152': IR_SE_152(INPUT_SIZE)}
+                         'IR_SE_152': IR_SE_152(INPUT_SIZE),
+                         'IR_SE_50_RGBD': IR_SE_50_rgbd(INPUT_SIZE),
+                         'IR_SE_101_RGBD': IR_SE_101_rgbd(INPUT_SIZE),
+                         'IR_SE_152_RGBD': IR_SE_152_rgbd(INPUT_SIZE)}
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]
         print("=" * 60)
         print(BACKBONE)
