@@ -128,7 +128,7 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
     print(f"Perform 1:N Evaluation on {dataset}")
     metrics, metrics_voting, embedding_metrics, embedding_library = evaluate(device, 32, backbone, os.path.join(data_root, dataset), distance_metric)
 
-    neutral_dataset = dataset.replace('test_', '').replace('_depth', '').replace('_rgbd', '').replace('_rgb', '')
+    neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
     buffer_val_min(writer, neutral_dataset, metrics['Rank-1 Rate'], epoch + 1)
     buffer_val_min(writer, neutral_dataset, metrics_voting['Rank-1 Rate'], epoch + 1)

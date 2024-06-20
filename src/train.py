@@ -121,6 +121,8 @@ if __name__ == '__main__':
                          'IR_SE_50_RGBD': IR_SE_50_rgbd(INPUT_SIZE),
                          'IR_SE_101_RGBD': IR_SE_101_rgbd(INPUT_SIZE),
                          'IR_SE_152_RGBD': IR_SE_152_rgbd(INPUT_SIZE)}
+        if 'rgbd' in TRAIN_SET:
+            BACKBONE_NAME = BACKBONE_NAME + '_RGBD'
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]
         print("=" * 60)
         print(BACKBONE)
