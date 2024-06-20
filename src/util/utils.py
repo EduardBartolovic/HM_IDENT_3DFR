@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import io
 
+from .misc import colorstr
 from .verification import evaluate
 
 from datetime import datetime
@@ -111,7 +112,7 @@ def schedule_lr(optimizer):
     for params in optimizer.param_groups:
         params['lr'] /= 10.
 
-    print(optimizer)
+    print(colorstr('magenta', optimizer))
 
 
 def de_preprocess(tensor):

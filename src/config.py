@@ -4,12 +4,12 @@ configurations = {
     1: dict(
         SEED=1337,  # random seed for reproduce results
 
-        RUN_NAME='test2_rgb_new',# 'EXP7-rgbd_bellus-39T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_32-epochs25-ResNet_50',  # experiment name
-        DATA_ROOT='F:\\Face\\data\\datasets\\',  # the parent root
+        RUN_NAME='test2_rgb_new', # 'EXP7-rgbd_bellus-39T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_32-epochs25-ResNet_50',  # experiment name
+        DATA_ROOT='C:\\Users\\Eduard\\Desktop\\datasets\\',  # the parent root
         TRAIN_SET='rgb_bellus',  # where your train/val/test data are stored
 
-        MODEL_ROOT='.\model',  # the root to buffer your checkpoints
-        LOG_ROOT='.\log',  # the root to log your train/val status
+        MODEL_ROOT='./model',  # the root to buffer your checkpoints
+        LOG_ROOT='./log',  # the root to log your train/val status
         BACKBONE_RESUME_ROOT='./',
         # pretrained/backbone_ir50_ms1m_epoch63.pth',  # the root to resume training from a saved checkpoint
         HEAD_RESUME_ROOT='./',  # the root to resume training from a saved checkpoint

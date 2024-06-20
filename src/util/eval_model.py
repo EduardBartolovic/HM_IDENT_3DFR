@@ -13,6 +13,7 @@ from src.util.ImageFolderWithScanID import ImageFolderWithScanID
 from src.util.Metrics import calc_metrics
 from src.util.Plotter import plot_confusion_matrix, write_embeddings
 from src.util.embeddungs_metrics import calc_embedding_analysis
+from src.util.misc import colorstr
 from src.util.utils import buffer_val_min
 
 
@@ -85,13 +86,13 @@ def load_data(data_dir, transform, max_batch_size: int) -> (
     return dataset, data_loader
 
 
-def evaluate(device, batch_size, backbone, test_path, distance_metric):
+def evaluate(device, batch_size, backbone, test_path, distance_metric, rgb_mean, rgb_std):
     input_size = [112, 112]
     test_transform = transforms.Compose([
         transforms.Resize([int(128 * input_size[0] / 112), int(128 * input_size[0] / 112)]),  # smaller side resized
         transforms.CenterCrop([input_size[0], input_size[1]]),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        transforms.Normalize(mean=rgb_mean, std=rgb_std)
     ])
 
     dataset_enrolled_path = os.path.join(test_path, 'train')
@@ -124,9 +125,9 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric):
     return metrics, metrics_voting, embedding_metrics, embedding_library
 
 
-def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_epoch, distance_metric):
-    print(f"Perform 1:N Evaluation on {dataset}")
-    metrics, metrics_voting, embedding_metrics, embedding_library = evaluate(device, 32, backbone, os.path.join(data_root, dataset), distance_metric)
+def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_epoch, distance_metric, rgb_mean, rgb_std):
+    print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset}"))
+    metrics, metrics_voting, embedding_metrics, embedding_library = evaluate(device, 32, backbone, os.path.join(data_root, dataset), distance_metric, rgb_mean, rgb_std)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
@@ -147,4 +148,4 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
         # mlflow.log_metric(f"{neutral_dataset}_intra_query_to_enrolled_center_avg_distance", embedding_metrics['intra_query_to_enrolled_center_avg_distance'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_inter_enrolled_center_avg_distance", embedding_metrics['inter_enrolled_center_avg_distance'], step=epoch + 1)
 
-    print(f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']}")
+    print(colorstr('bright_green', f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']}"))

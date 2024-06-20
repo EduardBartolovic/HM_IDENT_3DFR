@@ -14,6 +14,7 @@ from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, I
     IR_SE_152_rgbd
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
 from src.util.ImageFolder4Channel import ImageFolder4Channel
+from src.util.misc import colorstr
 from util.eval_model import evaluate_and_log
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
     separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
@@ -68,7 +69,7 @@ if __name__ == '__main__':
 
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
     mlflow.set_experiment(RUN_NAME)
-    with mlflow.start_run() as run:
+    with mlflow.start_run(run_name=RUN_NAME) as run:
 
         mlflow.log_param('config', cfg)
         print(run.info.run_id)
@@ -125,8 +126,8 @@ if __name__ == '__main__':
             BACKBONE_NAME = BACKBONE_NAME + '_RGBD'
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]
         print("=" * 60)
-        print(BACKBONE)
-        print("{} Backbone Generated".format(BACKBONE_NAME))
+        print(colorstr('magenta', BACKBONE))
+        print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
         print("=" * 60)
 
         HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
@@ -134,12 +135,12 @@ if __name__ == '__main__':
                      'SphereFace': SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'Am_softmax': Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
         HEAD = HEAD_DICT[HEAD_NAME]
-        print(HEAD)
-        print("{} Head Generated".format(HEAD_NAME))
+        print(colorstr('magenta', HEAD))
+        print(colorstr('blue', f"{HEAD_NAME} Head Generated"))
         print("=" * 60)
 
         LOSS_DICT = {'Focal': FocalLoss(),
-                     # 'Softmax': nn.CrossEntropyLoss(),
+                     'Softmax': nn.CrossEntropyLoss(),
                      # 'AdaCos' : AdaCos(),
                      # 'AdaM_Softmax': AdaM_Softmax() ,
                      'ArcFace': ArcFace,
@@ -151,8 +152,8 @@ if __name__ == '__main__':
                      # 'SST_Prototype': SST_Prototype()
                      }
         LOSS = LOSS_DICT[LOSS_NAME]
-        print(LOSS)
-        print("{} Loss Generated".format(LOSS_NAME))
+        print(colorstr('magenta', LOSS))
+        print(colorstr('blue', f"{LOSS_NAME} Loss Generated"))
         print("=" * 60)
 
         if BACKBONE_NAME.find("IR") >= 0:
@@ -163,23 +164,23 @@ if __name__ == '__main__':
             _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
         OPTIMIZER = optim.SGD([{'params': backbone_paras_wo_bn + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY},
                                {'params': backbone_paras_only_bn}], lr=LR, momentum=MOMENTUM)
-        print(OPTIMIZER)
-        print("Optimizer Generated")
+        print(colorstr('magenta', OPTIMIZER))
+        print(colorstr('blue', "Optimizer Generated"))
         print("=" * 60)
 
         # optionally resume from a checkpoint
         if BACKBONE_RESUME_ROOT and HEAD_RESUME_ROOT:
             print("=" * 60)
             if os.path.isfile(BACKBONE_RESUME_ROOT) and os.path.isfile(HEAD_RESUME_ROOT):
-                print("Loading Backbone Checkpoint '{}'".format(BACKBONE_RESUME_ROOT))
+                print(colorstr('blue', f"Loading Backbone Checkpoint {BACKBONE_RESUME_ROOT}"))
                 BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT))
-                print("Loading Head Checkpoint '{}'".format(HEAD_RESUME_ROOT))
+                print(colorstr('blue', f"Loading Head Checkpoint {HEAD_RESUME_ROOT}"))
                 HEAD.load_state_dict(torch.load(HEAD_RESUME_ROOT))
             if os.path.isfile(BACKBONE_RESUME_ROOT):
-                print("Loading ONLY Backbone Checkpoint '{}'".format(BACKBONE_RESUME_ROOT))
+                print(colorstr('blue', f"Loading ONLY Backbone Checkpoint {BACKBONE_RESUME_ROOT}"))
                 BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT))
             else:
-                print("No Checkpoint Found at '{}' and '{}'. Please Have a Check or Continue to Train from Scratch".format(BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT))
+                print(colorstr('red', f"No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
             print("=" * 60)
 
         if MULTI_GPU:
@@ -196,6 +197,11 @@ if __name__ == '__main__':
         NUM_EPOCH_WARM_UP = NUM_EPOCH // 25  # use the first 1/25 epochs to warm up
         NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP  # use the first 1/25 epochs to warm up
         batch = 0  # batch index
+
+        # ======= Initialize early stopping parameters =======#
+        patience = 10  # Number of epochs to wait after last time validation loss improved.
+        best_acc = 0  # Initial best value
+        counter = 0  # Counter for epochs without improvement
 
         for epoch in range(NUM_EPOCH):  # start training process
             # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
@@ -240,10 +246,11 @@ if __name__ == '__main__':
                 # display training loss & acc every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     print("=" * 60)
-                    print('Epoch {}/{} Batch {}/{}\t'
-                          'Training Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                          'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                          'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(epoch + 1, NUM_EPOCH, batch + 1, len(train_loader) * NUM_EPOCH, loss=losses, top1=top1, top5=top5))
+                    print(colorstr('cyan',
+                                   f'Epoch {epoch + 1}/{NUM_EPOCH} Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
+                                   f'Training Loss {losses.val:.4f} ({losses.avg:.4f})\t'
+                                   f'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                                   f'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'))
                     print("=" * 60)
 
                 batch += 1  # batch index
@@ -256,41 +263,50 @@ if __name__ == '__main__':
             mlflow.log_metric('train_loss', epoch_loss, step=epoch + 1)
             mlflow.log_metric('Training_Accuracy', epoch_acc, step=epoch + 1)
             print("#" * 60)
-            print('Epoch: {}/{}\t'
-                  'Training Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                epoch + 1, NUM_EPOCH, loss=losses, top1=top1, top5=top5))
+            print(colorstr('bright_green', f'Epoch: {epoch + 1}/{NUM_EPOCH}\t'
+                                           f'Training Loss {losses.val:.4f} ({losses.avg:.4f})\t'
+                                           f'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                                           f'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'))
             print("#" * 60)
 
-            # perform validation & save checkpoints per epoch
+            #  ======= perform validation =======
             if 'rgbd' in TRAIN_SET:
-                print('Evaluation on RGBD')
                 test_bellus = 'test_rgbd_bellus'
                 test_facescape = 'test_rgbd_facescape'
                 test_faceverse = 'test_rgbd_faceverse'
                 test_texas = 'test_rgbd_texas'
             elif 'rgb' in TRAIN_SET:
-                print('Evaluation on RGB')
                 test_bellus = 'test_rgb_bellus'
                 test_facescape = 'test_rgb_facescape'
                 test_faceverse = 'test_rgb_faceverse'
                 test_texas = 'test_rgb_texas'
             elif 'depth' in TRAIN_SET:
-                print('Evaluation on Depth')
                 test_bellus = 'test_depth_bellus'
                 test_facescape = 'test_depth_facescape'
                 test_faceverse = 'test_depth_faceverse'
                 test_texas = 'test_depth_texas'
 
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH, DISTANCE_METRIC)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
             if (epoch + 1) % 5 == 0:
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, epoch, NUM_EPOCH, DISTANCE_METRIC)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, epoch, NUM_EPOCH, DISTANCE_METRIC)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, epoch, NUM_EPOCH, DISTANCE_METRIC)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
 
             print("=" * 60)
-            time.sleep(0.5)
+
+            # Early stopping check
+            if epoch_acc > best_acc:
+                best_acc = epoch_acc
+                counter = 0
+            else:
+                counter += 1
+                if counter >= patience:
+                    print(colorstr('red', "=" * 60))
+                    print(colorstr('red', " ======== Early stopping triggered ======== "))
+                    print(colorstr('red', "=" * 60))
+                    break
+
+            time.sleep(0.3)
             # save checkpoints per epoch
             # if MULTI_GPU:
             #     torch.save(BACKBONE.module.state_dict(), os.path.join(MODEL_ROOT, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(BACKBONE_NAME, epoch + 1, batch, get_time())))

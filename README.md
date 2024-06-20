@@ -1,5 +1,11 @@
 # ml_template
 This is the repository for a ml (machine learning) project template in the EW network.
+## Runing the code
+
+```bash
+export PYTHONPATH=
+python src/train.py
+```
 
 ## system requirements
 the docker image is setup for a workstation with nvidia graphic card
