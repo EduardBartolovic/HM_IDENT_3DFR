@@ -90,7 +90,7 @@ class Bottleneck(Module):
 
 class ResNet(Module):
 
-    def __init__(self, input_size, block, layers, zero_init_residual=True):
+    def __init__(self, input_size, block, layers, embedding_size, zero_init_residual=True):
         super(ResNet, self).__init__()
         assert input_size[0] in [112, 224], "input_size should be [112, 112] or [224, 224]"
         self.inplanes = 64
@@ -106,10 +106,10 @@ class ResNet(Module):
         self.bn_o1 = BatchNorm2d(2048)
         self.dropout = Dropout()
         if input_size[0] == 112:
-            self.fc = Linear(2048 * 4 * 4, 512)
+            self.fc = Linear(2048 * 4 * 4, embedding_size)
         else:
-            self.fc = Linear(2048 * 8 * 8, 512)
-        self.bn_o2 = BatchNorm1d(512)
+            self.fc = Linear(2048 * 8 * 8, embedding_size)
+        self.bn_o2 = BatchNorm1d(embedding_size)
 
         for m in self.modules():
             if isinstance(m, Conv2d):
@@ -163,25 +163,25 @@ class ResNet(Module):
         return x
 
 
-def ResNet_50(input_size, **kwargs):
+def ResNet_50(input_size, embedding_size, **kwargs):
     """Constructs a ResNet-50 model.
     """
-    model = ResNet(input_size, Bottleneck, [3, 4, 6, 3], **kwargs)
+    model = ResNet(input_size, Bottleneck, [3, 4, 6, 3], embedding_size, **kwargs)
 
     return model
 
 
-def ResNet_101(input_size, **kwargs):
+def ResNet_101(input_size, embedding_size, **kwargs):
     """Constructs a ResNet-101 model.
     """
-    model = ResNet(input_size, Bottleneck, [3, 4, 23, 3], **kwargs)
+    model = ResNet(input_size, Bottleneck, [3, 4, 23, 3], embedding_size, **kwargs)
 
     return model
 
 
-def ResNet_152(input_size, **kwargs):
+def ResNet_152(input_size, embedding_size, **kwargs):
     """Constructs a ResNet-152 model.
     """
-    model = ResNet(input_size, Bottleneck, [3, 8, 36, 3], **kwargs)
+    model = ResNet(input_size, Bottleneck, [3, 8, 36, 3], embedding_size, **kwargs)
 
     return model

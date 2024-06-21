@@ -127,7 +127,7 @@ def get_blocks(num_layers):
 
 
 class Backbone(Module):
-    def __init__(self, input_size, num_layers, mode='ir'):
+    def __init__(self, input_size, num_layers, mode='ir', embedding_size=512):
         super(Backbone, self).__init__()
         assert input_size[0] in [112, 224], "input_size should be [112, 112] or [224, 224]"
         assert num_layers in [50, 100, 152], "num_layers should be 50, 100 or 152"
@@ -151,14 +151,14 @@ class Backbone(Module):
             self.output_layer = Sequential(BatchNorm2d(1024),
                                            Dropout(),
                                            Flatten(),
-                                           Linear(512 * 7 * 7 * 2, 512),
-                                           BatchNorm1d(512))
+                                           Linear(512 * 7 * 7 * 2, embedding_size),
+                                           BatchNorm1d(embedding_size))
         else:
             self.output_layer = Sequential(BatchNorm2d(1024),
                                            Dropout(),
                                            Flatten(),
-                                           Linear(512 * 14 * 14 * 2, 512),
-                                           BatchNorm1d(512))
+                                           Linear(512 * 14 * 14 * 2, embedding_size),
+                                           BatchNorm1d(embedding_size))
 
         rgb_modules = []
         depth_modules = []
@@ -214,49 +214,49 @@ class Backbone(Module):
                     m.bias.data.zero_()
 
 
-def IR_50_rgbd(input_size):
+def IR_50_rgbd(input_size, embedding_size):
     """Constructs a ir-50 model.
     """
-    model = Backbone(input_size, 50, 'ir')
+    model = Backbone(input_size, 50, 'ir', embedding_size)
 
     return model
 
 
-def IR_101_rgbd(input_size):
+def IR_101_rgbd(input_size, embedding_size):
     """Constructs a ir-101 model.
     """
-    model = Backbone(input_size, 100, 'ir')
+    model = Backbone(input_size, 100, 'ir', embedding_size)
 
     return model
 
 
-def IR_152_rgbd(input_size):
+def IR_152_rgbd(input_size, embedding_size):
     """Constructs a ir-152 model.
     """
-    model = Backbone(input_size, 152, 'ir')
+    model = Backbone(input_size, 152, 'ir', embedding_size)
 
     return model
 
 
-def IR_SE_50_rgbd(input_size):
+def IR_SE_50_rgbd(input_size, embedding_size):
     """Constructs a ir_se-50 model.
     """
-    model = Backbone(input_size, 50, 'ir_se')
+    model = Backbone(input_size, 50, 'ir_se', embedding_size)
 
     return model
 
 
-def IR_SE_101_rgbd(input_size):
+def IR_SE_101_rgbd(input_size, embedding_size):
     """Constructs a ir_se-101 model.
     """
-    model = Backbone(input_size, 100, 'ir_se')
+    model = Backbone(input_size, 100, 'ir_se', embedding_size)
 
     return model
 
 
-def IR_SE_152_rgbd(input_size):
+def IR_SE_152_rgbd(input_size, embedding_size):
     """Constructs a ir_se-152 model.
     """
-    model = Backbone(input_size, 152, 'ir_se')
+    model = Backbone(input_size, 152, 'ir_se', embedding_size)
 
     return model

@@ -67,12 +67,22 @@ if __name__ == '__main__':
     print(cfg)
     print("=" * 60)
 
+    # ===== ML FLOW SET up ============
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
     mlflow.set_experiment(RUN_NAME)
-    with mlflow.start_run(run_name=RUN_NAME) as run:
+
+    client = mlflow.tracking.MlflowClient()
+    experiment = client.get_experiment_by_name(RUN_NAME)
+    if experiment:
+        runs = client.search_runs(experiment_ids=[experiment.experiment_id])
+        run_count = len(runs)
+    else:
+        run_count = 0  # No runs if the experiment does not exist yet
+
+    with mlflow.start_run(run_name=f"{RUN_NAME}_[{run_count + 1}]") as run:
 
         mlflow.log_param('config', cfg)
-        print(run.info.run_id)
+        print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
         log_dir = f'{LOG_ROOT}/tensorboard/{RUN_NAME}'
         writer = SummaryWriter(log_dir)
 
@@ -104,24 +114,24 @@ if __name__ == '__main__':
         print("Number of Training Classes: {}".format(NUM_CLASS))
 
         # ======= model & loss & optimizer =======#
-        BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE),
-                         'ResNet_101': ResNet_101(INPUT_SIZE),
-                         'ResNet_152': ResNet_152(INPUT_SIZE),
-                         'ResNet_50_RGBD': ResNet_50_rgbd(INPUT_SIZE),
-                         'ResNet_101_RGBD': ResNet_101_rgbd(INPUT_SIZE),
-                         'ResNet_152_RGBD': ResNet_152_rgbd(INPUT_SIZE),
-                         'IR_50': IR_50(INPUT_SIZE),
-                         'IR_101': IR_101(INPUT_SIZE),
-                         'IR_152': IR_152(INPUT_SIZE),
-                         'IR_50_RGBD': IR_50_rgbd(INPUT_SIZE),
-                         'IR_101_RGBD': IR_101_rgbd(INPUT_SIZE),
-                         'IR_152_RGBD': IR_152_rgbd(INPUT_SIZE),
-                         'IR_SE_50': IR_SE_50(INPUT_SIZE),
-                         'IR_SE_101': IR_SE_101(INPUT_SIZE),
-                         'IR_SE_152': IR_SE_152(INPUT_SIZE),
-                         'IR_SE_50_RGBD': IR_SE_50_rgbd(INPUT_SIZE),
-                         'IR_SE_101_RGBD': IR_SE_101_rgbd(INPUT_SIZE),
-                         'IR_SE_152_RGBD': IR_SE_152_rgbd(INPUT_SIZE)}
+        BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE, EMBEDDING_SIZE),
+                         'ResNet_101': ResNet_101(INPUT_SIZE, EMBEDDING_SIZE),
+                         'ResNet_152': ResNet_152(INPUT_SIZE, EMBEDDING_SIZE),
+                         'ResNet_50_RGBD': ResNet_50_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
+                         'ResNet_101_RGBD': ResNet_101_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
+                         'ResNet_152_RGBD': ResNet_152_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_50': IR_50(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_101': IR_101(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_152': IR_152(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_50_RGBD': IR_50_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_101_RGBD': IR_101_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_152_RGBD': IR_152_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_SE_50': IR_SE_50(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_SE_101': IR_SE_101(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_SE_152': IR_SE_152(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_SE_50_RGBD': IR_SE_50_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_SE_101_RGBD': IR_SE_101_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_SE_152_RGBD': IR_SE_152_rgbd(INPUT_SIZE, EMBEDDING_SIZE)}
         if 'rgbd' in TRAIN_SET:
             BACKBONE_NAME = BACKBONE_NAME + '_RGBD'
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]
