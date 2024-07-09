@@ -1,21 +1,21 @@
 
 
-SEED: 1339  # random seed for reproduce results
+SEED: 1338  # random seed for reproduce results
 
-RUN_NAME: 'EXP41-rgbd_facescape-500T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_16-epochs50-IR_101'  # experiment_name
+RUN_NAME: 'EXP45-rgbd_bellus-45T_25P-enc_512-ArcFace-FocalLoss-224_244-batchsize_16-epochs50-IR_SE_50'  # experiment_name
 DATA_ROOT: 'F:\\Face\\data\\datasets\\'  # the parent root
-TRAIN_SET: 'rgb_facescape'  # where your train/val/test data are stored
+TRAIN_SET: 'rgbd_bellus'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
 BACKBONE_RESUME_ROOT: './'  # pretrained/backbone_ir50_ms1m_epoch63.pth  # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: './'  # the root to resume training from a saved checkpoint
-BACKBONE_NAME: 'IR_101'  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
+BACKBONE_NAME: 'IR_SE_50'  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 DISTANCE_METRIC: 'cosine'  # support: ['euclidean', 'cosine']
 
-INPUT_SIZE: [112, 112]  # support: [112, 112] and [224, 224]
+INPUT_SIZE: [224, 224]  # support: [112, 112] and [224, 224]
 RGB_MEAN: [0.5, 0.5, 0.5]  # for normalize inputs to [-1, 1]
 RGB_STD: [0.5, 0.5, 0.5]
 EMBEDDING_SIZE: 512  # feature dimension
