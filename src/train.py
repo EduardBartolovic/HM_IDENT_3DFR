@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-from config import configurations
 from backbone.model_resnet import ResNet_50, ResNet_101, ResNet_152
 from backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
@@ -23,11 +22,18 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import os
 import mlflow
+import yaml
+import argparse
 
 if __name__ == '__main__':
 
-    # ======= hyperparameters & data loaders =======#
-    cfg = configurations[1]
+    # ======= Read config =======#
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=str, help='Path to the config file', default='config.yaml')
+    args = parser.parse_args()
+    with open(args.config, 'r') as file:
+        cfg = yaml.safe_load(file)
 
     SEED = cfg['SEED']  # random seed for reproduce results
     torch.manual_seed(SEED)
@@ -57,7 +63,7 @@ if __name__ == '__main__':
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
 
-    DEVICE = cfg['DEVICE']
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     MULTI_GPU = cfg['MULTI_GPU']  # flag to use multiple GPUs
     GPU_ID = cfg['GPU_ID']  # specify your GPU ids
     PIN_MEMORY = cfg['PIN_MEMORY']
