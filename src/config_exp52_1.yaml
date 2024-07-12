@@ -2,7 +2,7 @@
 
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP52-rgb_bellus-45T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_32-epochs50-IR_50_pretrainedOnAsia'  # experiment_name
+RUN_NAME: 'EXP52-rgb_bellus-45T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_32-epochs30-IR_50_pretrainedOnAsia'  # experiment_name
 DATA_ROOT: 'F:/Face/data/datasets'  # the parent root
 TRAIN_SET: 'rgb_bellus'  # where your train/val/test data are stored
 
@@ -21,11 +21,11 @@ RGB_STD: [0.5, 0.5, 0.5]
 EMBEDDING_SIZE: 512  # feature dimension
 BATCH_SIZE: 32
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
-LR: 0.001  # initial LR
-NUM_EPOCH: 50  # total epoch number (use the first 1/25 epochs to warm up)
-WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
-MOMENTUM: 0.9
-STAGES: [30, 40, 45]  # epoch stages to decay learning rate
+LR: 0.0001  # initial LR
+NUM_EPOCH: 30  # total epoch number (use the first 1/25 epochs to warm up)
+WEIGHT_DECAY: 0.0001  # do not apply to batch_norm parameters
+MOMENTUM: 0.25
+STAGES: [10, 20, 25]  # epoch stages to decay learning rate
 
 MULTI_GPU: false
 # flag to use multiple GPUs; if you choose to train with single GPU, you should first run "export CUDA_VISILE_DEVICES=device_id" to specify the GPU card you want to use

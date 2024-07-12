@@ -13,6 +13,7 @@ from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, I
     IR_SE_152_rgbd
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
 from src.util.ImageFolder4Channel import ImageFolder4Channel
+from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
 from util.eval_model import evaluate_and_log
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
@@ -185,19 +186,9 @@ if __name__ == '__main__':
         print("=" * 60)
 
         # optionally resume from a checkpoint
-        if BACKBONE_RESUME_ROOT and HEAD_RESUME_ROOT:
-            print("=" * 60)
-            if os.path.isfile(BACKBONE_RESUME_ROOT) and os.path.isfile(HEAD_RESUME_ROOT):
-                print(colorstr('blue', f"Loading Backbone Checkpoint {BACKBONE_RESUME_ROOT}"))
-                BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT))
-                print(colorstr('blue', f"Loading Head Checkpoint {HEAD_RESUME_ROOT}"))
-                HEAD.load_state_dict(torch.load(HEAD_RESUME_ROOT))
-            if os.path.isfile(BACKBONE_RESUME_ROOT):
-                print(colorstr('blue', f"Loading ONLY Backbone Checkpoint {BACKBONE_RESUME_ROOT}"))
-                BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT))
-            else:
-                print(colorstr('red', f"No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
-            print("=" * 60)
+        print("=" * 60)
+        load_checkpoint(BACKBONE, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
+        print("=" * 60)
 
         if MULTI_GPU:
             # multi-GPU setting
