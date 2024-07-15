@@ -3,7 +3,7 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP42-rgbd_facescape-500T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_16-epochs50-IR_SE_101'  # experiment_name
-DATA_ROOT: 'F:\\Face\\data\\datasets\\'  # the parent root
+DATA_ROOT: '~/dataset3/'  # the parent root
 TRAIN_SET: 'rgb_facescape'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
