@@ -2,7 +2,7 @@
 
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP52-rgb_bellus-45T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_32-epochs30-IR_50_pretrainedOnAsia-undistorted_dataset'  # experiment_name
+RUN_NAME: 'EXP66-rgb_bellus-47T_18P-enc_512-ArcFace-FocalLoss-112_112-batchsize_32-epochs30-IR_50_pretrainedOnAsia-undistorted'  # experiment_name
 DATA_ROOT: '~/dataset'  # the parent root
 TRAIN_SET: 'rgb_bellus'  # where your train/val/test data are stored
 

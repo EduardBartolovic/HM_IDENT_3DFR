@@ -1,14 +1,12 @@
+SEED: 1337  # random seed for reproduce results
 
-
-SEED: 1339  # random seed for reproduce results
-
-RUN_NAME: 'EXP65-Private_Asia_Face_Data-0KT_1P-enc_512-epochs0-IR_50-undistorted'  # experiment_name
-DATA_ROOT: '~/dataset'  # the parent root
-TRAIN_SET: 'rgb_bellus'  # where your train/val/test data are stored
+RUN_NAME: 'EXP32-depth_facescape-500T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_16-epochs50-IR_50'  # experiment_name
+DATA_ROOT: '~/dataset3/'  # the parent root
+TRAIN_SET: 'depth_facescape'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
-BACKBONE_RESUME_ROOT: './pretrained/backbone_ir50_asia.pth'  # the root to resume training from a saved checkpoint
+BACKBONE_RESUME_ROOT: './'  # pretrained/backbone_ir50_ms1m_epoch63.pth  # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: './'  # the root to resume training from a saved checkpoint
 BACKBONE_NAME: 'IR_50'  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
@@ -22,7 +20,7 @@ EMBEDDING_SIZE: 512  # feature dimension
 BATCH_SIZE: 16
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
 LR: 0.001  # initial LR
-NUM_EPOCH: 0  # total epoch number (use the first 1/25 epochs to warm up)
+NUM_EPOCH: 50  # total epoch number (use the first 1/25 epochs to warm up)
 WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
 MOMENTUM: 0.9
 STAGES: [30, 40, 45]  # epoch stages to decay learning rate
