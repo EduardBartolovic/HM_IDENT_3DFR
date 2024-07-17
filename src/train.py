@@ -19,6 +19,7 @@ from util.eval_model import evaluate_and_log
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
     separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
 
+from torchinfo import summary
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import os
@@ -141,9 +142,13 @@ if __name__ == '__main__':
                          'IR_SE_152_RGBD': IR_SE_152_rgbd(INPUT_SIZE, EMBEDDING_SIZE)}
         if 'rgbd' in TRAIN_SET:
             BACKBONE_NAME = BACKBONE_NAME + '_RGBD'
+            channel = 4
+        else:
+            channel = 3
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]
         print("=" * 60)
-        print(colorstr('magenta', BACKBONE))
+        model_stats = summary(BACKBONE, (BATCH_SIZE, channel, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
+        print(colorstr('magenta', str(model_stats)))
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
         print("=" * 60)
 
