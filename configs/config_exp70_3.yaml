@@ -1,6 +1,6 @@
 
 
-SEED: 1337  # random seed for reproduce results
+SEED: 139  # random seed for reproduce results
 
 RUN_NAME: 'EXP70-rgbd_bellus-47T_18P-enc_512-ArcFace-FocalLoss-112_112-batchsize_64-epochs50-IR_SE_50-undistorted'  # experiment_name
 DATA_ROOT: '~/dataset5'  # the parent root
