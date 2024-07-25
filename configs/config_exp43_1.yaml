@@ -3,8 +3,8 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP43-rgbd_bellus-45T_25P-enc_512-ArcFace-FocalLoss-224_244-batchsize_16-epochs50-ResNet_50'  # experiment_name
-DATA_ROOT: '~/dataset3/'  # the parent root
-TRAIN_SET: 'rgbd_bellus'  # where your train/val/test data are stored
+DATA_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\data\\datasets5'  # the parent root
+TRAIN_SET: 'rgb_bellus'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
