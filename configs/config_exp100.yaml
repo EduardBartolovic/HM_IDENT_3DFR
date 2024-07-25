@@ -2,8 +2,8 @@
 
 SEED: 1339  # random seed for reproduce results
 
-RUN_NAME: 'EXP65-Private_Asia_Face_Data-0KT_1P-enc_512-epochs0-IR_50-undistorted'  # experiment_name
-DATA_ROOT: '~/dataset'  # the parent root
+RUN_NAME: 'EXP100-Private_Asia_Face_Data-0KT_1P-enc_512-epochs0-IR_50-undistorted'  # experiment_name
+DATA_ROOT: '~/dataset6'  # the parent root
 TRAIN_SET: 'rgb_bellus'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints

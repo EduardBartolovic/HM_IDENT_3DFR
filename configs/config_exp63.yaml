@@ -3,7 +3,7 @@
 SEED: 1339  # random seed for reproduce results
 
 RUN_NAME: 'EXP63-MS_Celeb_1M_Align_112x112-100KT_1P-enc_512-epochs0-IR_50-undistorted'  # experiment_name
-DATA_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\data\\datasets5'  # the parent root
+DATA_ROOT: '~/dataset'  # the parent root
 TRAIN_SET: 'rgb_bellus'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
