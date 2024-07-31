@@ -1,8 +1,8 @@
 SEED: 1339  # random seed for reproduce results
 
-RUN_NAME: 'EXP119-rgb_bellus+rgb_MonoFFHQ-2047T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_64-epochs50-IR_50-undistorted'  # experiment_name
+RUN_NAME: 'EXP121-rgbd_MonoFFHQ-1000T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_64-epochs50-IR_50-undistorted'  # experiment_name
 DATA_ROOT: '~/dataset6'  # the parent root
-TRAIN_SET: 'rgb_bellus+MonoFFHQ2000'  # where your train/val/test data are stored
+TRAIN_SET: 'rgbd_MonoFFHQ1000'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
