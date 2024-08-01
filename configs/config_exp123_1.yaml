@@ -2,7 +2,7 @@ SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP123-photo_ffhq-1000T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_64-epochs50-IR_50-undistorted'  # experiment_name
 DATA_ROOT: '~/dataset6'  # the parent root
-TRAIN_SET: 'photo_ffhq'  # where your train/val/test data are stored
+TRAIN_SET: 'photo_ffhq1000'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
