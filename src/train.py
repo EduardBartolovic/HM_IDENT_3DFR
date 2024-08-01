@@ -287,7 +287,7 @@ if __name__ == '__main__':
                 test_facescape = 'test_rgbd_facescape'
                 test_faceverse = 'test_rgbd_faceverse'
                 test_texas = 'test_rgbd_texas'
-            elif 'rgb' in TRAIN_SET:
+            elif 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
                 test_bellus = 'test_rgb_bellus'
                 test_facescape = 'test_rgb_facescape'
                 test_faceverse = 'test_rgb_faceverse'
