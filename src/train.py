@@ -61,6 +61,10 @@ if __name__ == '__main__':
     DROP_LAST = cfg['DROP_LAST']  # whether drop the last batch to ensure consistent batch_norm statistics
     LR = cfg['LR']  # initial LR
     NUM_EPOCH = cfg['NUM_EPOCH']
+    if cfg['PATIENCE']:
+        PATIENCE = cfg['PATIENCE']
+    else:
+        PATIENCE = 10
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
@@ -211,7 +215,6 @@ if __name__ == '__main__':
         batch = 0  # batch index
 
         # ======= Initialize early stopping parameters =======#
-        patience = 10  # Number of epochs to wait after last time validation loss improved.
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
 
@@ -312,7 +315,7 @@ if __name__ == '__main__':
                 counter = 0
             else:
                 counter += 1
-                if counter >= patience:
+                if counter >= PATIENCE:
                     print(colorstr('red', "=" * 60))
                     print(colorstr('red', " ======== Early stopping triggered ======== "))
                     print(colorstr('red', "=" * 60))
