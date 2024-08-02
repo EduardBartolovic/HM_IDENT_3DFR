@@ -61,10 +61,7 @@ if __name__ == '__main__':
     DROP_LAST = cfg['DROP_LAST']  # whether drop the last batch to ensure consistent batch_norm statistics
     LR = cfg['LR']  # initial LR
     NUM_EPOCH = cfg['NUM_EPOCH']
-    if cfg['PATIENCE']:
-        PATIENCE = cfg['PATIENCE']
-    else:
-        PATIENCE = 10
+    PATIENCE = cfg.get('PATIENCE', 10)
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
