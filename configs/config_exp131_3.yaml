@@ -1,6 +1,6 @@
 SEED: 1339  # random seed for reproduce results
 
-RUN_NAME: 'EXP131-rgb_bellus+rgbd_monoffhq-4047T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_64-epochs50-IR_50-undistorted'  # experiment_name
+RUN_NAME: 'EXP131-rgb_bellus+rgb_monoffhq-4047T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_64-epochs50-IR_50-undistorted'  # experiment_name
 DATA_ROOT: '~/dataset6'  # the parent root
 TRAIN_SET: 'rgb_bellus+rgb_monoffhq4000'  # where your train/val/test data are stored
 
