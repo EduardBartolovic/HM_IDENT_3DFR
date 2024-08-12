@@ -139,7 +139,7 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
     mlflow.log_metric(f"{neutral_dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f'{neutral_dataset}_Voting_RR5', metrics_voting['Rank-1 Rate'], step=epoch + 1)
 
-    if 'bellus' in dataset or epoch > 47:
+    if 'bellus' in dataset:
         write_embeddings(embedding_library, neutral_dataset, epoch + 1)
 
     if 'texas' not in dataset:
