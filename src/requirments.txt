@@ -1,5 +1,6 @@
 torch
 torchvision
+torchinfo
 opencv-python
 mlflow
 scikit-learn
