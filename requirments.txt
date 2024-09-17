@@ -8,3 +8,6 @@ pandas
 tqdm
 tensorboardX
 matplotlib
+pycm
+openTSNE
+seaborn
