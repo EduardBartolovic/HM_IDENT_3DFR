@@ -292,11 +292,13 @@ if __name__ == '__main__':
                 test_bellus = 'test_rgb_bellus'
                 test_facescape = 'test_rgb_facescape'
                 test_faceverse = 'test_rgb_faceverse'
+                test_texas = 'test_rgb_texas'
                 test_bff = 'test_rgb_bff'
             elif 'depth' in TRAIN_SET:
                 test_bellus = 'test_depth_bellus'
                 test_facescape = 'test_depth_facescape'
                 test_faceverse = 'test_depth_faceverse'
+                test_texas = 'test_depth_texas'
                 test_bff = 'test_depth_bff'
 
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
