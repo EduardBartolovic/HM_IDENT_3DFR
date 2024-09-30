@@ -2,7 +2,7 @@ SEED: 1338  # random seed for reproduce results
 
 RUN_NAME: 'EXP151-photo_ffhq-32000T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_256-epochs50-IR_50-undistorted'  # experiment_name
 DATA_ROOT: '~/dataset6'  # the parent root
-TRAIN_SET: 'photo_ffh32000'  # where your train/val/test data are stored
+TRAIN_SET: 'photo_ffhq32000'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
@@ -19,7 +19,7 @@ RGB_STD: [0.5, 0.5, 0.5]
 EMBEDDING_SIZE: 512  # feature dimension
 BATCH_SIZE: 256
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
-LR: 0.001  # initial LR
+LR: 0.002  # initial LR
 NUM_EPOCH: 150  # total epoch number (use the first 1/25 epochs to warm up)
 PATIENCE: 50  # patience for early stopping
 WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters

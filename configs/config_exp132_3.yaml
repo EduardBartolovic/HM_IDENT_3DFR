@@ -19,7 +19,7 @@ RGB_STD: [0.5, 0.5, 0.5]
 EMBEDDING_SIZE: 512  # feature dimension
 BATCH_SIZE: 128
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
-LR: 0.001  # initial LR
+LR: 0.00141  # initial LR
 NUM_EPOCH: 150  # total epoch number (use the first 1/25 epochs to warm up)
 PATIENCE: 50  # patience for early stopping
 WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
