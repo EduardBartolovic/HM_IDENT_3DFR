@@ -302,7 +302,7 @@ if __name__ == '__main__':
                 test_bff = 'test_depth_bff'
 
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
-            if (epoch + 1) % 5 == 0:
+            if (epoch + 1) % 10 == 0:
                 evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
                 evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
                 evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
