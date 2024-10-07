@@ -75,6 +75,7 @@ def evaluate_verification(device, backbone, data_root, dataset_path, writer, epo
                 embeddings_storage[(name[i], number[i].item())] = embeddings[i]
 
     pairs = []
+    data_root = os.path.expanduser(data_root)
     with open(os.path.join(data_root, dataset_path, 'pairs.txt'), 'r') as f:
         for line in f:
             parts = line.strip().split('\t')
