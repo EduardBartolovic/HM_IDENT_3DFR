@@ -2,7 +2,7 @@ import torch
 import torchvision.transforms as transforms
 import numpy as np
 from PIL import Image
-import io
+from sklearn import metrics
 
 from .misc import colorstr
 from .verification import evaluate
@@ -49,13 +49,6 @@ def make_weights_for_balanced_classes(images, nclasses):
         weight[idx] = weight_per_class[val[1]]
 
     return weight
-
-
-# def get_val_pair(path, name):
-#     carray = bcolz.carray(rootdir = os.path.join(path, name), mode = 'r')
-#     issame = np.load('{}/{}_list.npy'.format(path, name))
-#     return carray, issame
-
 
 # def get_val_data(data_path):
 #     lfw, lfw_issame = get_val_pair(data_path, 'lfw')
@@ -155,21 +148,18 @@ def ccrop_batch(imgs_tensor):
 
 
 def gen_plot(fpr, tpr):
-    """Create a pyplot plot and save to buffer."""
-    plt.figure()
-    plt.xlabel("FPR", fontsize=14)
-    plt.ylabel("TPR", fontsize=14)
-    plt.title("ROC Curve", fontsize=14)
-    plot = plt.plot(fpr, tpr, linewidth=2)
-    buf = io.BytesIO()
-    plt.savefig(buf, format='jpeg')
-    buf.seek(0)
-    plt.close()
-
-    return buf
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.set_xlabel("FPR", fontsize=14)
+    ax.set_ylabel("TPR", fontsize=14)
+    ax.set_title("ROC Curve", fontsize=14)
+    ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    ax.plot(fpr, tpr, linewidth=2)
+    #plt.show()
+    plt.close(fig)
+    return fig
 
 
-def perform_val(multi_gpu, device, embedding_size, batch_size, backbone, carray, issame, nrof_folds=10, tta=True):
+def perform_val(multi_gpu, device, embedding_size, batch_size, backbone, carray, issame, tta=True):
     if multi_gpu:
         backbone = backbone.module  # unpackage model from DataParallel
         backbone = backbone.to(device)
