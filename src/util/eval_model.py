@@ -10,7 +10,7 @@ from torchvision.transforms import transforms
 from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_gpu
 from src.util.ImageFolderRGBDWithScanID import ImageFolderRGBDWithScanID
 from src.util.ImageFolderWithScanID import ImageFolderWithScanID
-from src.util.Metrics import calc_metrics
+from src.util.Metrics import calc_metrics, error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix, write_embeddings
 from src.util.embeddungs_metrics import calc_embedding_analysis
 from src.util.misc import colorstr
@@ -114,6 +114,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, rgb_mean,
     metrics = calc_metrics(embedding_library.val_labels, y_pred_top1, y_pred_top5)
     plot_confusion_matrix(embedding_library.val_labels, y_pred_top1, dataset_enrolled, os.path.basename(test_path),
                           matplotlib=False)
+    error_rate_per_class(embedding_library.val_labels, y_pred_top1, os.path.basename(test_path))
 
     y_true_voting, y_pred_voting = voting(y_pred, embedding_library.val_scan_ids, embedding_library.val_labels)
     y_pred_voting_top1 = y_pred_voting[:, 0]

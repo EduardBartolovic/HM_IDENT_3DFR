@@ -1,10 +1,13 @@
 import json
 import os
-import time
+import tempfile
+from collections import defaultdict
+from pathlib import Path
 
+import mlflow
 import numpy as np
-import torch
-from scipy.spatial.distance import cdist
+import pandas as pd
+from matplotlib import pyplot as plt
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
 
 
@@ -77,3 +80,55 @@ def write_metrics_and_config(output_path, acc_val, acc5_val, prec_val, rec_val, 
     with open(output_file_path, 'w') as file:
         json.dump(hyperparameters, file, indent=4)
 
+
+def error_rate_per_class(true_labels, pred_labels, filename):
+    # Find the unique classes
+    classes = np.unique(true_labels)
+
+    # Initialize a dictionary to store error rates per class
+    error_rates = defaultdict(float)
+
+    # Calculate error rates for each class
+    for cls in classes:
+        # Get all indices of the current class in the true labels
+        class_indices = np.where(true_labels == cls)[0]
+
+        # Get the corresponding predictions for this class
+        class_true = true_labels[class_indices]
+        class_pred = pred_labels[class_indices]
+
+        # Calculate the number of misclassified instances
+        errors = np.sum(class_true != class_pred)
+
+        # Calculate the error rate for the class
+        error_rate = errors / len(class_true)
+        error_rates[cls] = error_rate
+
+    df = pd.DataFrame(list(error_rates.items()), columns=['Class', 'Error Rate'])
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = Path(tmp_dir)
+        # Save to CSV
+        df.to_csv(os.path.join(tmp_dir, filename+'error_rate_per_class.csv'), index=False)
+
+        classes = list(error_rates.keys())
+        error_values = list(error_rates.values())
+
+        # Create the plot
+        plt.figure(figsize=(20, 5))
+        plt.bar(classes, error_values, color='skyblue')
+
+        # Add labels and title
+        plt.xlabel('Class', fontsize=12)
+        plt.ylabel('Error Rate', fontsize=12)
+        plt.title('Error Rate per Class', fontsize=14)
+
+        # Add gridlines
+        plt.grid(True, linestyle='--', alpha=0.7)
+
+        # Show plot
+        plt.tight_layout()
+        plt.savefig(os.path.join(tmp_dir, filename+'error_rate_per_class.jpg'), format='jpg', dpi=300)
+        plt.close()
+
+        mlflow.log_artifacts(tmp_dir, artifact_path="error_rate_per_class")

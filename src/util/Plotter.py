@@ -61,14 +61,8 @@ def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matpl
         class_to_idx = dataset.class_to_idx
         idx_to_class = {v: k for k, v in class_to_idx.items()}
 
-
-
         # https://github.com/sepandhaghighi/pycm
         cm = ConfusionMatrix(actual_vector=true_labels, predict_vector=pred_labels)
-        # Ensure the mapping includes all class indices
-
-        # Relabel the confusion matrix
-
         try:
             cm.relabel(idx_to_class)
         except:
