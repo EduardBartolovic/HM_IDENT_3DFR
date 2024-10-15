@@ -18,10 +18,10 @@ opencv-python = "^4.8.0.76"
 # Alternative? https://github.com/python-poetry/poetry/issues/6409
 # https://download.pytorch.org/whl/cu121/torchvision/
 #torch = {url = "https://download.pytorch.org/whl/cu121/torch-2.3.0%2Bcu121-cp310-cp310-win_amd64.whl"}
-torch = {url = "https://download.pytorch.org/whl/cu121/torch-2.3.0%2Bcu121-cp310-cp310-linux_x86_64.whl"}
+#torch = {url = "https://download.pytorch.org/whl/cu121/torch-2.3.0%2Bcu121-cp310-cp310-linux_x86_64.whl"}
 # https://download.pytorch.org/whl/cu121/torch/
 #torchvision = {url = "https://download.pytorch.org/whl/cu121/torchvision-0.18.0%2Bcu121-cp310-cp310-win_amd64.whl"}
-torchvision = {url = "https://download.pytorch.org/whl/cu121/torchvision-0.18.0%2Bcu121-cp310-cp310-linux_x86_64.whl"}
+#torchvision = {url = "https://download.pytorch.org/whl/cu121/torchvision-0.18.0%2Bcu121-cp310-cp310-linux_x86_64.whl"}
 scikit-learn = "^1.4.2"
 pandas = "^2.2.2"
 tqdm = "^4.66.4"

@@ -1,10 +1,9 @@
 # Base image with CUDA and CUDNN for PyTorch
-FROM nvidia/cuda:12.6.2-cudnn-devel-ubuntu22.04
+FROM nvidia/cuda:12.6.2-cudnn-runtime-ubuntu22.04
 
 # Set environment variables for CUDA and Python
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /root/.local/bin:$PATH
-ENV PYTHONPATH=.
 
 # Install Python, Poetry, and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,9 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
 
-# Clone your project repository
-RUN git clone https://github.com/EduardBartolovic/HM_IDENT_3DFR /app
-
 # Create and set working directory
 WORKDIR /app
 
@@ -29,5 +25,13 @@ COPY pyproject.toml poetry.lock* /app/
 # Install project dependencies via Poetry
 RUN poetry install --no-root
 
+# Install PyTorch with CUDA support using Poetry
+RUN poetry run pip install torch torchvision
+
+# Copy the rest of the project files
+COPY . /app
+
+ENV PYTHONPATH="/app/src:$PYTHONPATH"
+
 CMD [ "bash" ]
-#CMD ["poetry", "run", "python", "train.py"]
+#CMD ["poetry", "run", "python", "src/train.py"]
