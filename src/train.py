@@ -13,7 +13,7 @@ from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, I
     IR_SE_152_rgbd
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
 from src.util.ImageFolder4Channel import ImageFolder4Channel
-from src.util.eval_model_verification import evaluate_verification
+from src.util.eval_model_verification import evaluate_verification_lfw, evaluate_verification_colorferet
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
 from util.eval_model import evaluate_and_log
@@ -302,8 +302,9 @@ if __name__ == '__main__':
                 test_texas = 'test_depth_texas'
                 test_bff = 'test_depth_bff'
 
-            if 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
-                evaluate_verification(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
+            if 'rgbd' not in TRAIN_SET and 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
+                evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
+                #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
                 print(colorstr('blue', "=" * 60))
 
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)

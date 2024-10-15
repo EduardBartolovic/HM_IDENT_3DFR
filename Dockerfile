@@ -1,49 +1,35 @@
-ARG PROJECT_NAME_ARG=ml_template_example
-FROM nvcr-io.art.issh.de/nvidia/tensorrt:22.05-py3 as ml_template_example_dev
-ARG DEBIAN_FRONTEND=noninteractive
-ENV PROJECT_NAME=$PROJECT_NAME_ARG
+# Base image with CUDA and CUDNN for PyTorch
+FROM nvidia/cuda:12.2.0-cudnn8-runtime-ubuntu22.04
 
-ENV DATA_DIR=/var/data
-ENV TRAIN_DIR=/var/train_dir
-#ENV NEW_TRAIN_DIR=/var/new_train_dir
+# Set environment variables for CUDA and Python
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV PATH /root/.local/bin:$PATH
+ENV PYTHONPATH=.
 
-ENV MODEL_DIR=/var/model_dir
-ENV OUT_DIR=/var/tmp/out
-ENV PROJECT_ROOT=/var/app
-ENV CONFIG_PATH=${PROJECT_ROOT}/config.yaml
+# Install Python, Poetry, and other dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-dev curl build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update 
-RUN apt-get install  \ 
-    libpython3.8-dev python3-pip libgl1 -y & \
-    python3.8 -m pip install --trusted-host artprod.issh.de -i https://artprod.issh.de/artifactory/api/pypi/python-remote/simple --upgrade pip setuptools \
-    poetry==1.6.1
-COPY pyproject.toml /var/app/
-#COPY poetry.lock /var/app/
-COPY config.yaml /var/app
-COPY ./ml_template_example /var/app/ml_template_example
-#COPY ./ml_template/dist /var/app/ml_template/dist
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="/root/.local/bin:$PATH"
 
-#ENV PROJECT_NAME=$PROJECT_NAME_ARG
-WORKDIR /var/app
-RUN cd /var/app & \
- #poetry lock --no-update &\
- poetry install --only main --no-interaction --no-ansi 
+# Clone your project repository
+RUN git clone https://github.com/EduardBartolovic/HM_IDENT_3DFR /app
 
-EXPOSE 5000
+# Create and set working directory
+WORKDIR /app
 
-FROM ml_template_example_dev as ml_template_example_deploy
+# Copy pyproject.toml and poetry.lock files to the container
+COPY pyproject.toml poetry.lock* /app/
 
-ENV PROJECT_NAME=$PROJECT_NAME_ARG
-WORKDIR /var/app
+# Install project dependencies via Poetry
+RUN poetry install --no-root
 
-RUN cd /var/app & touch requirements.txt & \
-    #poetry lock --no-update &\
-    #poetry install --only main --no-interaction --no-ansi & \ 
-    poetry export -f requirements.txt --without-hashes --without dev --output requirements.txt &\
-    python3.8 -m pip uninstall poetry -y & \
-    python3.8 -m pip install --trusted-host art.issh.de \
-   -i https://art.issh.de/artifactory/api/pypi/python-remote/simple \
-   #--upgrade 
-    --no-cache-dir -r /var/app/requirements.txt \ 
-    -e /var/app
-EXPOSE 5000
+# Install PyTorch with CUDA support using Poetry
+RUN poetry run pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+CMD [ "bash" ]
+#CMD ["poetry", "run", "python", "train.py"]
