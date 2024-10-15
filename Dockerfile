@@ -1,5 +1,5 @@
 # Base image with CUDA and CUDNN for PyTorch
-FROM nvidia/cuda:12.2.0-cudnn8-runtime-ubuntu22.04
+FROM nvidia/cuda:12.6.2-cudnn-devel-ubuntu22.04
 
 # Set environment variables for CUDA and Python
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -9,6 +9,7 @@ ENV PYTHONPATH=.
 # Install Python, Poetry, and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-dev curl build-essential \
+    && apt install -y git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,9 +28,6 @@ COPY pyproject.toml poetry.lock* /app/
 
 # Install project dependencies via Poetry
 RUN poetry install --no-root
-
-# Install PyTorch with CUDA support using Poetry
-RUN poetry run pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 CMD [ "bash" ]
 #CMD ["poetry", "run", "python", "train.py"]
