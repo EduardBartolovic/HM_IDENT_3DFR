@@ -30,7 +30,7 @@ if __name__ == '__main__':
     # ======= Read config =======#
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, help='Path to the config file', default='config.yaml')
+    parser.add_argument('--config', type=str, help='Path to the config file', default='config_exp_X.yaml')
     args = parser.parse_args()
     with open(args.config, 'r') as file:
         cfg = yaml.safe_load(file)
