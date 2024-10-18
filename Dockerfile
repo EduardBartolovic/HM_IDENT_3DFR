@@ -32,7 +32,7 @@ RUN poetry run pip install torch torchvision
 # Copy the rest of the project files
 COPY . /app
 
-ENV PYTHONPATH="/app/src:$PYTHONPATH"
+ENV PYTHONPATH="/app/."
 
 CMD [ "bash" ]
 #CMD ["poetry", "run", "python", "src/train.py"]
