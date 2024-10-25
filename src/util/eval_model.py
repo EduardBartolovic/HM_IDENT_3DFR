@@ -146,8 +146,8 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
     mlflow.log_metric(f'{neutral_dataset}_RR5', metrics['Rank-5 Rate'], step=epoch + 1)
     mlflow.log_metric(f"{neutral_dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f'{neutral_dataset}_Voting_RR5', metrics_voting['Rank-1 Rate'], step=epoch + 1)
-    mlflow.log_metric(f"{neutral_dataset}_KNNVoting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
-    mlflow.log_metric(f'{neutral_dataset}_KNNVoting_RR5', metrics_voting['Rank-1 Rate'], step=epoch + 1)
+    mlflow.log_metric(f"{neutral_dataset}_KNNVoting_RR1", metrics_knn_voting['Rank-1 Rate'], step=epoch + 1)
+    mlflow.log_metric(f'{neutral_dataset}_KNNVoting_RR5', metrics_knn_voting['Rank-1 Rate'], step=epoch + 1)
 
     #if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
@@ -158,5 +158,13 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
         mlflow.log_metric(f"{neutral_dataset}_intra_scan_avg_distance", embedding_metrics['intra_scan_avg_distance'], step=epoch + 1)
         # mlflow.log_metric(f"{neutral_dataset}_intra_query_to_enrolled_center_avg_distance", embedding_metrics['intra_query_to_enrolled_center_avg_distance'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_inter_enrolled_center_avg_distance", embedding_metrics['inter_enrolled_center_avg_distance'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_enrolled_silhouette_score", embedding_metrics['enrolled_silhouette_score'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_query_silhouette_score", embedding_metrics['query_silhouette_score'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_enrolled_davies_bouldin_score", embedding_metrics['enrolled_davies_bouldin_score'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_query_davies_bouldin_score", embedding_metrics['query_davies_bouldin_score'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_enrolled_mean_norm", embedding_metrics['enrolled_mean_norm'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_enrolled_std_norm", embedding_metrics['enrolled_std_norm'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_query_mean_norm", embedding_metrics['query_mean_norm'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_query_std_norm", embedding_metrics['query_std_norm'], step=epoch + 1)
 
-    print(colorstr('bright_green', f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']}"))
+    print(colorstr('bright_green', f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']} ; KNN-Voting-RR1: {metrics_knn_voting['Rank-1 Rate']}"))
