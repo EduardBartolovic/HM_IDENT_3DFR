@@ -119,19 +119,22 @@ def calc_embedding_analysis(embedding_library, distance_metric):
     # print('inter_enrolled_center_avg_distance', inter_enrolled_center_avg_distance)
     embedding_metrics['inter_enrolled_center_avg_distance'] = inter_enrolled_center_avg_distance
 
+    try:
     #  ------------------- Silhouette Score  -------------------
     #  Measures how similar an embedding is to its own cluster compared to other clusters. A higher score indicates more cohesive clusters.
+        enrolled_silhouette_score = silhouette_score(enrolled_embeddings, enrolled_labels)
+        query_silhouette_score = silhouette_score(query_embeddings, query_labels)
+        embedding_metrics['enrolled_silhouette_score'] = enrolled_silhouette_score
+        embedding_metrics['query_silhouette_score'] = query_silhouette_score
+        #  ------------------- Davies-Bouldin Index -------------------
+        #  Evaluates the average similarity ratio between each cluster and the cluster most similar to it. Lower values mean better clustering.
+        enrolled_davies_bouldin_score = davies_bouldin_score(enrolled_embeddings, enrolled_labels)
+        query_davies_bouldin_score = davies_bouldin_score(query_embeddings, query_labels)
+        embedding_metrics['enrolled_davies_bouldin_score'] = enrolled_davies_bouldin_score
+        embedding_metrics['query_davies_bouldin_score'] = query_davies_bouldin_score
+    except ValueError:
+        print("Size of Clusters in not sufficient")
 
-    enrolled_silhouette_score = silhouette_score(enrolled_embeddings, enrolled_labels)
-    query_silhouette_score = silhouette_score(query_embeddings, query_labels)
-    embedding_metrics['enrolled_silhouette_score'] = enrolled_silhouette_score
-    embedding_metrics['query_silhouette_score'] = query_silhouette_score
-    #  ------------------- Davies-Bouldin Index -------------------
-    #  Evaluates the average similarity ratio between each cluster and the cluster most similar to it. Lower values mean better clustering.
-    enrolled_davies_bouldin_score = davies_bouldin_score(enrolled_embeddings, enrolled_labels)
-    query_davies_bouldin_score = davies_bouldin_score(query_embeddings, query_labels)
-    embedding_metrics['enrolled_davies_bouldin_score'] = enrolled_davies_bouldin_score
-    embedding_metrics['query_davies_bouldin_score'] = query_davies_bouldin_score
     #  ------------------- Distribution of Norms -------------------
     norms = np.linalg.norm(enrolled_embeddings, axis=1)
     embedding_metrics['enrolled_mean_norm'] = np.mean(norms)
