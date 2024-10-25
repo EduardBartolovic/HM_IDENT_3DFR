@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.spatial.distance import cdist
+from sklearn.metrics import silhouette_score, davies_bouldin_score
 
 
 def calc_embedding_analysis(embedding_library, distance_metric):
@@ -8,10 +9,10 @@ def calc_embedding_analysis(embedding_library, distance_metric):
     enrolled_perspective = embedding_library.enrolled_perspectives
     enrolled_scan_ids = embedding_library.enrolled_scan_ids
 
-    query_embeddings = embedding_library.val_embeddings
-    query_labels = embedding_library.val_labels
-    query_perspective = embedding_library.val_perspectives
-    query_scan_ids = embedding_library.val_scan_ids
+    query_embeddings = embedding_library.query_embeddings
+    query_labels = embedding_library.query_labels
+    query_perspective = embedding_library.query_perspectives
+    query_scan_ids = embedding_library.query_scan_ids
 
     distance_enrolled_mean_query = embedding_library.distances
 
@@ -118,10 +119,27 @@ def calc_embedding_analysis(embedding_library, distance_metric):
     # print('inter_enrolled_center_avg_distance', inter_enrolled_center_avg_distance)
     embedding_metrics['inter_enrolled_center_avg_distance'] = inter_enrolled_center_avg_distance
 
+    #  ------------------- Silhouette Score  -------------------
+    #  Measures how similar an embedding is to its own cluster compared to other clusters. A higher score indicates more cohesive clusters.
 
+    enrolled_silhouette_score = silhouette_score(enrolled_embeddings, enrolled_labels)
+    query_silhouette_score = silhouette_score(query_embeddings, query_labels)
+    embedding_metrics['enrolled_silhouette_score'] = enrolled_silhouette_score
+    embedding_metrics['query_silhouette_score'] = query_silhouette_score
+    #  ------------------- Davies-Bouldin Index -------------------
+    #  Evaluates the average similarity ratio between each cluster and the cluster most similar to it. Lower values mean better clustering.
+    enrolled_davies_bouldin_score = davies_bouldin_score(enrolled_embeddings, enrolled_labels)
+    query_davies_bouldin_score = davies_bouldin_score(query_embeddings, query_labels)
+    embedding_metrics['enrolled_davies_bouldin_score'] = enrolled_davies_bouldin_score
+    embedding_metrics['query_davies_bouldin_score'] = query_davies_bouldin_score
+    #  ------------------- Distribution of Norms -------------------
+    norms = np.linalg.norm(enrolled_embeddings, axis=1)
+    embedding_metrics['enrolled_mean_norm'] = np.mean(norms)
+    embedding_metrics['enrolled_std_norm'] = np.std(norms)
 
-
-    #mean_embeddings_per_label = np.array([enrolled_embeddings[enrolled_labels == label].mean(axis=0) for label in unique_labels])
+    norms = np.linalg.norm(query_embeddings, axis=1)
+    embedding_metrics['query_mean_norm'] = np.mean(norms)
+    embedding_metrics['query_std_norm'] = np.std(norms)
 
     return embedding_metrics
 

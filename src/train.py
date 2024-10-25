@@ -306,6 +306,7 @@ if __name__ == '__main__':
                 evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
                 #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
                 print(colorstr('blue', "=" * 60))
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
 
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
             if (epoch + 1) % 10 == 0:

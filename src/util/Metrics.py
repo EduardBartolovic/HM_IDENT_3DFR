@@ -11,35 +11,44 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
 
 
-def calc_metrics(y_true, y_pred, y_pred_top5):
+def calc_metrics(y_true, y_pred, y_pred_top5=None):
+    """
+    Calculate various classification metrics.
+
+    Parameters:
+    - y_true: array-like of shape (n_samples,) - True class labels.
+    - y_pred: array-like of shape (n_samples,) - Predicted class labels.
+    - y_pred_top5: array-like of shape (n_samples, 5), optional - Top 5 predicted class labels.
+
+    Returns:
+    - metrics: dict - Dictionary containing calculated metrics.
+    """
     # https://datascience.stackexchange.com/questions/15989/micro-average-vs-macro-average-performance-in-a-multiclass-classification-settin
 
     assert y_pred.shape[0] == len(y_true)
-    assert y_pred_top5.shape[0] == len(y_true)
-    assert y_pred_top5.shape[1] == 5
+    if y_pred_top5 is not None:
+        assert y_pred_top5.shape == (len(y_true), 5), "Top-5 predictions should have shape (n_samples, 5)"
 
+    # Core metrics
     labels = np.unique(y_true)
-
     accuracy = accuracy_score(y_true, y_pred)
-    rank_1_rate = accuracy * 100
-    accuracy_top5 = np.mean(np.any(y_pred_top5 == y_true[:, None], axis=1))
-    rank_5_rate = accuracy_top5 * 100
-    precision = precision_score(y_true, y_pred, average='micro', labels=labels, zero_division=0)
-    recall = recall_score(y_true, y_pred, average='micro', labels=labels, zero_division=0)
-    f1 = f1_score(y_true, y_pred, average='micro', labels=labels, zero_division=0)
-
-    cr = classification_report(y_true, y_pred, zero_division=0)
-
     metrics = {
         'Accuracy': round(accuracy, 3),
-        'AccuracyTop5': round(accuracy_top5, 3),
-        'Rank-1 Rate': round(rank_1_rate, 2),
-        'Rank-5 Rate': round(rank_5_rate, 2),
-        'Precision': round(precision, 3),
-        'Recall': round(recall, 3),
-        'F1-score': round(f1, 3),
-        'classification_report': cr
+        'Rank-1 Rate': round(accuracy * 100, 2),
+        'Precision': round(precision_score(y_true, y_pred, average='micro', labels=labels, zero_division=0), 3),
+        'Recall': round(recall_score(y_true, y_pred, average='micro', labels=labels, zero_division=0), 3),
+        'F1-score': round(f1_score(y_true, y_pred, average='micro', labels=labels, zero_division=0), 3),
+        'classification_report': classification_report(y_true, y_pred, zero_division=0)
     }
+
+    # Top-5 accuracy if available
+    if y_pred_top5 is not None:
+        accuracy_top5 = np.mean(np.any(y_pred_top5 == y_true[:, None], axis=1))
+        metrics.update({
+            'AccuracyTop5': round(accuracy_top5, 3),
+            'Rank-5 Rate': round(accuracy_top5 * 100, 2)
+        })
+
     return metrics
 
 
