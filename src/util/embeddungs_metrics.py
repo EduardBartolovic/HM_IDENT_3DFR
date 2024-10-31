@@ -120,10 +120,10 @@ def calc_embedding_analysis(embedding_library, distance_metric):
     embedding_metrics['inter_enrolled_center_avg_distance'] = inter_enrolled_center_avg_distance
 
     try:
-    #  ------------------- Silhouette Score  -------------------
-    #  Measures how similar an embedding is to its own cluster compared to other clusters. A higher score indicates more cohesive clusters.
-        enrolled_silhouette_score = silhouette_score(enrolled_embeddings, enrolled_labels)
-        query_silhouette_score = silhouette_score(query_embeddings, query_labels)
+        #  ------------------- Silhouette Score  -------------------
+        #  Measures how similar an embedding is to its own cluster compared to other clusters. A higher score indicates more cohesive clusters.
+        enrolled_silhouette_score = silhouette_score(enrolled_embeddings, enrolled_labels, metric='cosine')
+        query_silhouette_score = silhouette_score(query_embeddings, query_labels, metric='cosine')
         embedding_metrics['enrolled_silhouette_score'] = enrolled_silhouette_score
         embedding_metrics['query_silhouette_score'] = query_silhouette_score
         #  ------------------- Davies-Bouldin Index -------------------

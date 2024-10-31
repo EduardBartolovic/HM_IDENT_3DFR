@@ -12,6 +12,7 @@ from loss.focal import FocalLoss
 from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, IR_SE_50_rgbd, IR_SE_101_rgbd, \
     IR_SE_152_rgbd
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
+from src.backbone.mvpnet import mvpnet_tiny
 from src.util.ImageFolder4Channel import ImageFolder4Channel
 from src.util.eval_model_verification import evaluate_verification_lfw, evaluate_verification_colorferet
 from src.util.load_checkpoint import load_checkpoint
@@ -52,6 +53,7 @@ if __name__ == '__main__':
     BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
+    OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
     DISTANCE_METRIC = cfg['DISTANCE_METRIC']  # support: ['euclidian', 'cosine']
 
     INPUT_SIZE = cfg['INPUT_SIZE']
@@ -141,7 +143,8 @@ if __name__ == '__main__':
                          'IR_SE_152': IR_SE_152(INPUT_SIZE, EMBEDDING_SIZE),
                          'IR_SE_50_RGBD': IR_SE_50_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
                          'IR_SE_101_RGBD': IR_SE_101_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
-                         'IR_SE_152_RGBD': IR_SE_152_rgbd(INPUT_SIZE, EMBEDDING_SIZE)}
+                         'IR_SE_152_RGBD': IR_SE_152_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
+                         'MVP_Net': mvpnet_tiny()}
         if 'rgbd' in TRAIN_SET:
             BACKBONE_NAME = BACKBONE_NAME + '_RGBD'
             channel = 4
@@ -186,10 +189,13 @@ if __name__ == '__main__':
         else:
             backbone_paras_only_bn, backbone_paras_wo_bn = separate_resnet_bn_paras(BACKBONE)  # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
             _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
-        OPTIMIZER = optim.SGD([{'params': backbone_paras_wo_bn + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY},
-                               {'params': backbone_paras_only_bn}], lr=LR, momentum=MOMENTUM)
+
+        OPTIMIZER_DICT = {'SGD': optim.SGD([{'params': backbone_paras_wo_bn + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn}], lr=LR, momentum=MOMENTUM),
+                          'ADAM': torch.optim.Adam([{'params': backbone_paras_wo_bn + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn}], lr=LR)}
+
+        OPTIMIZER = OPTIMIZER_DICT[OPTIMIZER_NAME]
         print(colorstr('magenta', OPTIMIZER))
-        print(colorstr('blue', "Optimizer Generated"))
+        print(colorstr('blue', f"{OPTIMIZER_NAME} Optimizer Generated"))
         print("=" * 60)
 
         # optionally resume from a checkpoint
