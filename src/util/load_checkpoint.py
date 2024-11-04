@@ -41,6 +41,6 @@ def load_checkpoint(BACKBONE, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd
         if rgbd:
             load_rgbd_backbone_checkpoint(BACKBONE, BACKBONE_RESUME_ROOT)
         else:
-            BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT))
+            BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT, weights_only=True))
     else:
         print(colorstr('red', f"No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
