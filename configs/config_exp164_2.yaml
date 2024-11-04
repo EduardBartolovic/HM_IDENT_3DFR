@@ -1,4 +1,4 @@
-SEED: 1337  # random seed for reproduce results
+SEED: 1338  # random seed for reproduce results
 
 RUN_NAME: 'EXP164-rgb_monoffhq-12000T_25P-enc_512-ArcFace-FocalLoss-ADAM-112_112-batchsize_64-epochs100-IR_50-cleaned'  # experiment_name
 DATA_ROOT: '~/dataset7'  # the parent root
