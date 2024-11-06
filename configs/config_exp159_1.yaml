@@ -2,7 +2,7 @@ SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP159-MS-Celeb-1M_Align_112x112-85741T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_1024-epochs50-IR_50-undistorted'  # experiment_name
 DATA_ROOT: '~/dataset7'  # the parent root
-TRAIN_SET: 'MS-Celeb-1M_Align_112x112'  # where your train/val/test data are stored
+TRAIN_SET: 'photo_MS-Celeb-1M_Align_112x112'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
@@ -20,14 +20,14 @@ EMBEDDING_SIZE: 512  # feature dimension
 BATCH_SIZE: 1024
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
 LR: 0.002  # initial LR
-NUM_EPOCH: 150  # total epoch number (use the first 1/25 epochs to warm up)
+NUM_EPOCH: 100  # total epoch number (use the first 1/25 epochs to warm up)
 PATIENCE: 50  # patience for early stopping
 WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
 MOMENTUM: 0.9
-STAGES: [100, 125, 140]  # epoch stages to decay learning rate
+STAGES: [50, 75, 95]  # epoch stages to decay learning rate
 
 MULTI_GPU: true
 # flag to use multiple GPUs; if you choose to train with single GPU, you should first run "export CUDA_VISILE_DEVICES=device_id" to specify the GPU card you want to use
 GPU_ID: [0]  # specify your GPU ids
 PIN_MEMORY: true
-NUM_WORKERS: 8
+NUM_WORKERS: 20
