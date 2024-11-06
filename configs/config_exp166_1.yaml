@@ -1,8 +1,8 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP165-MS1M5K-enc_512-ArcFace-FocalLoss-112_112-batchsize_512-epochs100-IR_50-cleaned'  # experiment_name
+RUN_NAME: 'EXP166-rgb_monoffhq-12000T_25P+MS1M5K-enc_512-ArcFace-FocalLoss-112_112-batchsize_512-epochs100-IR_50-cleaned'  # experiment_name
 DATA_ROOT: '~/dataset7'  # the parent root
-TRAIN_SET: 'photo_MS-Celeb-1M_Align_112x112_5K'  # where your train/val/test data are stored
+TRAIN_SET: 'rgb_monoffhq-12000T_25P+MS1M5K'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
