@@ -87,17 +87,10 @@ def load_data(data_dir, transform, max_batch_size: int) -> (
     return dataset, data_loader
 
 
-def evaluate(device, batch_size, backbone, test_path, distance_metric, rgb_mean, rgb_std):
+def evaluate(device, batch_size, backbone, test_path, distance_metric, test_transform):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
-    input_size = [112, 112]
-    test_transform = transforms.Compose([
-        transforms.Resize([int(128 * input_size[0] / 112), int(128 * input_size[0] / 112)]),  # smaller side resized
-        transforms.CenterCrop([input_size[0], input_size[1]]),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=rgb_mean, std=rgb_std)
-    ])
 
     dataset_enrolled_path = os.path.join(test_path, 'train')
     dataset_query_path = os.path.join(test_path, 'validation')
@@ -133,9 +126,9 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, rgb_mean,
     return metrics, metrics_voting, metrics_knn_voting, embedding_metrics, embedding_library
 
 
-def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_epoch, distance_metric, rgb_mean, rgb_std):
+def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_epoch, distance_metric, test_transform, batch_size):
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset}"))
-    metrics, metrics_voting, metrics_knn_voting, embedding_metrics, embedding_library = evaluate(device, 32, backbone, os.path.join(data_root, dataset), distance_metric, rgb_mean, rgb_std)
+    metrics, metrics_voting, metrics_knn_voting, embedding_metrics, embedding_library = evaluate(device, batch_size*2, backbone, os.path.join(data_root, dataset), distance_metric, test_transform)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 

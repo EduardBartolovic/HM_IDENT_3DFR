@@ -12,6 +12,7 @@ from loss.focal import FocalLoss
 from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, IR_SE_50_rgbd, IR_SE_101_rgbd, \
     IR_SE_152_rgbd
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
+from src.backbone.model_resnet_torch import ResNet_50_torch
 from src.backbone.mvpnet import mvpnet_tiny
 from src.util.ImageFolder4Channel import ImageFolder4Channel
 from src.util.eval_model_verification import evaluate_verification_lfw, evaluate_verification_colorferet
@@ -107,6 +108,13 @@ if __name__ == '__main__':
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
         ])
 
+        test_transform = transforms.Compose([
+            transforms.Resize([int(128 * INPUT_SIZE[0] / 112), int(128 * INPUT_SIZE[0] / 112)]),
+            transforms.CenterCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),  # Center crop instead of random crop
+            transforms.ToTensor(),
+            transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),  # Same normalization
+        ])
+
         if 'rgbd' in TRAIN_SET:
             dataset_train = ImageFolder4Channel(os.path.join(DATA_ROOT, TRAIN_SET), train_transform)
         else:
@@ -127,6 +135,8 @@ if __name__ == '__main__':
 
         # ======= model & loss & optimizer =======#
         BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE, EMBEDDING_SIZE),
+                         'ResNet_50_torch': ResNet_50_torch(EMBEDDING_SIZE),
+                         'ResNet_50_torch_IMAGENET1K_V2': ResNet_50_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V2'),
                          'ResNet_101': ResNet_101(INPUT_SIZE, EMBEDDING_SIZE),
                          'ResNet_152': ResNet_152(INPUT_SIZE, EMBEDDING_SIZE),
                          'ResNet_50_RGBD': ResNet_50_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
@@ -309,17 +319,17 @@ if __name__ == '__main__':
                 test_bff = 'test_depth_bff'
 
             if 'rgbd' not in TRAIN_SET and 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
-                evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
+                evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD, test_transform, BATCH_SIZE)
                 #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
                 print(colorstr('blue', "=" * 60))
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
 
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
-            if (epoch + 1) % 10 == 0:
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+            if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
 
             print("=" * 60)
 

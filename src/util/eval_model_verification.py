@@ -138,16 +138,11 @@ def evaluate(embeddings1, embeddings2, actual_issame, voting=False):
 
 
 def evaluate_verification_lfw(device, backbone, data_root, dataset_path, writer, epoch, num_epoch, distance_metric,
-                              rgb_mean, rgb_std):
+                              rgb_mean, rgb_std, test_transform, batch_size):
     print(colorstr('bright_green', f"Perform 1:1 Evaluation on {dataset_path}"))
-    transform = transforms.Compose([
-        transforms.Resize((112, 112)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=rgb_mean, std=rgb_std),
-    ])
 
-    dataset = ImageFolderWithFilename(os.path.join(data_root, dataset_path), transform=transform)
-    data_loader = DataLoader(dataset, batch_size=128, shuffle=False)
+    dataset = ImageFolderWithFilename(os.path.join(data_root, dataset_path), transform=test_transform)
+    data_loader = DataLoader(dataset, batch_size=batch_size*2, shuffle=False)
     embeddings_storage = {}
     with torch.no_grad():
         for imgs, name, number in tqdm(data_loader, desc="Generate Embeddings"):
