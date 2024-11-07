@@ -30,3 +30,7 @@ class ResNet_50_torch(nn.Module):
         # Pass through the fully connected layer
         embeddings = self.fc(embeddings)
         return embeddings
+
+
+def resnet_50_torch(encoding_size=512, pretrained=None):
+    return ResNet_50_torch(encoding_size, pretrained)

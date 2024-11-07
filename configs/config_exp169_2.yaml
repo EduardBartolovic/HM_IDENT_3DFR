@@ -1,6 +1,6 @@
-SEED: 1337  # random seed for reproduce results
+SEED: 1338  # random seed for reproduce results
 
-RUN_NAME: 'EXP167-rgb_monoffhq-12000T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_64-epochs100-ResNet50(Torch)-cleaned'  # experiment_name
+RUN_NAME: 'EXP169-rgb_monoffhq-12000T_25P-enc_512-ArcFace-FocalLoss-112_112-batchsize_64-epochs100-SqueezeNet-cleaned'  # experiment_name
 DATA_ROOT: '~/dataset7'  # the parent root
 TRAIN_SET: 'rgb_monoffhq12000'  # where your train/val/test data are stored
 
@@ -8,7 +8,7 @@ MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
 BACKBONE_RESUME_ROOT: './'  # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: './'  # the root to resume training from a saved checkpoint
-BACKBONE_NAME: 'ResNet_50_torch'  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
+BACKBONE_NAME: 'SqueezeNet'  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 DISTANCE_METRIC: 'cosine'  # support: ['euclidean', 'cosine']

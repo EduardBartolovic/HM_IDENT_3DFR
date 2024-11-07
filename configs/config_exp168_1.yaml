@@ -13,9 +13,9 @@ HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace'
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 DISTANCE_METRIC: 'cosine'  # support: ['euclidean', 'cosine']
 
-INPUT_SIZE: [112, 112]  # support: [112, 112] and [224, 224]
-RGB_MEAN: [0.5, 0.5, 0.5]  # for normalize inputs to [-1, 1]
-RGB_STD: [0.5, 0.5, 0.5]
+INPUT_SIZE: [224, 224]  # support: [112, 112] and [224, 224]
+RGB_MEAN: [0.485, 0.456, 0.406]  # for normalize inputs to [-1, 1]
+RGB_STD: [0.229, 0.224, 0.225]
 EMBEDDING_SIZE: 512  # feature dimension
 BATCH_SIZE: 64
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics

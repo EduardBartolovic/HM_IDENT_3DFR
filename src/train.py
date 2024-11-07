@@ -9,10 +9,13 @@ from backbone.model_resnet import ResNet_50, ResNet_101, ResNet_152
 from backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
+from src.backbone.model_SqueezeNet_torch import squeezenet_torch
+from src.backbone.model_Swin_V2_S_torch import swin_v2_s_torch
+from src.backbone.model_ViT_B_16_torch import vit_b_16_torch
 from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, IR_SE_50_rgbd, IR_SE_101_rgbd, \
     IR_SE_152_rgbd
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
-from src.backbone.model_resnet_torch import ResNet_50_torch
+from src.backbone.model_resnet_torch import resnet_50_torch
 from src.backbone.mvpnet import mvpnet_tiny
 from src.util.ImageFolder4Channel import ImageFolder4Channel
 from src.util.eval_model_verification import evaluate_verification_lfw, evaluate_verification_colorferet
@@ -135,8 +138,14 @@ if __name__ == '__main__':
 
         # ======= model & loss & optimizer =======#
         BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE, EMBEDDING_SIZE),
-                         'ResNet_50_torch': ResNet_50_torch(EMBEDDING_SIZE),
-                         'ResNet_50_torch_IMAGENET1K_V2': ResNet_50_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V2'),
+                         'ResNet_50_torch': resnet_50_torch(EMBEDDING_SIZE),
+                         #'ResNet_50_torch_IMAGENET1K_V2': resnet_50_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V2'),
+                         'SqueezeNet': squeezenet_torch(EMBEDDING_SIZE),
+                         #'SqueezeNet_IMAGENET1K': squeezenet_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V1'),
+                         'Swin_v2_s': swin_v2_s_torch(EMBEDDING_SIZE),
+                         # 'Swin_v2_s_IMAGENET1K': swin_v2_s_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V1'),
+                         'ViT_B_16': vit_b_16_torch(EMBEDDING_SIZE),
+                         #'ViT_B_16_IMAGENET1K': vit_b_16_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V1'),
                          'ResNet_101': ResNet_101(INPUT_SIZE, EMBEDDING_SIZE),
                          'ResNet_152': ResNet_152(INPUT_SIZE, EMBEDDING_SIZE),
                          'ResNet_50_RGBD': ResNet_50_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
