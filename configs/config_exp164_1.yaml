@@ -31,4 +31,4 @@ MULTI_GPU: false
 # flag to use multiple GPUs; if you choose to train with single GPU, you should first run "export CUDA_VISILE_DEVICES=device_id" to specify the GPU card you want to use
 GPU_ID: [0]  # specify your GPU ids
 PIN_MEMORY: true
-NUM_WORKERS: 10
+NUM_WORKERS: 8
