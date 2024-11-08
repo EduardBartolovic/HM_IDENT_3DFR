@@ -140,7 +140,7 @@ if __name__ == '__main__':
         # ======= model & loss & optimizer =======#
         BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE, EMBEDDING_SIZE),
                          'ResNet_50_torch': resnet_50_torch(EMBEDDING_SIZE),
-                         #'ResNet_50_torch_IMAGENET1K_V2': resnet_50_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V2'),
+                         'ResNet_50_torch_IMAGENET1K_V2': resnet_50_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V2'),
                          'SqueezeNet': squeezenet_torch(EMBEDDING_SIZE),
                          #'SqueezeNet_IMAGENET1K': squeezenet_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V1'),
                          'Swin_v2_s': swin_v2_s_torch(EMBEDDING_SIZE),

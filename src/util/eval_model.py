@@ -82,7 +82,7 @@ def load_data(data_dir, transform, max_batch_size: int) -> (
     while (dataset_size % batch_size == 1) and (batch_size > 2):
         batch_size -= 1
 
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=6,
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=8,
                                               drop_last=False)  # Todo: Check why Shuffle False makes everything worse
     return dataset, data_loader
 
