@@ -104,6 +104,7 @@ if __name__ == '__main__':
 
         # refer to https://pytorch.org/docs/stable/torchvision/transforms.html for more online data augmentation
         train_transform = transforms.Compose([
+            # TODO: interpolation=InterpolationMode.BICUBIC, beim resize????
             transforms.Resize([int(128 * INPUT_SIZE[0] / 112), int(128 * INPUT_SIZE[0] / 112)]),  # smaller side resized
             transforms.RandomCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),
             transforms.RandomHorizontalFlip(),
@@ -139,13 +140,13 @@ if __name__ == '__main__':
         # ======= model & loss & optimizer =======#
         BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE, EMBEDDING_SIZE),
                          'ResNet_50_torch': resnet_50_torch(EMBEDDING_SIZE),
-                         #'ResNet_50_torch_IMAGENET1K_V2': resnet_50_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V2'),
+                         'ResNet_50_torch_IMAGENET1K_V2': resnet_50_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V2'),
                          'SqueezeNet': squeezenet_torch(EMBEDDING_SIZE),
-                         #'SqueezeNet_IMAGENET1K': squeezenet_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V1'),
+                         'SqueezeNet_IMAGENET1K': squeezenet_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V1'),
                          'Swin_v2_s': swin_v2_s_torch(EMBEDDING_SIZE),
-                         # 'Swin_v2_s_IMAGENET1K': swin_v2_s_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V1'),
+                         'Swin_v2_s_IMAGENET1K': swin_v2_s_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V1'),
                          'ViT_B_16': vit_b_16_torch(EMBEDDING_SIZE),
-                         #'ViT_B_16_IMAGENET1K': vit_b_16_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V1'),
+                         'ViT_B_16_IMAGENET1K': vit_b_16_torch(EMBEDDING_SIZE, pretrained='IMAGENET1K_V1'),
                          'ResNet_101': ResNet_101(INPUT_SIZE, EMBEDDING_SIZE),
                          'ResNet_152': ResNet_152(INPUT_SIZE, EMBEDDING_SIZE),
                          'ResNet_50_RGBD': ResNet_50_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
