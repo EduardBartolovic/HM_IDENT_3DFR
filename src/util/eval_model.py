@@ -6,11 +6,10 @@ import numpy as np
 import time
 import torch
 import torchvision
-from torchvision.transforms import transforms
 from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_gpu
 from src.util.ImageFolderRGBDWithScanID import ImageFolderRGBDWithScanID
 from src.util.ImageFolderWithScanID import ImageFolderWithScanID
-from src.util.KNN_Voting import knn_voting
+from src.util.Voting import knn_voting, voting, accuracy_front_perspective
 from src.util.Metrics import calc_metrics, error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix, write_embeddings
 from src.util.embeddungs_metrics import calc_embedding_analysis
@@ -18,7 +17,8 @@ from src.util.misc import colorstr
 from src.util.utils import buffer_val_min
 
 
-def get_embeddings_and_distances(device, model, library_loader, query_loader, distance_metric):
+def get_embeddings_and_distances(device, model, library_loader, query_loader, distance_metric, batch_size):
+
     enrolled = build_embedding_library(device, model, library_loader)
 
     # Compute mean embeddings for each label
@@ -29,44 +29,13 @@ def get_embeddings_and_distances(device, model, library_loader, query_loader, di
     query = build_embedding_library(device, model, query_loader)
 
     # Calculate distances between embeddings of query and library data
-    distances = batched_distances_gpu(device, query.embeddings, enrolled_embeddings_mean, distance_metric=distance_metric)
+    distances = batched_distances_gpu(device, query.embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric )
 
     Results = namedtuple("Results",
                          ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives",
                           "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives", "distances"])
     return Results(enrolled.embeddings, enrolled.labels, enrolled.scan_ids, enrolled.perspectives, query.embeddings,
                    query.labels, query.scan_ids, query.perspectives, distances)
-
-
-def voting(y_pred, scan_ids, query_labels):
-    # Group validation embeddings by scan ID
-    scan_id_to_idx = defaultdict(list)
-    for idx, scan_id in enumerate(scan_ids):
-        scan_id_to_idx[scan_id].append(idx)
-
-    # For each scan ID, apply weighted voting among its embeddings
-    weighted_top_per_scan_id = {}
-    for scan_id, indices in scan_id_to_idx.items():
-        # Retrieve predicted labels for embeddings corresponding to this scan ID
-        scan_top_n_labels = y_pred[indices]
-
-        # Count the occurrences of each label weighted by their rank
-        label_weights = defaultdict(int)
-        for all_labels in scan_top_n_labels:
-            for rank, label in enumerate(all_labels):
-                weight = len(all_labels) - rank  # Weight inversely proportional to the rank
-                label_weights[label] += weight
-
-        # Sort labels with the highest total weights
-        weighted_top_per_scan_id[scan_id] = np.array(sorted(label_weights, key=label_weights.get, reverse=True))
-
-    # Create a dictionary that maps scan_ids to their corresponding labels
-    scan_id_to_label = dict(zip(scan_ids, query_labels))
-
-    y_true_scan = [scan_id_to_label[scan_id] for scan_id in weighted_top_per_scan_id.keys()]
-    y_pred_scan = [weighted_top_per_scan_id[scan_id] for scan_id in weighted_top_per_scan_id.keys()]
-
-    return np.array(y_true_scan), np.array(y_pred_scan)
 
 
 def load_data(data_dir, transform, max_batch_size: int) -> (
@@ -99,7 +68,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
 
     time.sleep(0.1)
 
-    embedding_library = get_embeddings_and_distances(device, backbone, enrolled_loader, query_loader, distance_metric)
+    embedding_library = get_embeddings_and_distances(device, backbone, enrolled_loader, query_loader, distance_metric, batch_size)
 
     # Sort indices/classes of the closest vectors for each query embedding
     y_pred = np.argsort(embedding_library.distances, axis=1)
@@ -109,10 +78,17 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     y_pred_top1 = y_pred[:, 0]
     y_pred_top5 = y_pred[:, :5]
     metrics = calc_metrics(embedding_library.query_labels, y_pred_top1, y_pred_top5)
-    plot_confusion_matrix(embedding_library.query_labels, y_pred_top1, dataset_enrolled, os.path.basename(test_path),
-                          matplotlib=False)
+    plot_confusion_matrix(embedding_library.query_labels, y_pred_top1, dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(embedding_library.query_labels, y_pred_top1, os.path.basename(test_path))
 
+    # Eval only Front
+    if 'texas' not in test_path and 'photo' not in test_path:
+        y_true_front, y_pred_front = accuracy_front_perspective(device, embedding_library, distance_metric)
+        metrics_front = calc_metrics(y_true_front, y_pred_front)
+    else:
+        metrics_front = {}
+
+    # VotingV1
     y_true_voting, y_pred_voting = voting(y_pred, embedding_library.query_scan_ids, embedding_library.query_labels)
     y_pred_voting_top1 = y_pred_voting[:, 0]
     y_pred_voting_top5 = y_pred_voting[:, :5]
@@ -120,15 +96,16 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     plot_confusion_matrix(y_true_voting, y_pred_voting_top1, dataset_enrolled,
                           (os.path.basename(test_path) + '_voting'), matplotlib=False)
 
+    #VotingV2
     y_true_knn, y_pred_knn = knn_voting(embedding_library)
     metrics_knn_voting = calc_metrics(y_true_knn, y_pred_knn)
 
-    return metrics, metrics_voting, metrics_knn_voting, embedding_metrics, embedding_library
+    return metrics, metrics_front, metrics_voting, metrics_knn_voting, embedding_metrics, embedding_library
 
 
 def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_epoch, distance_metric, test_transform, batch_size):
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset}"))
-    metrics, metrics_voting, metrics_knn_voting, embedding_metrics, embedding_library = evaluate(device, batch_size*2, backbone, os.path.join(data_root, dataset), distance_metric, test_transform)
+    metrics, metrics_front, metrics_voting, metrics_knn_voting, embedding_metrics, embedding_library = evaluate(device, batch_size*2, backbone, os.path.join(data_root, dataset), distance_metric, test_transform)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
@@ -137,10 +114,10 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
 
     mlflow.log_metric(f"{neutral_dataset}_RR1", metrics['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f'{neutral_dataset}_RR5', metrics['Rank-5 Rate'], step=epoch + 1)
+    if 'Rank-1 Rate' in metrics_front.keys():
+        mlflow.log_metric(f"{neutral_dataset}_Front_RR1", metrics_front['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f"{neutral_dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
-    mlflow.log_metric(f'{neutral_dataset}_Voting_RR5', metrics_voting['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f"{neutral_dataset}_KNNVoting_RR1", metrics_knn_voting['Rank-1 Rate'], step=epoch + 1)
-    mlflow.log_metric(f'{neutral_dataset}_KNNVoting_RR5', metrics_knn_voting['Rank-1 Rate'], step=epoch + 1)
 
     #if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
@@ -161,4 +138,7 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
         mlflow.log_metric(f"{neutral_dataset}_query_mean_norm", embedding_metrics['query_mean_norm'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_query_std_norm", embedding_metrics['query_std_norm'], step=epoch + 1)
 
-    print(colorstr('bright_green', f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']} ; KNN-Voting-RR1: {metrics_knn_voting['Rank-1 Rate']}"))
+    if 'Rank-1 Rate' in metrics_front.keys():
+        print(colorstr('bright_green', f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} Front-RR1: {metrics_front['Rank-1 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']} ; KNN-Voting-RR1: {metrics_knn_voting['Rank-1 Rate']}"))
+    else:
+        print(colorstr('bright_green', f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']} ; KNN-Voting-RR1: {metrics_knn_voting['Rank-1 Rate']}"))
