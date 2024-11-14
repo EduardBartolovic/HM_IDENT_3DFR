@@ -1,25 +1,16 @@
-import time
-
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torchvision.transforms as transforms
-import torchvision.datasets as datasets
 from backbone.model_resnet import ResNet_50, ResNet_101, ResNet_152
 from backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
-from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
-from loss.focal import FocalLoss
 from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, IR_SE_50_rgbd, IR_SE_101_rgbd, \
     IR_SE_152_rgbd
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
-from src.util.ImageFolder4Channel import ImageFolder4Channel
+from src.util.eval_model_verification import evaluate_verification_lfw
 from src.util.misc import colorstr
 from util.eval_model import evaluate_and_log
-from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
-    separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
 
 from tensorboardX import SummaryWriter
-from tqdm import tqdm
 import os
 import mlflow
 import yaml
@@ -28,7 +19,6 @@ import argparse
 if __name__ == '__main__':
 
     # ======= Read config =======#
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, help='Path to the config file', default='config_exp_X.yaml')
     args = parser.parse_args()
@@ -46,9 +36,11 @@ if __name__ == '__main__':
     BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']  # the root to resume training from a saved checkpoint
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
 
-    BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
+    BACKBONE_NAME = cfg[
+        'BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
+    OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
     DISTANCE_METRIC = cfg['DISTANCE_METRIC']  # support: ['euclidian', 'cosine']
 
     INPUT_SIZE = cfg['INPUT_SIZE']
@@ -59,6 +51,7 @@ if __name__ == '__main__':
     DROP_LAST = cfg['DROP_LAST']  # whether drop the last batch to ensure consistent batch_norm statistics
     LR = cfg['LR']  # initial LR
     NUM_EPOCH = cfg['NUM_EPOCH']
+    PATIENCE = cfg.get('PATIENCE', 10)
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
@@ -92,32 +85,12 @@ if __name__ == '__main__':
         log_dir = f'{LOG_ROOT}/tensorboard/{RUN_NAME}'
         writer = SummaryWriter(log_dir)
 
-        # refer to https://pytorch.org/docs/stable/torchvision/transforms.html for more online data augmentation
-        train_transform = transforms.Compose([
-            transforms.Resize([int(128 * INPUT_SIZE[0] / 112), int(128 * INPUT_SIZE[0] / 112)]),  # smaller side resized
-            transforms.RandomCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),
-            transforms.RandomHorizontalFlip(),
+        test_transform = transforms.Compose([
+            transforms.Resize([int(128 * INPUT_SIZE[0] / 112), int(128 * INPUT_SIZE[0] / 112)]),
+            transforms.CenterCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),  # Center crop instead of random crop
             transforms.ToTensor(),
-            transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
+            transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),  # Same normalization
         ])
-
-        if 'rgbd' in TRAIN_SET:
-            dataset_train = ImageFolder4Channel(os.path.join(DATA_ROOT, TRAIN_SET), train_transform)
-        else:
-            dataset_train = datasets.ImageFolder(os.path.join(DATA_ROOT, TRAIN_SET), train_transform)
-
-        # create a weighted random sampler to process imbalanced data
-        weights = make_weights_for_balanced_classes(dataset_train.imgs, len(dataset_train.classes))
-        weights = torch.DoubleTensor(weights)
-        sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, len(weights))
-
-        train_loader = torch.utils.data.DataLoader(
-            dataset_train, batch_size=BATCH_SIZE, sampler=sampler, pin_memory=PIN_MEMORY,
-            num_workers=NUM_WORKERS, drop_last=DROP_LAST
-        )
-
-        NUM_CLASS = len(train_loader.dataset.classes)
-        print("Number of Training Classes: {}".format(NUM_CLASS))
 
         # ======= model & loss & optimizer =======#
         BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE, EMBEDDING_SIZE),
@@ -172,20 +145,30 @@ if __name__ == '__main__':
             test_facescape = 'test_rgbd_facescape'
             test_faceverse = 'test_rgbd_faceverse'
             test_texas = 'test_rgbd_texas'
-        elif 'rgb' in TRAIN_SET:
+            test_bff = 'test_rgbd_bff'
+        elif 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
             test_bellus = 'test_rgb_bellus'
             test_facescape = 'test_rgb_facescape'
             test_faceverse = 'test_rgb_faceverse'
             test_texas = 'test_rgb_texas'
+            test_bff = 'test_rgb_bff'
         elif 'depth' in TRAIN_SET:
             test_bellus = 'test_depth_bellus'
             test_facescape = 'test_depth_facescape'
             test_faceverse = 'test_depth_faceverse'
             test_texas = 'test_depth_texas'
+            test_bff = 'test_depth_bff'
 
-        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, 0, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
-        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, 0, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
-        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, 0, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
-        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, 0, NUM_EPOCH, DISTANCE_METRIC, RGB_MEAN, RGB_STD)
+        if 'rgbd' not in TRAIN_SET and 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
+            evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+            #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+            print(colorstr('blue', "=" * 60))
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+
+        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
 
         print("=" * 60)
