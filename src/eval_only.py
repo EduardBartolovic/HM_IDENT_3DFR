@@ -161,7 +161,7 @@ if __name__ == '__main__':
 
         if 'rgbd' not in TRAIN_SET and 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
             evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-            evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+            #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
             print(colorstr('blue', "=" * 60))
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
 
