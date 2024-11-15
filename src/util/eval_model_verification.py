@@ -2,7 +2,9 @@ import os
 import mlflow
 import numpy as np
 import torch
-from scipy.spatial.distance import cosine
+from numpy import dot
+from numpy.linalg import norm
+from scipy.spatial.distance import cosine, euclidean, cdist
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -14,7 +16,7 @@ from src.util.utils import gen_plot
 
 def voting_1to1(threshold, distances):
 
-    is_same_votes = np.less(distances, threshold)
+    is_same_votes = np.where(distances > threshold)
 
     # If more than half of the votes say "same person", return True
     return np.sum(is_same_votes) > (len(is_same_votes) / 2)
@@ -64,21 +66,20 @@ def calculate_accuracy(threshold, dist, actual_issame):
     tpr = 0 if (tp + fn == 0) else float(tp) / float(tp + fn)
     fpr = 0 if (fp + tn == 0) else float(fp) / float(fp + tn)
     acc = float(tp + tn) / dist.size
-    return tpr, fpr, acc
+    return tpr*100, fpr*100, acc*100
 
 
 def calc_distances_voting(embeddings1, embeddings2):
     distances = []
-    for i in range(len(embeddings1)):
-        distances_in_matchinggroup = []
-        embeddings_person1 = embeddings1[i]
-        embeddings_person2 = embeddings2[i]
+    for emb1, emb2 in zip(embeddings1, embeddings2):
+        emb1 = np.array(emb1)
+        emb2 = np.array(emb2)
 
-        for idx, emb1 in enumerate(embeddings_person1):
-            for emb2 in embeddings_person2:
-                similarity = cosine(emb1, emb2)
-                distances_in_matchinggroup.append(similarity)
-        distances.append(distances_in_matchinggroup)
+        # Compute pairwise cosine similarities
+        similarities = 1 - cdist(emb1, emb2, metric='cosine')
+
+        # Flatten the result and append to the main distances list
+        distances.append(similarities.flatten())
 
     return distances
 
@@ -93,9 +94,15 @@ def calculate_roc_voting(thresholds, embeddings1, embeddings2, actual_issame):
 
     dist = calc_distances_voting(embeddings1, embeddings2)
 
+    #max_dist = max(max(sublist) for sublist in dist)
+    #min_dist = min(min(sublist) for sublist in dist)
+    #steps = (max_dist - min_dist)/1000
+    #thresholds = np.arange(min_dist, max_dist, steps)
+
     acc_train = np.zeros(nrof_thresholds)
     for threshold_idx, threshold in enumerate(thresholds):
         _, _, acc_train[threshold_idx] = calculate_accuracy_voting(threshold, dist, actual_issame)
+    # Todo: use different thres for perspeticives
     best_threshold_index = np.argmax(acc_train)
     best_thresholds = thresholds[best_threshold_index]
     for threshold_idx, threshold in enumerate(thresholds):
@@ -128,7 +135,7 @@ def calculate_roc(thresholds, embeddings1, embeddings2, actual_issame):
 
 
 def evaluate(embeddings1, embeddings2, actual_issame, voting=False):
-    thresholds = np.arange(0, 1.5, 0.001)
+    thresholds = np.arange(0, 1, 0.001)
     if voting:
         tpr, fpr, accuracy, best_thresholds = calculate_roc_voting(thresholds, embeddings1, embeddings2, np.asarray(actual_issame))
     else:

@@ -6,7 +6,7 @@ from backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_S
 from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, IR_SE_50_rgbd, IR_SE_101_rgbd, \
     IR_SE_152_rgbd
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
-from src.util.eval_model_verification import evaluate_verification_lfw
+from src.util.eval_model_verification import evaluate_verification_lfw, evaluate_verification_colorferet
 from src.util.misc import colorstr
 from util.eval_model import evaluate_and_log
 
@@ -161,7 +161,7 @@ if __name__ == '__main__':
 
         if 'rgbd' not in TRAIN_SET and 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
             evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-            #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+            evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
             print(colorstr('blue', "=" * 60))
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
 
