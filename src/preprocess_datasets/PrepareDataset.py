@@ -245,7 +245,9 @@ def prepare_dataset_photos(input_path, output_dir):
 
     for p in file_paths:
         splited_path = Path(p).parts
-        file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest() + splited_path[-1]
+        photo_name = splited_path[-1][:7]+'_photo'
+        print(photo_name)
+        file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest() + '-' +photo_name
         set = splited_path[-2] + splited_path[-3]
         model = splited_path[-4]
 
