@@ -9,7 +9,7 @@ import torchvision
 from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_gpu
 from src.util.ImageFolderRGBDWithScanID import ImageFolderRGBDWithScanID
 from src.util.ImageFolderWithScanID import ImageFolderWithScanID
-from src.util.Voting import knn_voting, voting, accuracy_front_perspective
+from src.util.Voting import knn_voting, voting, accuracy_front_perspective, concat
 from src.util.Metrics import calc_metrics, error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix, write_embeddings
 from src.util.embeddungs_metrics import calc_embedding_analysis
@@ -82,13 +82,13 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     error_rate_per_class(embedding_library.query_labels, y_pred_top1, os.path.basename(test_path))
 
     # Eval only Front
-    if 'texas' not in test_path and 'photo' not in test_path:
+    if 'texas' not in test_path and 'colorferet' not in test_path:
         y_true_front, y_pred_front = accuracy_front_perspective(device, embedding_library, distance_metric)
         metrics_front = calc_metrics(y_true_front, y_pred_front)
     else:
         metrics_front = {}
 
-    # VotingV1
+    # VotingV1 Single Encoding
     y_true_voting, y_pred_voting = voting(y_pred, embedding_library.query_scan_ids, embedding_library.query_labels)
     y_pred_voting_top1 = y_pred_voting[:, 0]
     y_pred_voting_top5 = y_pred_voting[:, :5]
@@ -96,16 +96,19 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     plot_confusion_matrix(y_true_voting, y_pred_voting_top1, dataset_enrolled,
                           (os.path.basename(test_path) + '_voting'), matplotlib=False)
 
-    #VotingV2
+    #VotingV2 KNN
     y_true_knn, y_pred_knn = knn_voting(embedding_library)
     metrics_knn_voting = calc_metrics(y_true_knn, y_pred_knn)
 
-    return metrics, metrics_front, metrics_voting, metrics_knn_voting, embedding_metrics, embedding_library
+    # ConCat
+    metric_concat = concat(embedding_library)
+
+    return metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library
 
 
 def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_epoch, distance_metric, test_transform, batch_size):
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset}"))
-    metrics, metrics_front, metrics_voting, metrics_knn_voting, embedding_metrics, embedding_library = evaluate(device, batch_size*2, backbone, os.path.join(data_root, dataset), distance_metric, test_transform)
+    metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library = evaluate(device, batch_size*2, backbone, os.path.join(data_root, dataset), distance_metric, test_transform)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
@@ -118,6 +121,8 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
         mlflow.log_metric(f"{neutral_dataset}_Front_RR1", metrics_front['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f"{neutral_dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f"{neutral_dataset}_KNNVoting_RR1", metrics_knn_voting['Rank-1 Rate'], step=epoch + 1)
+    mlflow.log_metric(f"{neutral_dataset}_RR1", metric_concat['Rank-1 Rate'], step=epoch + 1)
+    mlflow.log_metric(f'{neutral_dataset}_RR5', metric_concat['Rank-5 Rate'], step=epoch + 1)
 
     #if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
@@ -139,6 +144,6 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
         mlflow.log_metric(f"{neutral_dataset}_query_std_norm", embedding_metrics['query_std_norm'], step=epoch + 1)
 
     if 'Rank-1 Rate' in metrics_front.keys():
-        print(colorstr('bright_green', f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} Front-RR1: {metrics_front['Rank-1 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']} ; KNN-Voting-RR1: {metrics_knn_voting['Rank-1 Rate']}"))
+        print(colorstr('bright_green', f"{neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} Front-RR1: {metrics_front['Rank-1 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']} ; KNN-Voting-RR1: {metrics_knn_voting['Rank-1 Rate']} ; Concat-RR1: {metric_concat['Rank-1 Rate']} Concat-RR5: {metric_concat['Rank-5 Rate']}"))
     else:
-        print(colorstr('bright_green', f"Epoch {epoch + 1}/{num_epoch}, {neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']} ; KNN-Voting-RR1: {metrics_knn_voting['Rank-1 Rate']}"))
+        print(colorstr('bright_green', f"{neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']} ; KNN-Voting-RR1: {metrics_knn_voting['Rank-1 Rate']} ; Concat-RR1: {metric_concat['Rank-1 Rate']} Concat-RR5: {metric_concat['Rank-5 Rate']}"))

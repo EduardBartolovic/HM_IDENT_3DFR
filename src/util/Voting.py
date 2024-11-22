@@ -2,19 +2,168 @@ from collections import defaultdict
 
 import numpy as np
 from sklearn import neighbors
+import numba
+from sklearn.metrics import accuracy_score
+from tqdm import tqdm
 
-from src.util.EmbeddingsUtils import batched_distances_gpu
+
+def compute_ranking_matrices(similarity_matrix):
+    n = similarity_matrix.shape[0]
+    top_indices = np.zeros_like(similarity_matrix, dtype=int)
+    top_values = np.zeros_like(similarity_matrix)
+
+    for i in range(n):
+        # Exclude self-similarity if needed
+        # You can uncomment the next line if you want to exclude self-similarity
+        # similarities[i] = -np.inf
+
+        # Get the indices of the sorted similarities
+        sorted_indices = np.argsort(similarity_matrix[i])[::-1]
+        top_indices[i] = sorted_indices
+        top_values[i] = similarity_matrix[i][sorted_indices]
+    return top_indices, top_values
+
+
+def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_ids, top_k_acc_k=5):
+    num_persons = similarity_matrix.shape[1]
+    num_inferences = similarity_matrix.shape[0]
+
+    if len(reference_ids) != num_persons:
+        print("The number of reference_ids is not matching the number of different persons in the top_indices matrix")
+    if len(ground_truth_ids) != num_inferences:
+        print(
+            "The number of inference_ids is not matching the number of different persons in the similarity_matrix matrix")
+
+    # Calculate top-1 accuracy
+    predicted_labels = reference_ids[top_indices[:, 0]]
+    top_1_accuracy = accuracy_score(ground_truth_ids, predicted_labels)
+    # print(f"num labels test {len(ground_truth_ids)} and predicted values: {len(predicted_labels)}")
+
+    # Calculate top-k accuracy using a for loop
+    correct_predictions = 0
+    for i in range(num_inferences):
+        if ground_truth_ids[i] in reference_ids[top_indices[i, :top_k_acc_k]]:
+            correct_predictions += 1
+    top_k_accuracy = correct_predictions / num_inferences
+
+    return {
+        "Rank-1 Rate": round(top_1_accuracy * 100, 2),
+        "Rank-" + str(top_k_acc_k) + " Rate": round(top_k_accuracy * 100, 2),
+    }
+
+
+@numba.njit(parallel=True)
+def process_chunk_embedding_similarity(tabular_embedding_data, image_embedding_data, start_row, end_row,
+                                       similarity_matrix):
+    for index in numba.prange(end_row - start_row):
+        i = index + start_row
+        for j in range(image_embedding_data.shape[0]):
+            similarity = np.dot(tabular_embedding_data[i], image_embedding_data[j])
+            similarity_matrix[i, j] = similarity
+
+
+def calculate_embedding_similarity_progress(
+        tabular_embeddings: np.ndarray,
+        image_embeddings: np.ndarray,
+        chunk_size=100,
+        show_progress=True,
+):
+    tabular_data_norm = np.linalg.norm(tabular_embeddings, axis=1, keepdims=True)
+    tabular_data = tabular_embeddings / tabular_data_norm
+
+    image_data_norm = np.linalg.norm(image_embeddings, axis=1, keepdims=True)
+    image_data = image_embeddings / image_data_norm
+
+    n = tabular_data.shape[0]
+    m = image_data.shape[0]
+    similarity_matrix = np.empty((n, m))
+
+    with tqdm(total=n, disable=not show_progress, desc="Calculating Embedding Similarity") as pbar:
+        for start_row in range(0, n, chunk_size):
+            end_row = min(start_row + chunk_size, n)
+            process_chunk_embedding_similarity(
+                tabular_data, image_data, start_row, end_row, similarity_matrix
+            )
+            pbar.update(end_row - start_row)
+
+    return similarity_matrix
+
+
+def concat(embedding_library):
+    # Group embeddings, perspectives, and match them with labels by scan_id
+    scan_to_data = {}
+    for scan_id, embedding, label, perspective in zip(
+            embedding_library.enrolled_scan_ids,
+            embedding_library.enrolled_embeddings,
+            embedding_library.enrolled_labels,
+            embedding_library.enrolled_perspectives
+    ):
+        if scan_id not in scan_to_data:
+            scan_to_data[scan_id] = {'embeddings': [], 'perspectives': [], 'label': label}
+        scan_to_data[scan_id]['embeddings'].append(embedding)
+        scan_to_data[scan_id]['perspectives'].append(perspective)
+
+    concatenated_embeddings = []
+    concatenated_labels = []
+    for scan_id, data in scan_to_data.items():
+        # Combine embeddings and perspectives into sortable pairs
+        combined = list(zip(data['perspectives'], data['embeddings']))
+        combined.sort(key=lambda x: x[0])  # Sort by perspective
+        _, sorted_embeddings = zip(*combined)  # Extract sorted embeddings
+        # Concatenate embeddings for the scan_id
+        concatenated_embedding = np.concatenate(sorted_embeddings, axis=0)
+        concatenated_embeddings.append(concatenated_embedding)
+        # Use the label associated with this scan_id
+        concatenated_labels.append(data['label'])
+
+    enrolled_embedding_database = np.array(concatenated_embeddings)
+    enrolled_label_database = np.array(concatenated_labels)
+
+    # --------------QUERY --------------------------:
+
+    # Group embeddings, perspectives, and match them with labels by scan_id
+    scan_to_data = {}
+    for scan_id, embedding, label, perspective in zip(
+            embedding_library.query_scan_ids,
+            embedding_library.query_embeddings,
+            embedding_library.query_labels,
+            embedding_library.query_perspectives
+    ):
+        if scan_id not in scan_to_data:
+            scan_to_data[scan_id] = {'embeddings': [], 'perspectives': [], 'label': label}
+        scan_to_data[scan_id]['embeddings'].append(embedding)
+        scan_to_data[scan_id]['perspectives'].append(perspective)
+
+    concatenated_embeddings = []
+    concatenated_labels = []
+    for scan_id, data in scan_to_data.items():
+        # Combine embeddings and perspectives into sortable pairs
+        combined = list(zip(data['perspectives'], data['embeddings']))
+        combined.sort(key=lambda x: x[0])  # Sort by perspective
+        _, sorted_embeddings = zip(*combined)
+        concatenated_embedding = np.concatenate(sorted_embeddings, axis=0)  # Concatenate embeddings for the scan_id
+        if concatenated_embedding.shape[0] != 2560 and concatenated_embedding.shape[0] != 12800 and concatenated_embedding.shape[0] != 512:
+            print(concatenated_embedding.shape)
+            print(scan_id)
+            continue
+
+        concatenated_embeddings.append(concatenated_embedding)
+        concatenated_labels.append(data['label'])
+
+    query_embedding_database = np.array(concatenated_embeddings)
+    query_label_database = np.array(concatenated_labels)
+
+    similarity_matrix = calculate_embedding_similarity_progress(query_embedding_database, enrolled_embedding_database)
+    top_indices, top_values = compute_ranking_matrices(similarity_matrix)
+    result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label_database, query_label_database,
+                                    top_k_acc_k=5)
+    return result_metrics
 
 
 def knn_voting(embedding_library, k=1):
-
-    scan_id_to_idx = defaultdict(list)
-    for idx, scan_id in enumerate(embedding_library.query_scan_ids):
-        scan_id_to_idx[scan_id].append(idx)
-
     k = 1
     d = "cosine"
-    #for k in range(1, 7, 2):
+    # for k in range(1, 7, 2):
     #    for d in ["cosine", "euclidean"]:
 
     knn_model = neighbors.KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric=d)
@@ -40,7 +189,7 @@ def knn_voting(embedding_library, k=1):
         y_true_scan.append(y_true)
         y_pred_scan.append(vote)
 
-    #print("K", k, "d", d, "KNN Voting Accuracy={}%".format(accuracy_score(y_true_scan, y_pred_scan) * 100))
+    # print("K", k, "d", d, "KNN Voting Accuracy={}%".format(accuracy_score(y_true_scan, y_pred_scan) * 100))
 
     return np.array(y_true_scan), np.array(y_pred_scan)
 

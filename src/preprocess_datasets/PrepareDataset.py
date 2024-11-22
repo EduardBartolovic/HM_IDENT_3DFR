@@ -245,8 +245,7 @@ def prepare_dataset_photos(input_path, output_dir):
 
     for p in file_paths:
         splited_path = Path(p).parts
-        photo_name = splited_path[-1][:7]+'_photo'
-        print(photo_name)
+        photo_name = splited_path[-1][6:-4]+'_photo.jpg'
         file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest() + '-' +photo_name
         set = splited_path[-2] + splited_path[-3]
         model = splited_path[-4]
@@ -327,7 +326,39 @@ def collect_data_files_colorferet(input_path):
     return file_paths
 
 
-def prepare_dataset_colorferet(input_path, output_dir):
+def prepare_dataset_colorferet_1_1(input_path, output_dir):
+    print('input_dir:', input_path)
+    print('output_dir_rgb:', output_dir)
+
+    os.makedirs(output_dir, exist_ok=True)
+    train_dir = os.path.join(output_dir, 'train')
+    val_dir = os.path.join(output_dir, 'validation')
+    os.makedirs(train_dir, exist_ok=True)
+    os.makedirs(val_dir, exist_ok=True)
+
+    file_paths = collect_data_files_colorferet(input_path)
+
+    for p in tqdm(file_paths):
+        splited_path = Path(p).parts
+        file_name = splited_path[-1][:-4]
+        splited_file_name = file_name.split('_')
+
+        if len(splited_file_name) == 4:
+            flag = splited_file_name[3]
+        set = splited_file_name[1]
+        model = splited_file_name[0]
+
+        # Create the target directory for the model if it doesn't exist
+        target = os.path.join(output_dir, model, set)
+        os.makedirs(target, exist_ok=True)
+
+        img = Image.open(Path(p))
+        file_name = Path(p).stem
+        target_path = os.path.join(target, f"{file_name}.jpg")
+        img.save(target_path, 'JPEG')
+
+
+def prepare_dataset_colorferet_1_n(input_path, output_dir):
     print('input_dir:', input_path)
     print('output_dir_rgb:', output_dir)
 
@@ -346,31 +377,46 @@ def prepare_dataset_colorferet(input_path, output_dir):
         file_name = splited_path[-1][:-4]
         splited_file_name = file_name.split('_')
 
-        if len(splited_file_name) == 4:
-            flag = splited_file_name[3]
-        perspective = splited_file_name[2]
-        set = splited_file_name[1]
+        scan = splited_file_name[1]
         model = splited_file_name[0]
 
-        # if model in model_cache and set in set_cache:  # One set of one model exists
-        #     target_dir = train_dir
-        # elif model in model_cache and set not in set_cache:
-        #     target_dir = val_dir
-        # elif model not in model_cache:
-        #     target_dir = train_dir
-        #     model_cache.append(model)
-        #     set_cache.append(set)
-        # else:
-        #     raise Exception('Illegal State')
+        if model in model_cache and scan in set_cache:  # One set of one model exists
+            target_dir = train_dir
+        elif model in model_cache and scan not in set_cache:
+            target_dir = val_dir
+        elif model not in model_cache:
+            target_dir = train_dir
+            model_cache.append(model)
+            set_cache.append(scan)
+        else:
+            raise Exception('Illegal State')
 
         # Create the target directory for the model if it doesn't exist
-        target = os.path.join(output_dir, model, set)
+        target = os.path.join(target_dir, model)
         os.makedirs(target, exist_ok=True)
 
         img = Image.open(Path(p))
-        file_name = Path(p).stem
+        file_name = Path(p).stem[7:]
+        file_name = hashlib.sha1((model + scan + Path(p).stem[:7]).encode()).hexdigest() + Path(p).stem[7:]
+
         target_path = os.path.join(target, f"{file_name}.jpg")
         img.save(target_path, 'JPEG')
+
+    # Get a list of folder names in train and val directories
+    train_folders = set(os.listdir(train_dir))
+    val_folders = set(os.listdir(val_dir))
+
+    # Find unmatched folders
+    unmatched_folders = train_folders - val_folders
+
+    # Remove unmatched folders from train
+    for folder in unmatched_folders:
+        folder_path = os.path.join(train_dir, folder)
+        if os.path.isdir(folder_path):  # Check if it's a folder
+            shutil.rmtree(folder_path)  # Delete the folder and its contents
+            print(f"Removed folder: {folder}")
+
+    print("All unmatched folders have been removed.")
 
 
 def prepare_dataset_texas3d(input_path, output_dir_rgb, output_dir_depth):

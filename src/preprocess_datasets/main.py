@@ -55,7 +55,7 @@ def main():
 
         # Prepare Dataset Photos Bellus:
         input_path = Path('F:\\Face\\data\\tmp\\2D_Bellus\\')
-        output_dir = Path(root+'test_photos_bellus')
+        output_dir = Path(root+'test_photo_bellus')
         PrepareDataset.prepare_dataset_photos(input_path, output_dir)
 
 
@@ -66,7 +66,7 @@ def main():
         directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
         output_dir = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        #obj_reader.render_obj_files('facescape')
+        obj_reader.render_obj_files('facescape')
 
         # Prepare Dataset Depth Facescape:
         input_path = Path('F:\\Face\\data\\tmp\\3D_facescape')
@@ -252,12 +252,18 @@ def main():
     # COLOR FERET
     if colorferet:
 
-        # Prepare Dataset Photos ffhq:
+        # Prepare Dataset Photos:
         input_path = Path('H:\\Maurer\\colorferet\\colorferet\\images')
-        output_dir = Path(root + 'test_colorferet')
-        PrepareDataset.prepare_dataset_colorferet(input_path, output_dir)
+        output_dir = Path(root + 'test_photo_colorferet_1_1')
+        #PrepareDataset.prepare_dataset_colorferet_1_1(input_path, output_dir)
+        #generate_pairs(output_dir)
 
-        generate_pairs(output_dir)
+        # Prepare Dataset Photos:
+        input_path = Path('H:\\Maurer\\colorferet\\colorferet\\images')
+        output_dir = Path(root + 'test_photo_colorferet1_n')
+        PrepareDataset.prepare_dataset_colorferet_1_n(input_path, output_dir)
+
+
 
     if bff:
 
@@ -267,7 +273,7 @@ def main():
 
         input_paths = [Path('F:\\Face\\data\\datasets7\\test_rgbd_bellus'), Path('F:\\Face\\data\\datasets7\\test_rgbd_facescape'), Path('F:\\Face\\data\\datasets7\\test_rgbd_faceverse')]
         output_dir = Path(root + 'test_rgbd_bff')
-        #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
+        PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)
