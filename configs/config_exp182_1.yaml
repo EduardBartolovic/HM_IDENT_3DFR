@@ -6,7 +6,7 @@ TRAIN_SET: 'rgb'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
-BACKBONE_RESUME_ROOT: './pretrained/backbone_ir50_ms1m_epoch120.pth'  # the root to resume training from a saved checkpoint
+BACKBONE_RESUME_ROOT: '~/HM_IDENT_3DFR/src/pretrained/backbone_ir50_ms1m_epoch120.pth'  # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: './'  # the root to resume training from a saved checkpoint
 BACKBONE_NAME: 'IR_50'  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
