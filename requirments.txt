@@ -12,3 +12,4 @@ pycm
 openTSNE
 seaborn
 onnxruntime
+numba
