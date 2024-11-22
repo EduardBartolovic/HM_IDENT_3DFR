@@ -1,7 +1,7 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP182-MS1M-enc_512-ArcFace-FocalLoss-112_112-batchsize_128-epochs120-IR_50_PRE_MS1M63-cleaned'  # experiment_name
-DATA_ROOT: '~/dataset7'  # the parent root
+DATA_ROOT: '~/dataset8'  # the parent root
 TRAIN_SET: 'rgb'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
