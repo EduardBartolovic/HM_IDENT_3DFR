@@ -12,6 +12,9 @@ from torchvision import datasets
 import torch
 from torchvision.transforms import transforms
 
+from src.preprocess_datasets.detect_face import cut_face
+from src.preprocess_datasets.headPoseEstimation.models.scrfd import SCRFD
+
 
 def collect_data_files_depth(input_path):
     file_paths = []
@@ -370,6 +373,8 @@ def prepare_dataset_colorferet_1_n(input_path, output_dir):
 
     file_paths = collect_data_files_colorferet(input_path)
 
+    face_detector = SCRFD(model_path="F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\det_10g.onnx")
+
     model_cache = []
     set_cache = []
     for p in tqdm(file_paths):
@@ -396,8 +401,12 @@ def prepare_dataset_colorferet_1_n(input_path, output_dir):
         os.makedirs(target, exist_ok=True)
 
         img = Image.open(Path(p))
-        file_name = Path(p).stem[7:]
-        file_name = hashlib.sha1((model + scan + Path(p).stem[:7]).encode()).hexdigest() + Path(p).stem[7:]
+        file_name = hashlib.sha1((model + scan + Path(p).stem[:7]).encode()).hexdigest() + "-" + Path(p).stem[13:].replace("_a", "") + "_photo"
+
+        cutted_face, worked_fine = cut_face(face_detector, np.array(img))
+        img = Image.fromarray(cutted_face)
+        if not worked_fine:
+            print(Path(p))
 
         target_path = os.path.join(target, f"{file_name}.jpg")
         img.save(target_path, 'JPEG')

@@ -112,6 +112,10 @@ def concat(embedding_library):
         _, sorted_embeddings = zip(*combined)  # Extract sorted embeddings
         # Concatenate embeddings for the scan_id
         concatenated_embedding = np.concatenate(sorted_embeddings, axis=0)
+        if concatenated_embedding.shape[0] != 512*5 and concatenated_embedding.shape[0] != 512*25 and concatenated_embedding.shape[0] != 512:
+            print(concatenated_embedding.shape)
+            print(scan_id)
+            continue
         concatenated_embeddings.append(concatenated_embedding)
         # Use the label associated with this scan_id
         concatenated_labels.append(data['label'])
@@ -142,9 +146,10 @@ def concat(embedding_library):
         combined.sort(key=lambda x: x[0])  # Sort by perspective
         _, sorted_embeddings = zip(*combined)
         concatenated_embedding = np.concatenate(sorted_embeddings, axis=0)  # Concatenate embeddings for the scan_id
-        if concatenated_embedding.shape[0] != 2560 and concatenated_embedding.shape[0] != 12800 and concatenated_embedding.shape[0] != 512:
-            print(concatenated_embedding.shape)
-            print(scan_id)
+        if concatenated_embedding.shape[0] != 512*5 and concatenated_embedding.shape[0] != 512*25 and concatenated_embedding.shape[0] != 512:
+             # TODO: Find a solution for this problem
+            #print(concatenated_embedding.shape)
+            #print(scan_id)
             continue
 
         concatenated_embeddings.append(concatenated_embedding)
@@ -231,12 +236,12 @@ def accuracy_front_perspective(device, embedding_library, distance_metric):
     # enrolled_perspectives.shape -> (num_samples,)
 
     # Mask rows where the enrolled_perspectives contain the specific string
-    mask = np.array(["0_0" in perspective for perspective in embedding_library.enrolled_perspectives])
+    mask = np.array(["0_0" in perspective or "-fa" in perspective for perspective in embedding_library.enrolled_perspectives])
     enrolled_embeddings = embedding_library.enrolled_embeddings[mask]
     enrolled_labels = embedding_library.enrolled_labels[mask]
 
     # Mask rows where the query_perspectives contain the specific string
-    mask = np.array(["0_0" in perspective for perspective in embedding_library.query_perspectives])
+    mask = np.array(["0_0" in perspective or "-fa" in perspective for perspective in embedding_library.query_perspectives])
     query_embeddings = embedding_library.query_embeddings[mask]
     query_labels = embedding_library.query_labels[mask]
 

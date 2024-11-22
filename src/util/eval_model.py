@@ -82,26 +82,35 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     error_rate_per_class(embedding_library.query_labels, y_pred_top1, os.path.basename(test_path))
 
     # Eval only Front
-    if 'texas' not in test_path and 'colorferet' not in test_path:
+    if 'texas' in test_path:
+        metrics_front = {}
+    else:
         y_true_front, y_pred_front = accuracy_front_perspective(device, embedding_library, distance_metric)
         metrics_front = calc_metrics(y_true_front, y_pred_front)
-    else:
-        metrics_front = {}
 
     # VotingV1 Single Encoding
-    y_true_voting, y_pred_voting = voting(y_pred, embedding_library.query_scan_ids, embedding_library.query_labels)
-    y_pred_voting_top1 = y_pred_voting[:, 0]
-    y_pred_voting_top5 = y_pred_voting[:, :5]
-    metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
-    plot_confusion_matrix(y_true_voting, y_pred_voting_top1, dataset_enrolled,
-                          (os.path.basename(test_path) + '_voting'), matplotlib=False)
+    if 'texas' in test_path:
+        metrics_voting = {}
+    else:
+        y_true_voting, y_pred_voting = voting(y_pred, embedding_library.query_scan_ids, embedding_library.query_labels)
+        y_pred_voting_top1 = y_pred_voting[:, 0]
+        y_pred_voting_top5 = y_pred_voting[:, :5]
+        metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
+        # plot_confusion_matrix(y_true_voting, y_pred_voting_top1, dataset_enrolled, os.path.basename(test_path) + '_votingV1', matplotlib=False)
 
-    #VotingV2 KNN
-    y_true_knn, y_pred_knn = knn_voting(embedding_library)
-    metrics_knn_voting = calc_metrics(y_true_knn, y_pred_knn)
+    # VotingV2 KNN
+    if 'texas' in test_path:
+        metrics_knn_voting = {}
+    else:
+        y_true_knn, y_pred_knn = knn_voting(embedding_library)
+        metrics_knn_voting = calc_metrics(y_true_knn, y_pred_knn)
+        plot_confusion_matrix(y_true_knn, y_pred_knn, dataset_enrolled, os.path.basename(test_path) + '_votingV2', matplotlib=False)
 
     # ConCat
-    metric_concat = concat(embedding_library)
+    if 'texas' in test_path or 'colorferet' in test_path:
+        metric_concat = {}
+    else:
+        metric_concat = concat(embedding_library)
 
     return metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library
 
@@ -112,17 +121,21 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
-    buffer_val_min(writer, neutral_dataset, metrics['Rank-1 Rate'], epoch + 1)
-    buffer_val_min(writer, neutral_dataset, metrics_voting['Rank-1 Rate'], epoch + 1)
+    #buffer_val_min(writer, neutral_dataset, metrics['Rank-1 Rate'], epoch + 1)
+    #buffer_val_min(writer, neutral_dataset, metrics_voting['Rank-1 Rate'], epoch + 1)
 
     mlflow.log_metric(f"{neutral_dataset}_RR1", metrics['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f'{neutral_dataset}_RR5', metrics['Rank-5 Rate'], step=epoch + 1)
+
     if 'Rank-1 Rate' in metrics_front.keys():
         mlflow.log_metric(f"{neutral_dataset}_Front_RR1", metrics_front['Rank-1 Rate'], step=epoch + 1)
-    mlflow.log_metric(f"{neutral_dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
-    mlflow.log_metric(f"{neutral_dataset}_KNNVoting_RR1", metrics_knn_voting['Rank-1 Rate'], step=epoch + 1)
-    mlflow.log_metric(f"{neutral_dataset}_RR1", metric_concat['Rank-1 Rate'], step=epoch + 1)
-    mlflow.log_metric(f'{neutral_dataset}_RR5', metric_concat['Rank-5 Rate'], step=epoch + 1)
+    if 'Rank-1 Rate' in metrics_voting.keys():
+        mlflow.log_metric(f"{neutral_dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
+    if 'Rank-1 Rate' in metrics_knn_voting.keys():
+        mlflow.log_metric(f"{neutral_dataset}_KNNVoting_RR1", metrics_knn_voting['Rank-1 Rate'], step=epoch + 1)
+    if 'Rank-1 Rate' in metric_concat.keys():
+        mlflow.log_metric(f"{neutral_dataset}_RR1", metric_concat['Rank-1 Rate'], step=epoch + 1)
+        mlflow.log_metric(f'{neutral_dataset}_RR5', metric_concat['Rank-5 Rate'], step=epoch + 1)
 
     #if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
@@ -143,7 +156,21 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
         mlflow.log_metric(f"{neutral_dataset}_query_mean_norm", embedding_metrics['query_mean_norm'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_query_std_norm", embedding_metrics['query_std_norm'], step=epoch + 1)
 
-    if 'Rank-1 Rate' in metrics_front.keys():
-        print(colorstr('bright_green', f"{neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} Front-RR1: {metrics_front['Rank-1 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']} ; KNN-Voting-RR1: {metrics_knn_voting['Rank-1 Rate']} ; Concat-RR1: {metric_concat['Rank-1 Rate']} Concat-RR5: {metric_concat['Rank-5 Rate']}"))
-    else:
-        print(colorstr('bright_green', f"{neutral_dataset} Evaluation: RR1: {metrics['Rank-1 Rate']} RR5: {metrics['Rank-5 Rate']} ; Voting-RR1: {metrics_voting['Rank-1 Rate']} Voting-RR5: {metrics_voting['Rank-5 Rate']} ; KNN-Voting-RR1: {metrics_knn_voting['Rank-1 Rate']} ; Concat-RR1: {metric_concat['Rank-1 Rate']} Concat-RR5: {metric_concat['Rank-5 Rate']}"))
+    rank_1 = metrics.get('Rank-1 Rate', 'N/A')
+    rank_5 = metrics.get('Rank-5 Rate', 'N/A')
+    front_rank_1 = metrics_front.get('Rank-1 Rate', 'N/A')
+    voting_rank_1 = metrics_voting.get('Rank-1 Rate', 'N/A')
+    voting_rank_5 = metrics_voting.get('Rank-5 Rate', 'N/A')
+    knn_voting_rank_1 = metrics_knn_voting.get('Rank-1 Rate', 'N/A')
+    concat_rank_1 = metric_concat.get('Rank-1 Rate', 'N/A')
+    concat_rank_5 = metric_concat.get('Rank-5 Rate', 'N/A')
+
+    print(colorstr(
+        'bright_green',
+        f"{neutral_dataset} Evaluation: "
+        f"RR1: {rank_1} RR5: {rank_5} "
+        f"Front-RR1: {front_rank_1} "
+        f"Voting-RR1: {voting_rank_1} Voting-RR5: {voting_rank_5} "
+        f"KNN-Voting-RR1: {knn_voting_rank_1} "
+        f"Concat-RR1: {concat_rank_1} Concat-RR5: {concat_rank_5}"
+    ))

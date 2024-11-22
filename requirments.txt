@@ -11,3 +11,4 @@ matplotlib
 pycm
 openTSNE
 seaborn
+onnxruntime

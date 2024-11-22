@@ -25,7 +25,7 @@ This project focuses on head pose estimation using various deep learning models,
 
 ```bash
 git clone https://github.com/yakyo/head-pose-estimation.git
-cd head-pose-estimation
+cd headPoseEstimation
 ```
 
 2. Install the required dependencies:

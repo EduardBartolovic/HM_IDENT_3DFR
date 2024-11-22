@@ -10,8 +10,8 @@ import numpy as np
 import torch
 from torchvision import transforms
 
-from models import resnet50, SCRFD
-from utils.general import compute_euler_angles_from_rotation_matrices, draw_cube, draw_axis
+from src.preprocess_datasets.headPoseEstimation.models.scrfd import SCRFD
+from src.preprocess_datasets.headPoseEstimation.utils.general import compute_euler_angles_from_rotation_matrices
 
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -89,6 +89,7 @@ def get_model(arch, num_classes=6, pretrained=True):
         raise ValueError(f"Please choose available model architecture, currently chosen: {arch}")
     return model
 
+
 def save_frame(image, angles, output_dir, counter):
     yaw, pitch, roll = angles
     filename = f"frame_{counter}_yaw_{yaw:.2f}_pitch_{pitch:.2f}_roll_{roll:.2f}.jpg"
@@ -128,6 +129,7 @@ def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, fra
 
     cap.release()
     cv2.destroyAllWindows()
+
 
 def main(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

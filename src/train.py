@@ -327,7 +327,7 @@ if __name__ == '__main__':
                 test_texas = 'test_depth_texas'
                 test_bff = 'test_depth_bff'
 
-            if 'rgbd' not in TRAIN_SET and 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
+            if 'rgbd' not in TRAIN_SET:
                 #    evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
                 #    #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
                 #    print(colorstr('blue', "=" * 60))
