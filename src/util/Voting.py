@@ -165,6 +165,89 @@ def concat(embedding_library):
     return result_metrics
 
 
+def multidatabase_voting(embedding_library):
+    # Group embeddings, perspectives, and match them with labels by scan_id
+    scan_to_data = {}
+    for scan_id, embedding, label, perspective in zip(
+            embedding_library.enrolled_scan_ids,
+            embedding_library.enrolled_embeddings,
+            embedding_library.enrolled_labels,
+            embedding_library.enrolled_perspectives
+    ):
+        if scan_id not in scan_to_data:
+            scan_to_data[scan_id] = {'embeddings': [], 'perspectives': [], 'label': label}
+        scan_to_data[scan_id]['embeddings'].append(embedding)
+        scan_to_data[scan_id]['perspectives'].append(perspective)
+
+    embeddings_databases = [[] for _ in range(25)]
+    embeddings_labels = []
+    for scan_id, data in scan_to_data.items():
+        # Combine embeddings and perspectives into sortable pairs
+        combined = list(zip(data['perspectives'], data['embeddings']))
+        combined.sort(key=lambda x: x[0])  # Sort by perspective
+        _, sorted_embeddings = zip(*combined)  # Extract sorted embeddings
+
+        for i in range(len(sorted_embeddings)):
+            embeddings_databases[i].append(sorted_embeddings[i])
+            # Use the label associated with this scan_id
+        embeddings_labels.append(data['label'])
+
+    enrolled_embedding_databases = np.array(embeddings_databases)
+    enrolled_label_database = np.array(embeddings_labels)
+
+    # --------------QUERY --------------------------:
+
+    # Group embeddings, perspectives, and match them with labels by scan_id
+    scan_to_data = {}
+    for scan_id, embedding, label, perspective in zip(
+            embedding_library.query_scan_ids,
+            embedding_library.query_embeddings,
+            embedding_library.query_labels,
+            embedding_library.query_perspectives
+    ):
+        if scan_id not in scan_to_data:
+            scan_to_data[scan_id] = {'embeddings': [], 'perspectives': [], 'label': label}
+        scan_to_data[scan_id]['embeddings'].append(embedding)
+        scan_to_data[scan_id]['perspectives'].append(perspective)
+
+    embeddings_databases = [[] for _ in range(25)]
+    embeddings_labels = []
+    for scan_id, data in scan_to_data.items():
+        # Combine embeddings and perspectives into sortable pairs
+        combined = list(zip(data['perspectives'], data['embeddings']))
+        combined.sort(key=lambda x: x[0])  # Sort by perspective
+        _, sorted_embeddings = zip(*combined)  # Extract sorted embeddings
+
+        for i in range(len(sorted_embeddings)):
+            embeddings_databases[i].append(sorted_embeddings[i])
+            # Use the label associated with this scan_id
+        embeddings_labels.append(data['label'])
+
+    query_embedding_databases = np.array(embeddings_databases)
+    query_label_database = np.array(embeddings_labels)
+
+    majority_vote_predictions = []
+    for i in range(len(query_embedding_databases)):
+        similarity_matrix = calculate_embedding_similarity_progress(query_embedding_databases[i], enrolled_embedding_databases[i])
+        top_indices, top_values = compute_ranking_matrices(similarity_matrix)
+
+        majority_vote_predictions.append(top_indices)
+
+    final_voted_indices = []
+    for i in range(len(majority_vote_predictions[0])):
+        # Collect top indices for the current query across all databases
+        votes = [majority_vote_indices[j][i] for j in range(len(query_embedding_databases))]
+
+        # Determine the majority index (most frequent index in the votes)
+        majority_index = max(set(votes), key=votes.count)
+        final_voted_indices.append(majority_index)
+
+
+    result_metrics = analyze_result(similarity_matrix, final_voted_indices, enrolled_label_databases, query_label_databases, top_k_acc_k=5)
+    print(result_metrics)
+    return result_metrics
+
+
 def knn_voting(embedding_library, k=1):
     k = 1
     d = "cosine"

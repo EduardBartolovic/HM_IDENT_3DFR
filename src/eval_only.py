@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torchvision.transforms as transforms
 from backbone.model_resnet import ResNet_50, ResNet_101, ResNet_152
 from backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
 from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, IR_SE_50_rgbd, IR_SE_101_rgbd, \
@@ -114,7 +113,7 @@ if __name__ == '__main__':
             print("=" * 60)
             if os.path.isfile(BACKBONE_RESUME_ROOT):
                 print(colorstr('blue', f"Loading ONLY Backbone Checkpoint {BACKBONE_RESUME_ROOT}"))
-                BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT))
+                BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT, weights_only=True))
             else:
                 print(colorstr('red', f"No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
             print("=" * 60)
