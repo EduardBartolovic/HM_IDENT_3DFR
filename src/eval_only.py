@@ -10,7 +10,6 @@ from src.util.eval_model_verification import evaluate_verification_lfw, evaluate
 from src.util.misc import colorstr
 from util.eval_model import evaluate_and_log
 
-from tensorboardX import SummaryWriter
 import os
 import mlflow
 import yaml
@@ -82,15 +81,6 @@ if __name__ == '__main__':
 
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
-        log_dir = f'{LOG_ROOT}/tensorboard/{RUN_NAME}'
-        writer = SummaryWriter(log_dir)
-
-        test_transform = transforms.Compose([
-            transforms.Resize([int(128 * INPUT_SIZE[0] / 112), int(128 * INPUT_SIZE[0] / 112)]),
-            transforms.CenterCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),  # Center crop instead of random crop
-            transforms.ToTensor(),
-            transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),  # Same normalization
-        ])
 
         # ======= model & loss & optimizer =======#
         BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE, EMBEDDING_SIZE),
@@ -160,16 +150,16 @@ if __name__ == '__main__':
             test_bff = 'test_depth_bff'
 
         if 'rgbd' not in TRAIN_SET:
-            # evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-            # evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+            # evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', 0, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+            # evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', 0, DISTANCE_METRIC, test_transform, BATCH_SIZE)
             # print(colorstr('blue', "=" * 60))
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', 0, DISTANCE_METRIC, (200, 150), BATCH_SIZE)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', 0, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
 
-        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, writer, 0, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, 0, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+        # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, 0, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+        # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, 0, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, 0, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
+        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, 0, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
 
         print("=" * 60)

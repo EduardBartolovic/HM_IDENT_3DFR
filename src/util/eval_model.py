@@ -1,41 +1,33 @@
 import os
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 
 import mlflow
 import numpy as np
 import time
 import torch
 import torchvision
+from torchvision import transforms
+
 from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_gpu
 from src.util.ImageFolderRGBDWithScanID import ImageFolderRGBDWithScanID
 from src.util.ImageFolderWithScanID import ImageFolderWithScanID
-from src.util.Voting import knn_voting, voting, accuracy_front_perspective, concat
+from src.util.Voting import knn_voting, voting, accuracy_front_perspective, concat, multidatabase_voting
 from src.util.Metrics import calc_metrics, error_rate_per_class
-from src.util.Plotter import plot_confusion_matrix, write_embeddings
+from src.util.Plotter import plot_confusion_matrix
 from src.util.embeddungs_metrics import calc_embedding_analysis
 from src.util.misc import colorstr
-from src.util.utils import buffer_val_min
 
 
 def get_embeddings_and_distances(device, model, enrolled_loader, query_loader, distance_metric, batch_size):
 
     enrolled = build_embedding_library(device, model, enrolled_loader)
-
-    # Compute mean embeddings for each label
-    unique_labels = np.unique(enrolled.labels)
-    enrolled_embeddings_mean = np.array(
-        [enrolled.embeddings[enrolled.labels == label].mean(axis=0) for label in unique_labels])
-
     query = build_embedding_library(device, model, query_loader)
-
-    # Calculate distances between embeddings of query and library data
-    distances = batched_distances_gpu(device, query.embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric)
 
     Results = namedtuple("Results",
                          ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives",
-                          "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives", "distances"])
+                          "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives"])
     return Results(enrolled.embeddings, enrolled.labels, enrolled.scan_ids, enrolled.perspectives, query.embeddings,
-                   query.labels, query.scan_ids, query.perspectives, distances)
+                   query.labels, query.scan_ids, query.perspectives)
 
 
 def load_data(data_dir, transform, max_batch_size: int) -> (
@@ -70,11 +62,16 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
 
     embedding_library = get_embeddings_and_distances(device, backbone, enrolled_loader, query_loader, distance_metric, batch_size)
 
+    # Total Accuracy for all Poses:
+
+    unique_labels = np.unique(embedding_library.enrolled_labels)  # Compute mean embeddings for each label
+    enrolled_embeddings_mean = np.array(
+        [embedding_library.enrolled_embeddings[embedding_library.enrolled_labels == label].mean(axis=0) for label in unique_labels])
+    # Calculate distances between embeddings of query and library data
+    distances = batched_distances_gpu(device, embedding_library.query_embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric)
     # Sort indices/classes of the closest vectors for each query embedding
-    y_pred = np.argsort(embedding_library.distances, axis=1)
-
+    y_pred = np.argsort(distances, axis=1)
     embedding_metrics = calc_embedding_analysis(embedding_library, distance_metric)
-
     y_pred_top1 = y_pred[:, 0]
     y_pred_top5 = y_pred[:, :5]
     metrics = calc_metrics(embedding_library.query_labels, y_pred_top1, y_pred_top5)
@@ -110,17 +107,28 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     else:
         metric_concat = concat(embedding_library)
 
+    # Multidatabase Voting
+    #if 'texas' in test_path or 'colorferet' in test_path:
+    #    metric_concat = {}
+    #else:
+    #    metric_concat = multidatabase_voting(embedding_library)
+
     return metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library
 
 
-def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_epoch, distance_metric, test_transform, batch_size):
+def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metric, test_transform_sizes, batch_size):
+
+    test_transform = transforms.Compose([
+        transforms.Resize(test_transform_sizes),
+        transforms.CenterCrop([112, 112]),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+    ])
+
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset}"))
     metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library = evaluate(device, batch_size*2, backbone, os.path.join(data_root, dataset), distance_metric, test_transform)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
-
-    #buffer_val_min(writer, neutral_dataset, metrics['Rank-1 Rate'], epoch + 1)
-    #buffer_val_min(writer, neutral_dataset, metrics_voting['Rank-1 Rate'], epoch + 1)
 
     mlflow.log_metric(f"{neutral_dataset}_RR1", metrics['Rank-1 Rate'], step=epoch + 1)
     mlflow.log_metric(f'{neutral_dataset}_RR5', metrics['Rank-5 Rate'], step=epoch + 1)

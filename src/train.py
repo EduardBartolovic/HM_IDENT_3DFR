@@ -103,7 +103,6 @@ if __name__ == '__main__':
 
         # refer to https://pytorch.org/docs/stable/torchvision/transforms.html for more online data augmentation
         train_transform = transforms.Compose([
-            # TODO: interpolation=InterpolationMode.BICUBIC, beim resize????
             transforms.Resize([int(128 * INPUT_SIZE[0] / 112), int(128 * INPUT_SIZE[0] / 112)]),  # smaller side resized
             transforms.RandomCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),
             transforms.RandomHorizontalFlip(),
@@ -331,15 +330,15 @@ if __name__ == '__main__':
                 #    evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
                 #    #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
                 #    print(colorstr('blue', "=" * 60))
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
 
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
             if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
 
             print("=" * 60)
 

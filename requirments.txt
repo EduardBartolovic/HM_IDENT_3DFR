@@ -6,7 +6,6 @@ mlflow
 scikit-learn
 pandas
 tqdm
-tensorboardX
 matplotlib
 pycm
 openTSNE
