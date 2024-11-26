@@ -17,9 +17,9 @@ from src.util.misc import colorstr
 from src.util.utils import buffer_val_min
 
 
-def get_embeddings_and_distances(device, model, library_loader, query_loader, distance_metric, batch_size):
+def get_embeddings_and_distances(device, model, enrolled_loader, query_loader, distance_metric, batch_size):
 
-    enrolled = build_embedding_library(device, model, library_loader)
+    enrolled = build_embedding_library(device, model, enrolled_loader)
 
     # Compute mean embeddings for each label
     unique_labels = np.unique(enrolled.labels)
@@ -29,7 +29,7 @@ def get_embeddings_and_distances(device, model, library_loader, query_loader, di
     query = build_embedding_library(device, model, query_loader)
 
     # Calculate distances between embeddings of query and library data
-    distances = batched_distances_gpu(device, query.embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric )
+    distances = batched_distances_gpu(device, query.embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric)
 
     Results = namedtuple("Results",
                          ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives",
@@ -83,10 +83,9 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
 
     # Eval only Front
     if 'texas' in test_path:
-        metrics_front = {}
+        metrics_front = metrics
     else:
-        y_true_front, y_pred_front = accuracy_front_perspective(device, embedding_library, distance_metric)
-        metrics_front = calc_metrics(y_true_front, y_pred_front)
+        metrics_front = accuracy_front_perspective(device, embedding_library, distance_metric)
 
     # VotingV1 Single Encoding
     if 'texas' in test_path:
@@ -96,7 +95,6 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
         y_pred_voting_top1 = y_pred_voting[:, 0]
         y_pred_voting_top5 = y_pred_voting[:, :5]
         metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
-        # plot_confusion_matrix(y_true_voting, y_pred_voting_top1, dataset_enrolled, os.path.basename(test_path) + '_votingV1', matplotlib=False)
 
     # VotingV2 KNN
     if 'texas' in test_path:
@@ -144,7 +142,6 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
         mlflow.log_metric(f"{neutral_dataset}_intra_enrolled_avg_distance", embedding_metrics['intra_enrolled_avg_distance'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_intra_query_avg_distance", embedding_metrics['intra_query_avg_distance'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_intra_scan_avg_distance", embedding_metrics['intra_scan_avg_distance'], step=epoch + 1)
-        # mlflow.log_metric(f"{neutral_dataset}_intra_query_to_enrolled_center_avg_distance", embedding_metrics['intra_query_to_enrolled_center_avg_distance'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_inter_enrolled_center_avg_distance", embedding_metrics['inter_enrolled_center_avg_distance'], step=epoch + 1)
         if embedding_metrics['enrolled_silhouette_score'] is not None:
             mlflow.log_metric(f"{neutral_dataset}_enrolled_silhouette_score", embedding_metrics['enrolled_silhouette_score'], step=epoch + 1)
@@ -159,6 +156,7 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
     rank_1 = metrics.get('Rank-1 Rate', 'N/A')
     rank_5 = metrics.get('Rank-5 Rate', 'N/A')
     front_rank_1 = metrics_front.get('Rank-1 Rate', 'N/A')
+    front_rank_5 = metrics_front.get('Rank-5 Rate', 'N/A')
     voting_rank_1 = metrics_voting.get('Rank-1 Rate', 'N/A')
     voting_rank_5 = metrics_voting.get('Rank-5 Rate', 'N/A')
     knn_voting_rank_1 = metrics_knn_voting.get('Rank-1 Rate', 'N/A')
@@ -169,7 +167,7 @@ def evaluate_and_log(device, backbone, data_root, dataset, writer, epoch, num_ep
         'bright_green',
         f"{neutral_dataset} Evaluation: "
         f"RR1: {rank_1} RR5: {rank_5} "
-        f"Front-RR1: {front_rank_1} "
+        f"Front-RR1: {front_rank_1} Front-RR5: {front_rank_5} "
         f"Voting-RR1: {voting_rank_1} Voting-RR5: {voting_rank_5} "
         f"KNN-Voting-RR1: {knn_voting_rank_1} "
         f"Concat-RR1: {concat_rank_1} Concat-RR5: {concat_rank_5}"

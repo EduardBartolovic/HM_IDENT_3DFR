@@ -245,9 +245,7 @@ def accuracy_front_perspective(device, embedding_library, distance_metric):
     query_embeddings = embedding_library.query_embeddings[mask]
     query_labels = embedding_library.query_labels[mask]
 
-    d = "cosine"
-    knn_model = neighbors.KNeighborsClassifier(n_neighbors=1, n_jobs=8, metric=d)
-    knn_model.fit(enrolled_embeddings, enrolled_labels)
-    y_preds = knn_model.predict(query_embeddings)
-
-    return query_labels, y_preds
+    similarity_matrix = calculate_embedding_similarity_progress(query_embeddings, enrolled_embeddings)
+    top_indices, top_values = compute_ranking_matrices(similarity_matrix)
+    result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
+    return result_metrics
