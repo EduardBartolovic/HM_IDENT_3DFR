@@ -26,7 +26,6 @@ from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras
     separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
 
 from torchinfo import summary
-from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import os
 import mlflow
@@ -99,22 +98,13 @@ if __name__ == '__main__':
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
         log_dir = f'{LOG_ROOT}/tensorboard/{RUN_NAME}'
-        writer = SummaryWriter(log_dir)
 
-        # refer to https://pytorch.org/docs/stable/torchvision/transforms.html for more online data augmentation
         train_transform = transforms.Compose([
-            transforms.Resize([int(128 * INPUT_SIZE[0] / 112), int(128 * INPUT_SIZE[0] / 112)]),  # smaller side resized
-            transforms.RandomCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),
+            transforms.Resize((150, 150)),
+            transforms.RandomCrop((112, 112)),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
-        ])
-
-        test_transform = transforms.Compose([
-            transforms.Resize([int(128 * INPUT_SIZE[0] / 112), int(128 * INPUT_SIZE[0] / 112)]),
-            transforms.CenterCrop([INPUT_SIZE[0], INPUT_SIZE[1]]),  # Center crop instead of random crop
-            transforms.ToTensor(),
-            transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),  # Same normalization
         ])
 
         if 'rgbd' in TRAIN_SET:
@@ -216,17 +206,14 @@ if __name__ == '__main__':
         print(colorstr('blue', f"{OPTIMIZER_NAME} Optimizer Generated"))
         print("=" * 60)
 
-        # optionally resume from a checkpoint
         print("=" * 60)
         load_checkpoint(BACKBONE, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         print("=" * 60)
 
         if MULTI_GPU:
-            # multi-GPU setting
             BACKBONE = nn.DataParallel(BACKBONE, device_ids=GPU_ID)
             BACKBONE = BACKBONE.to(DEVICE)
         else:
-            # single-GPU setting
             BACKBONE = BACKBONE.to(DEVICE)
 
         # ======= train & validation & save checkpoint =======#
@@ -295,8 +282,6 @@ if __name__ == '__main__':
             # training statistics per epoch (buffer for visualization)
             epoch_loss = losses.avg
             epoch_acc = top1.avg
-            writer.add_scalar("Training_Loss", epoch_loss, epoch + 1)
-            writer.add_scalar("Training_Accuracy", epoch_acc, epoch + 1)
             mlflow.log_metric('train_loss', epoch_loss, step=epoch + 1)
             mlflow.log_metric('Training_Accuracy', epoch_acc, step=epoch + 1)
             print("#" * 60)
@@ -330,15 +315,16 @@ if __name__ == '__main__':
                 #    evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
                 #    #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
                 #    print(colorstr('blue', "=" * 60))
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', epoch, DISTANCE_METRIC, (200, 150), BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
 
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
             if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+                # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+                # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
 
             print("=" * 60)
 

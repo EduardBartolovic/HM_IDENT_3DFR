@@ -108,7 +108,6 @@ if __name__ == '__main__':
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
         print("=" * 60)
 
-        # optionally resume from a checkpoint
         if BACKBONE_RESUME_ROOT:
             print("=" * 60)
             if os.path.isfile(BACKBONE_RESUME_ROOT):
@@ -121,11 +120,9 @@ if __name__ == '__main__':
             raise AttributeError('BACKBONE_RESUME_ROOT not activated')
 
         if MULTI_GPU:
-            # multi-GPU setting
             BACKBONE = nn.DataParallel(BACKBONE, device_ids=GPU_ID)
             BACKBONE = BACKBONE.to(DEVICE)
         else:
-            # single-GPU setting
             BACKBONE = BACKBONE.to(DEVICE)
 
         #  ======= perform validation =======
