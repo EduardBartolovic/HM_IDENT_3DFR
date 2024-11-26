@@ -231,19 +231,22 @@ def multidatabase_voting(embedding_library):
         similarity_matrix = calculate_embedding_similarity_progress(query_embedding_databases[i], enrolled_embedding_databases[i])
         top_indices, top_values = compute_ranking_matrices(similarity_matrix)
 
-        majority_vote_predictions.append(top_indices)
+        predicted_labels = [enrolled_label_database[idx] for idx in top_indices]
 
-    final_voted_indices = []
-    for i in range(len(majority_vote_predictions[0])):
-        # Collect top indices for the current query across all databases
-        votes = [majority_vote_indices[j][i] for j in range(len(query_embedding_databases))]
+        majority_vote_predictions.append(predicted_labels)
 
-        # Determine the majority index (most frequent index in the votes)
-        majority_index = max(set(votes), key=votes.count)
-        final_voted_indices.append(majority_index)
+    # Perform majority voting across predictions from all query embedding databases
+    final_predictions = []
+    for i in range(len(majority_vote_predictions[0])):  # Iterate over each query
+        # Collect predictions for the current query across all databases
+        votes = [majority_vote_predictions[j][i] for j in range(len(query_embedding_databases))]
+
+        # Determine the majority label (most frequent label in the votes)
+        majority_label = max(set(votes), key=votes.count)
+        final_predictions.append(majority_label)
 
 
-    result_metrics = analyze_result(similarity_matrix, final_voted_indices, enrolled_label_databases, query_label_databases, top_k_acc_k=5)
+    result_metrics = analyze_result(similarity_matrix, final_predictions, enrolled_label_databases, query_label_databases, top_k_acc_k=5)
     print(result_metrics)
     return result_metrics
 
