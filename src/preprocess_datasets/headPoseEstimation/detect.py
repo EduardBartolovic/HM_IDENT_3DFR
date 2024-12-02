@@ -146,7 +146,7 @@ def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, fra
         with open(txt_output_file, 'w') as txt_file:
             for i in frame_infos:
                 txt_file.write(','.join(map(str, i)) + '\n')
-
+        print("Done Video: ", output_dir, "frame_infos.txt")
     cap.release()
     cv2.destroyAllWindows()
 
