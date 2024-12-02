@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 
+from src.preprocess_datasets.headPoseEstimation.models.resnet import resnet50
 from src.preprocess_datasets.headPoseEstimation.models.scrfd import SCRFD
 from src.preprocess_datasets.headPoseEstimation.utils.general import compute_euler_angles_from_rotation_matrices
 
@@ -97,10 +98,18 @@ def save_frame(image, angles, output_dir, counter):
     cv2.imwrite(filepath, image)
 
 
-def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, frame_count_start):
+def save_frame(image, angles, output_dir, counter):
+    yaw, pitch, roll = angles
+    filename = f"frame_{counter}_yaw_{yaw:.2f}_pitch_{pitch:.2f}_roll_{roll:.2f}.jpg"
+    filepath = os.path.join(output_dir, filename)
+    cv2.imwrite(filepath, image)
 
+
+def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, frame_count_start, save_frames=False):
     cap = cv2.VideoCapture(video_source)
     counter = frame_count_start
+
+    frame_infos = []
     with torch.no_grad():
         while True:
             success, frame = cap.read()
@@ -124,8 +133,19 @@ def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, fra
                 r_pred_deg = euler[:, 2].cpu()
                 angles = [int(y_pred_deg.item()), int(p_pred_deg.item()), int(r_pred_deg.item())]
 
-                save_frame(image_ori, angles, output_dir, counter)
-                counter+=1
+                if save_frames:
+                    save_frame(image_ori, angles, output_dir, counter)
+                else:
+                    frame_infos.append(
+                        [counter, x_min, y_min, x_max, y_max, int(y_pred_deg.item()), int(p_pred_deg.item()),
+                         int(r_pred_deg.item())])
+                counter += 1
+
+    if not save_frames:
+        txt_output_file = os.path.join(output_dir, "frame_infos.txt")
+        with open(txt_output_file, 'w') as txt_file:
+            for i in frame_infos:
+                txt_file.write(','.join(map(str, i)) + '\n')
 
     cap.release()
     cv2.destroyAllWindows()
@@ -165,12 +185,11 @@ def main(params):
                 video_path = os.path.join(root, file)
                 frame_count_start = int(file.split('#')[2].split('-')[0])
                 relative_path = os.path.relpath(root, input_dir)
-                save_path = os.path.join(output_dir, relative_path.replace("/chunk_videos",""))
+                save_path = os.path.join(output_dir, relative_path.replace("/chunk_videos", ""))
                 os.makedirs(save_path, exist_ok=True)
                 start = time.time()
                 video_to_pyr(face_detector, head_pose, device, video_path, save_path, frame_count_start)
                 logging.info(f'Head pose estimation for Video {file}: %.2f s' % (time.time() - start))
-
 
 
 if __name__ == '__main__':
