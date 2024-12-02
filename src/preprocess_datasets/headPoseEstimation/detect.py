@@ -155,7 +155,7 @@ def main(params):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     try:
-        face_detector = SCRFD(model_path="./weights/det_10g.onnx")
+        face_detector = SCRFD(model_path="~/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/det_10g.onnx")
         logging.info("Face Detection model weights loaded.")
     except Exception as e:
         logging.info(f"Exception occured while loading pre-trained weights of face detection model. Exception: {e}")
