@@ -163,7 +163,7 @@ def main(params):
 
     try:
         head_pose = get_model(params.arch, num_classes=6)
-        state_dict = torch.load(params.weights, map_location=device)
+        state_dict = torch.load("~/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt", map_location=device)
         head_pose.load_state_dict(state_dict)
         logging.info("Head Pose Estimation model weights loaded.")
     except Exception as e:
@@ -187,6 +187,11 @@ def main(params):
                 relative_path = os.path.relpath(root, input_dir)
                 save_path = os.path.join(output_dir, relative_path.replace("/chunk_videos", ""))
                 os.makedirs(save_path, exist_ok=True)
+                # Check if the .txt file already exists
+                txt_file_path = os.path.join(save_path, f"{frame_count_start}_frame_infos.txt")
+                if os.path.exists(txt_file_path):
+                    logging.info(f"Skipping Video {file}: Output file already exists.")
+                    continue
                 start = time.time()
                 video_to_pyr(face_detector, head_pose, device, video_path, save_path, frame_count_start)
                 logging.info(f'Head pose estimation for Video {file}: %.2f s' % (time.time() - start))
