@@ -10,5 +10,5 @@ matplotlib
 pycm
 openTSNE
 seaborn
-onnxruntime
+onnxruntime-gpu
 numba

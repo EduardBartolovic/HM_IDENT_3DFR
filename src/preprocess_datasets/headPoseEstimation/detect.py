@@ -6,6 +6,7 @@ import warnings
 
 import cv2
 import numpy as np
+import onnxruntime
 
 import torch
 from torchvision import transforms
@@ -36,9 +37,6 @@ def parse_args():
         choices=['cube', 'axis'],
         help="Draw cube or axis for head pose"
     )
-    parser.add_argument('--weights', type=str, required=True, help='Path to head pose estimation model weights')
-    parser.add_argument("--output", type=str, default="output.mp4", help="Path to save output file")
-
     return parser.parse_args()
 
 
@@ -105,65 +103,109 @@ def save_frame(image, angles, output_dir, counter):
     cv2.imwrite(filepath, image)
 
 
-def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, frame_count_start, save_frames=False):
+def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, frame_count_start, batch_size=256):
     cap = cv2.VideoCapture(video_source)
     counter = frame_count_start
-
+    frames = []
     frame_infos = []
+
+    def process_batch(frames_batch, frame_indices):
+        """Process a batch of frames."""
+        nonlocal counter
+        batch_frame_infos = []
+
+        # Detect faces for the entire batch
+        batch_bboxes = []
+        batch_keypoints = []
+        for frame in frames_batch:
+            bboxes, keypoints = face_detector.detect(frame)
+            batch_bboxes.append(bboxes)
+            batch_keypoints.append(keypoints)
+
+        for frame_idx, (frame, bboxes, keypoints) in enumerate(zip(frames_batch, batch_bboxes, batch_keypoints)):
+            for bbox, keypoint in zip(bboxes, keypoints):
+                x_min, y_min, x_max, y_max = map(int, bbox[:4])
+                x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max)
+
+                image_ori = frame[y_min:y_max, x_min:x_max]
+                image = pre_process(image_ori).to(device)
+
+                # Estimate head pose
+                rotation_matrix = head_pose(image)
+                euler = np.degrees(compute_euler_angles_from_rotation_matrices(rotation_matrix))
+                p_pred_deg = euler[:, 0].cpu()
+                y_pred_deg = euler[:, 1].cpu()
+                r_pred_deg = euler[:, 2].cpu()
+
+                # Save results
+                angles = [int(y_pred_deg.item()), int(p_pred_deg.item()), int(r_pred_deg.item())]
+                batch_frame_infos.append(
+                    [frame_indices[frame_idx], x_min, y_min, x_max, y_max, *angles]
+                )
+
+        counter += len(frames_batch)
+        return batch_frame_infos
+
+    frame_indices = []
+
     with torch.no_grad():
         while True:
             success, frame = cap.read()
             if not success:
                 break
 
-            bboxes, keypoints = face_detector.detect(frame)
-            for bbox, keypoint in zip(bboxes, keypoints):
-                x_min, y_min, x_max, y_max = map(int, bbox[:4])
-                x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max)
+            frames.append(frame)
+            frame_indices.append(counter)
+            counter += 1
 
-                image_ori = frame[y_min:y_max, x_min:x_max]
-                image = pre_process(image_ori)
-                image = image.to(device)
+            # Process when batch is full
+            if len(frames) == batch_size:
+                batch_infos = process_batch(frames, frame_indices)
+                frame_infos.extend(batch_infos)
+                frames = []
+                frame_indices = []
 
-                rotation_matrix = head_pose(image)
+        # Process remaining frames
+        if frames:
+            batch_infos = process_batch(frames, frame_indices)
+            frame_infos.extend(batch_infos)
 
-                euler = np.degrees(compute_euler_angles_from_rotation_matrices(rotation_matrix))
-                p_pred_deg = euler[:, 0].cpu()
-                y_pred_deg = euler[:, 1].cpu()
-                r_pred_deg = euler[:, 2].cpu()
-                angles = [int(y_pred_deg.item()), int(p_pred_deg.item()), int(r_pred_deg.item())]
+    # Save frame information to a text file
+    txt_output_file = os.path.join(output_dir, f"{frame_count_start}_frame_infos.txt")
+    with open(txt_output_file, 'w') as txt_file:
+        for info in frame_infos:
+            txt_file.write(','.join(map(str, info)) + '\n')
 
-                if save_frames:
-                    save_frame(image_ori, angles, output_dir, counter)
-                else:
-                    frame_infos.append(
-                        [counter, x_min, y_min, x_max, y_max, int(y_pred_deg.item()), int(p_pred_deg.item()),
-                         int(r_pred_deg.item())])
-                counter += 1
-
-    if not save_frames:
-        txt_output_file = os.path.join(output_dir, "{}_frame_infos.txt".format(frame_count_start))
-        with open(txt_output_file, 'w') as txt_file:
-            for i in frame_infos:
-                txt_file.write(','.join(map(str, i)) + '\n')
-        print("Done Video: ", output_dir, "frame_infos.txt")
     cap.release()
     cv2.destroyAllWindows()
+    logging.info(f"Processing complete. Output saved to {txt_output_file}")
 
 
 def main(params):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    model_path_scrd= "~/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/det_10g.onnx"
+    model_path_hpe = "~/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
+    input_dir = "/home/gustav/voxceleb/VoxCeleb2_test"
+    output_dir = "/home/gustav/voxceleb_out/"
+
+    model_path_scrd = "C:\\Users\\Eduard\\Downloads\\voxceleb_preprocessing\\FaceHPE\\weights\\det_10g.onnx"
+    model_path_hpe = "C:\\Users\\Eduard\\Downloads\\voxceleb_preprocessing\\FaceHPE\\weights\\resnet50.pt"
+    input_dir = "C:\\Users\\Eduard\\Downloads\\voxceleb_preprocessing\\FaceHPE\\VoxCeleb1_test"
+    output_dir = "C:\\Users\\Eduard\\Downloads\\voxceleb_preprocessing\\FaceHPE\\VoxCeleb1_test_out"
+
+    if onnxruntime.get_device() != "GPU":
+        print(onnxruntime.get_device(), "is not GPU")
+        raise Exception()
     try:
-        face_detector = SCRFD(model_path="~/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/det_10g.onnx")
+        face_detector = SCRFD(model_path=model_path_scrd)
         logging.info("Face Detection model weights loaded.")
     except Exception as e:
         logging.info(f"Exception occured while loading pre-trained weights of face detection model. Exception: {e}")
         raise Exception()
-
+    device = torch.device("cuda")
     try:
         head_pose = get_model(params.arch, num_classes=6)
-        state_dict = torch.load("~/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt", map_location=device)
+        state_dict = torch.load(model_path_hpe, map_location=device)
         head_pose.load_state_dict(state_dict)
         logging.info("Head Pose Estimation model weights loaded.")
     except Exception as e:
@@ -177,8 +219,6 @@ def main(params):
     """
     Process videos in a folder structure and save frames in an identical folder structure.
     """
-    input_dir = "/home/gustav/voxceleb/VoxCeleb2_test"
-    output_dir = "/home/gustav/voxceleb_out/"
     for root, dirs, files in os.walk(input_dir):
         for file in files:
             if file.endswith(('.mp4', '.avi', '.mkv', '.mov')):  # Add other formats if needed

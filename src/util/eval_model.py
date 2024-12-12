@@ -52,7 +52,6 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     """
     Evaluate 1:N Model Performance on given test dataset
     """
-
     dataset_enrolled_path = os.path.join(test_path, 'train')
     dataset_query_path = os.path.join(test_path, 'validation')
     dataset_enrolled, enrolled_loader = load_data(dataset_enrolled_path, test_transform, batch_size)
@@ -61,8 +60,6 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     time.sleep(0.1)
 
     embedding_library = get_embeddings_and_distances(device, backbone, enrolled_loader, query_loader, distance_metric, batch_size)
-
-    # Total Accuracy for all Poses:
 
     unique_labels = np.unique(embedding_library.enrolled_labels)  # Compute mean embeddings for each label
     enrolled_embeddings_mean = np.array(
