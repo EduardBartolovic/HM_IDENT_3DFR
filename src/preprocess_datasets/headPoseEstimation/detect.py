@@ -54,7 +54,7 @@ def pre_process(image):
     return image_batch
 
 
-def expand_bbox(x_min, y_min, x_max, y_max, factor=0.2):
+def expand_bbox(x_min, y_min, x_max, y_max, factor=0.25):
     """Expand the bounding box by a given factor and make it square."""
     width = x_max - x_min
     height = y_max - y_min
@@ -116,32 +116,42 @@ def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, fra
 
         # Detect faces for the entire batch
         batch_bboxes = []
-        batch_keypoints = []
         for frame in frames_batch:
-            bboxes, keypoints = face_detector.detect(frame)
+            bboxes = face_detector.detect(frame)
             batch_bboxes.append(bboxes)
-            batch_keypoints.append(keypoints)
 
-        for frame_idx, (frame, bboxes, keypoints) in enumerate(zip(frames_batch, batch_bboxes, batch_keypoints)):
-            for bbox, keypoint in zip(bboxes, keypoints):
+        # Preprocess and move to GPU
+        batched_images = []
+        for frame, bboxes in zip(frames_batch, batch_bboxes):
+            for bbox in bboxes:
                 x_min, y_min, x_max, y_max = map(int, bbox[:4])
                 x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max)
+                cropped_face = frame[y_min:y_max, x_min:x_max]
+                processed_face = pre_process(cropped_face)
+                batched_images.append(processed_face)
 
-                image_ori = frame[y_min:y_max, x_min:x_max]
-                image = pre_process(image_ori).to(device)
+        # Stack and move the batch to the GPU
+        batched_images = torch.stack(batched_images).to(device)
+        batched_images = batched_images.squeeze(1)
 
-                # Estimate head pose
-                rotation_matrix = head_pose(image)
-                euler = np.degrees(compute_euler_angles_from_rotation_matrices(rotation_matrix))
-                p_pred_deg = euler[:, 0].cpu()
-                y_pred_deg = euler[:, 1].cpu()
-                r_pred_deg = euler[:, 2].cpu()
+        # Head pose estimation in batch
+        rotation_matrices = head_pose(batched_images)
 
-                # Save results
-                angles = [int(y_pred_deg.item()), int(p_pred_deg.item()), int(r_pred_deg.item())]
+        eulers = compute_euler_angles_from_rotation_matrices(rotation_matrices).cpu().numpy()  # Assumes batched output
+        eulers_deg = np.degrees(eulers)
+
+        # Process results back to frame info
+        idx = 0
+        for frame_idx, (frame, bboxes) in enumerate(zip(frames_batch, batch_bboxes)):
+            for bbox in bboxes:
+                x_min, y_min, x_max, y_max = map(int, bbox[:4])
+                x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max)
+                angles = eulers_deg[idx]
                 batch_frame_infos.append(
-                    [frame_indices[frame_idx], x_min, y_min, x_max, y_max, *angles]
+                    [frame_indices[frame_idx], x_min, y_min, x_max, y_max, int(angles[1]), int(angles[0]),
+                     int(angles[2])]
                 )
+                idx += 1
 
         counter += len(frames_batch)
         return batch_frame_infos

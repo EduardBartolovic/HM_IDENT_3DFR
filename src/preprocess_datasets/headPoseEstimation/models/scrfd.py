@@ -122,7 +122,6 @@ class SCRFD:
     def forward(self, image, threshold):
         scores_list = []
         bboxes_list = []
-        kpss_list = []
         input_size = tuple(image.shape[0:2][::-1])
 
         blob = cv2.dnn.blobFromImage(
@@ -142,8 +141,6 @@ class SCRFD:
             scores = outputs[idx]
             bbox_preds = outputs[idx + fmc]
             bbox_preds = bbox_preds * stride
-            if self.use_kps:
-                kps_preds = outputs[idx + fmc * 2] * stride
 
             height = input_height // stride
             width = input_width // stride
@@ -164,12 +161,7 @@ class SCRFD:
             pos_bboxes = bboxes[pos_inds]
             scores_list.append(pos_scores)
             bboxes_list.append(pos_bboxes)
-            if self.use_kps:
-                kpss = distance2kps(anchor_centers, kps_preds)
-                kpss = kpss.reshape((kpss.shape[0], -1, 2))
-                pos_kpss = kpss[pos_inds]
-                kpss_list.append(pos_kpss)
-        return scores_list, bboxes_list, kpss_list
+        return scores_list, bboxes_list
 
     def detect(self, image, max_num=0, metric="max"):
         width, height = self.input_size
@@ -189,25 +181,17 @@ class SCRFD:
         det_image = np.zeros((height, width, 3), dtype=np.uint8)
         det_image[:new_height, :new_width, :] = resized_image
 
-        scores_list, bboxes_list, kpss_list = self.forward(det_image, self.conf_thres)
+        scores_list, bboxes_list = self.forward(det_image, self.conf_thres)
 
         scores = np.vstack(scores_list)
         scores_ravel = scores.ravel()
         order = scores_ravel.argsort()[::-1]
         bboxes = np.vstack(bboxes_list) / det_scale
 
-        if self.use_kps:
-            kpss = np.vstack(kpss_list) / det_scale
-
         pre_det = np.hstack((bboxes, scores)).astype(np.float32, copy=False)
         pre_det = pre_det[order, :]
         keep = self.nms(pre_det, iou_thres=self.iou_thres)
         det = pre_det[keep, :]
-        if self.use_kps:
-            kpss = kpss[order, :, :]
-            kpss = kpss[keep, :, :]
-        else:
-            kpss = None
         if 0 < max_num < det.shape[0]:
             area = (det[:, 2] - det[:, 0]) * (det[:, 3] - det[:, 1])
             image_center = image.shape[0] // 2, image.shape[1] // 2
@@ -225,9 +209,8 @@ class SCRFD:
             bindex = np.argsort(values)[::-1]
             bindex = bindex[0:max_num]
             det = det[bindex, :]
-            if kpss is not None:
-                kpss = kpss[bindex, :]
-        return det, kpss
+
+        return det
 
     def nms(self, dets, iou_thres):
         x1 = dets[:, 0]
