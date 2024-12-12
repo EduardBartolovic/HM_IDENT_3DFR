@@ -54,7 +54,7 @@ def pre_process(image):
     return image_batch
 
 
-def expand_bbox(x_min, y_min, x_max, y_max, factor=0.25):
+def expand_bbox(x_min, y_min, x_max, y_max, factor=0.2):
     """Expand the bounding box by a given factor and make it square."""
     width = x_max - x_min
     height = y_max - y_min
@@ -205,7 +205,7 @@ def main(params):
 
     if onnxruntime.get_device() != "GPU":
         print(onnxruntime.get_device(), "is not GPU")
-        raise Exception()
+        raise Exception("ONNX runs on CPU and not GPU -> pip install onnxruntime-gpu")
     try:
         face_detector = SCRFD(model_path=model_path_scrd)
         logging.info("Face Detection model weights loaded.")

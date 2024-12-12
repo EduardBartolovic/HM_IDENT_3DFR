@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import torch
 import onnxruntime
 
 from typing import Tuple
@@ -108,10 +109,10 @@ class SCRFD:
             model_path (str): Path to .onnx model.
         """
         try:
+            providers = [("CUDAExecutionProvider", {"device_id": torch.cuda.current_device(), "user_compute_stream": str(torch.cuda.current_stream().cuda_stream)})]
             self.session = onnxruntime.InferenceSession(
                 model_path,
-                providers=["CUDAExecutionProvider"]
-            )
+                providers=providers)
             # Get model info
             self.output_names = [x.name for x in self.session.get_outputs()]
             self.input_names = [x.name for x in self.session.get_inputs()]

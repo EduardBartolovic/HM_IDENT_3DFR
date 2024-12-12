@@ -17,3 +17,10 @@ docker run -it --gpus all -v $(pwd)/mlruns:/app/log -v ~/dataset:/app/data 3dfr
 
 poetry run python src/train.py --config configs/config_expX_1.yaml
 ```
+
+
+
+## Headpose extraction
+```bash
+python src/preprocess_datasets/headPoseEstimation/detect.py --arch resnet50
+```
