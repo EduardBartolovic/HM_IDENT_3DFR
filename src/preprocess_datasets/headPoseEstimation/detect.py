@@ -103,7 +103,7 @@ def save_frame(image, angles, output_dir, counter):
     cv2.imwrite(filepath, image)
 
 
-def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, frame_count_start, batch_size=2048):
+def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, frame_count_start, batch_size=32):
     cap = cv2.VideoCapture(video_source)
     counter = frame_count_start
     frames = []
