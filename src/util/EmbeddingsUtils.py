@@ -12,11 +12,11 @@ def build_embedding_library(device, model, data_loader):
     embedding_scan_id = []
     embedding_perspective = []
 
+    model.eval()
+
     for images, labels, scan_id, perspective in tqdm(data_loader, desc="Generate Embeddings"):
-        # Enable autocast for the forward pass, running the model in mixed precision
-        #with torch.cuda.amp.autocast():
-        embeddings = model(images.to(device))
-        embedding_library.extend(embeddings.cpu().numpy())
+        embeddings = model(images.to(device)).cpu().numpy()
+        embedding_library.extend(embeddings)
         embedding_labels.extend(labels.cpu().numpy())
         embedding_scan_id.extend(np.array(scan_id))
         embedding_perspective.extend(np.array(perspective))

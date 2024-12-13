@@ -1,0 +1,73 @@
+import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+def process_txt_and_analyze_angles(txt_root_folder, output_folder):
+    # Ensure output directory exists
+    os.makedirs(output_folder, exist_ok=True)
+
+    for root, _, files in os.walk(txt_root_folder):  # Recursively walk through directories
+        for txt_file in files:
+            if txt_file.endswith('.txt'):
+                txt_path = os.path.join(root, txt_file)
+
+                # Create output paths for plots
+                relative_dir = os.path.relpath(root, txt_root_folder)
+                save_dir = os.path.join(output_folder, relative_dir)
+                os.makedirs(save_dir, exist_ok=True)
+                line_plot_output_path = os.path.join(save_dir, f"{os.path.splitext(txt_file)[0]}_angles_line_plot.png")
+                scatter_plot_output_path = os.path.join(save_dir, f"{os.path.splitext(txt_file)[0]}_angles_scatter_plot.png")
+                dense_plot_output_path = os.path.join(save_dir, f"{os.path.splitext(txt_file)[0]}_angles_dense_plot.png")
+
+                # Initialize lists to store angles for plotting
+                frame_numbers = []
+                yaw_angles = []
+                pitch_angles = []
+                roll_angles = []
+
+                # Read bounding box data from txt file
+                with open(txt_path, 'r') as file:
+                    lines = file.readlines()
+                    for line in lines:
+                        frame_info = list(map(int, line.strip().split(',')))
+                        frame_number, x_min, y_min, x_max, y_max = frame_info[:5]
+                        y_pred_deg, p_pred_deg, r_pred_deg = frame_info[5:]
+
+                        # Store angles and frame number for plotting
+                        frame_numbers.append(frame_number)
+                        yaw_angles.append(y_pred_deg)
+                        pitch_angles.append(p_pred_deg)
+                        roll_angles.append(r_pred_deg)
+
+                plt.figure(figsize=(10, 6))
+                plt.plot(frame_numbers, yaw_angles, label='Yaw (°)', color='r', linestyle='-')
+                plt.plot(frame_numbers, pitch_angles, label='Pitch (°)', color='g', linestyle='-')
+                plt.plot(frame_numbers, roll_angles, label='Roll (°)', color='b', linestyle='-')
+                plt.title(f'Viewing Angle Changes (Line Plot) for {txt_file}')
+                plt.xlabel('Frame Number')
+                plt.ylabel('Angle (°)')
+                plt.legend()
+                plt.grid(True)
+                plt.tight_layout()
+                plt.savefig(line_plot_output_path)
+                plt.close()
+
+                plt.figure(figsize=(10, 6))
+                sns.kdeplot(x=yaw_angles, y=pitch_angles, cmap='Reds', fill=True, thresh=0.05, levels=50)
+                plt.scatter(yaw_angles, pitch_angles, color='b', s=10, alpha=0.4)
+                plt.title(f'Dense Plot of Yaw vs Pitch Angles for {txt_file}')
+                plt.xlabel('Yaw Angle (°)')
+                plt.ylabel('Pitch Angle (°)')
+                plt.grid(True)
+                plt.tight_layout()
+                plt.savefig(dense_plot_output_path)
+                plt.close()
+
+                print(f"Saved plot: {scatter_plot_output_path}")
+
+
+txt_folder = "F:\\Face\\hpe_txt_merged"  # Folder containing _frame_infos.txt files
+output_folder = "F:\\Face\\hpe_analyse"  # Folder to save cropped videos and angle plots
+
+process_txt_and_analyze_angles(txt_folder, output_folder)

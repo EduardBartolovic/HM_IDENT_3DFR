@@ -114,10 +114,11 @@ if __name__ == '__main__':
                 print(colorstr('blue', f"Loading ONLY Backbone Checkpoint {BACKBONE_RESUME_ROOT}"))
                 BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT, weights_only=True))
             else:
-                print(colorstr('red', f"No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
+                print(colorstr('red', f"No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}"))
+                raise AttributeError(f'No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}')
             print("=" * 60)
         else:
-            raise AttributeError('BACKBONE_RESUME_ROOT not activated')
+            print(colorstr('red', "BACKBONE_RESUME_ROOT not activated"))
 
         if MULTI_GPU:
             BACKBONE = nn.DataParallel(BACKBONE, device_ids=GPU_ID)
@@ -153,9 +154,7 @@ if __name__ == '__main__':
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', 0, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
 
         evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, 0, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-        # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, 0, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-        # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, 0, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-        evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, 0, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
+        # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, 0, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
         evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, 0, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
 
         print("=" * 60)

@@ -13,7 +13,7 @@ def main():
     texas = False
     nphm = False
     facewarehouse = False
-    mononphm = False
+    mononphm = True
     ffhq = False
     prep_data = False
     colorferet = True
@@ -148,7 +148,7 @@ def main():
         directory_path = Path('H:\\Maurer\\FFHQ-MonoNPHM')
         output_dir = Path('F:\\Face\\data\\tmp\\3D_FFHQMonoNPHM\\')
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        obj_reader.render_obj_files("mononphm")
+        #obj_reader.render_obj_files("mononphm")
 
         # Prepare Dataset Depth Facescape:
         input_path = Path('F:\\Face\\data\\tmp\\3D_FFHQMonoNPHM')
@@ -158,13 +158,13 @@ def main():
         # Prepare Dataset RGB Facescape:
         input_path = Path('F:\\Face\\data\\tmp\\3D_FFHQMonoNPHM\\')
         output_dir = Path(root+'test_rgb_monoffhq')
-        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth Facescape:
         input_path = Path(root+'test_rgb_monoffhq')
         input_path2 = Path(root+'test_depth_monoffhq')
         output_dir = Path(root+'test_rgbd_monoffhq')
-        PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
+        #PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
     if facewarehouse:
 

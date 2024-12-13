@@ -1,4 +1,4 @@
-from collections import defaultdict, Counter
+from collections import defaultdict
 
 import numpy as np
 from sklearn import neighbors
@@ -181,17 +181,20 @@ def multidatabase_voting(embedding_library):
 
     embeddings_databases = []
     embeddings_labels = []
+    numberofposes = -1
     for scan_id, data in scan_to_data.items():
         # Combine embeddings and perspectives into sortable pairs
         combined = list(zip(data['perspectives'], data['embeddings']))
         combined.sort(key=lambda x: x[0])  # Sort by perspective
         _, sorted_embeddings = zip(*combined)  # Extract sorted embeddings
 
+        if numberofposes < 0:
+            numberofposes = len(sorted_embeddings)
         # Extend embeddings_databases to match the size of sorted_embeddings
         while len(embeddings_databases) < len(sorted_embeddings):
             embeddings_databases.append([])  # Add new inner lists as needed
 
-        if len(sorted_embeddings) != len(embeddings_databases):
+        if len(sorted_embeddings) != numberofposes:
             print("continued")
             continue
 
@@ -230,8 +233,8 @@ def multidatabase_voting(embedding_library):
         while len(embeddings_databases) < len(sorted_embeddings):
             embeddings_databases.append([])  # Add new inner lists as needed
 
-        if len(sorted_embeddings) != len(embeddings_databases):
-            print("continued")
+        if len(sorted_embeddings) != numberofposes:
+            print("continued", len(sorted_embeddings))
             continue
 
         for i in range(len(sorted_embeddings)):
@@ -242,44 +245,33 @@ def multidatabase_voting(embedding_library):
     query_embedding_databases = np.array(embeddings_databases)
     query_label_database = np.array(embeddings_labels)
 
-    # TODO
-
     majority_vote_predictions = []
     for i in range(len(query_embedding_databases)):
-        similarity_matrix = calculate_embedding_similarity_progress(query_embedding_databases[i], enrolled_embedding_databases[i])
-        top_indices, top_values = compute_ranking_matrices(similarity_matrix)
+        similarity_matrix = calculate_embedding_similarity_progress(query_embedding_databases[i], enrolled_embedding_databases[i], show_progress=False)
+        top_indices, _ = compute_ranking_matrices(similarity_matrix)
 
-        predicted_labels = [enrolled_label_database[idx] for idx in top_indices]
+        majority_vote_predictions.append(top_indices)
 
-        majority_vote_predictions.append(predicted_labels)
+    majority_vote_predictions = np.array(majority_vote_predictions)
+    num_views, num_queries, num_classes = majority_vote_predictions.shape
 
-    final_predictions = []
+    view_weights = np.ones(num_views)  # change this to give different weights to different views
+    view_weights /= view_weights.sum()  # Normalize weights to sum to 1
+    # Initialize an empty array to store the weighted majority vote predictions
+    weighted_majority_votes = np.zeros((num_queries, num_classes), dtype=int)
+    # Iterate over each query
+    for query_idx in range(num_queries):
+        # Weighted vote: calculate scores for each class
+        rank_scores = np.zeros(num_classes)
+        for view_idx in range(num_views):
+            # Add view weight to the scores of the ranked classes
+            for rank_pos, class_idx in enumerate(majority_vote_predictions[view_idx, query_idx]):
+                rank_scores[class_idx] += view_weights[view_idx] * (num_classes - rank_pos)
 
-    # For each query embedding set, apply weighted voting
-    for predicted_labels in majority_vote_predictions:
-        # Create a dictionary to store label weights
-        label_weights = defaultdict(int)
+        # Get the sorted indices based on scores (highest to lowest)
+        weighted_majority_votes[query_idx] = np.argsort(rank_scores)[::-1]
 
-        # Assign weights inversely proportional to rank
-        for all_labels in predicted_labels:
-            for rank, label in enumerate(all_labels):
-                weight = len(all_labels) - rank  # Higher rank gets more weight
-                # Convert label to hashable if necessary (e.g., tuple for numpy arrays)
-                hashable_label = tuple(label) if isinstance(label, np.ndarray) else label
-                label_weights[hashable_label] += weight
-
-        # Sort labels by total weight
-        sorted_labels = sorted(label_weights, key=label_weights.get, reverse=True)
-        # Take the label with the highest total weight as the prediction
-        most_common_label = sorted_labels[0]
-
-        # Convert back to original format if needed
-        final_label = np.array(most_common_label) if isinstance(most_common_label, tuple) else most_common_label
-        final_predictions.append(final_label)
-
-    print(final_predictions)
-    result_metrics = analyze_result(similarity_matrix, final_predictions, enrolled_label_database, query_label_database, top_k_acc_k=5)
-    print(result_metrics)
+    result_metrics = analyze_result(similarity_matrix, weighted_majority_votes, enrolled_label_database, query_label_database, top_k_acc_k=5)
     return result_metrics
 
 
