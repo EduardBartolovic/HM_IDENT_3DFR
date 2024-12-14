@@ -373,7 +373,7 @@ def prepare_dataset_colorferet_1_n(input_path, output_dir):
 
     file_paths = collect_data_files_colorferet(input_path)
 
-    face_detector = SCRFD(model_path="F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\det_10g.onnx")
+    face_detector = SCRFD(model_path="/src/preprocess_datasets/headPoseEstimation/weights/det_10g.onnx")
 
     model_cache = []
     set_cache = []

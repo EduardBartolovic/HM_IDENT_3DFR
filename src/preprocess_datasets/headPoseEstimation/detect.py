@@ -40,6 +40,37 @@ def parse_args():
     return parser.parse_args()
 
 
+def read_txt_files(txt_dir):
+    frames = []
+    x_coords = []
+    y_coords = []
+    widths = []
+    heights = []
+    for root, dirs, files in os.walk(txt_dir):
+        for file in files:
+            if file.endswith(".txt"):
+                txt_path = os.path.join(root, file)
+
+                # Open and process the file
+                with open(txt_path, "r") as f:
+                    lines = f.readlines()
+
+                # Start processing after the header line
+                for line in lines:
+                    # Strip whitespace and split by whitespace
+                    parts = line.strip().split()
+                    # Check if the line starts with a numeric frame index
+                    if parts and parts[0].isdigit():
+                        # Append the data as a dictionary
+                        frames.append(int(parts[0]))
+                        x_coords.append(int(parts[1]))
+                        y_coords.append(int(parts[2]))
+                        widths.append(int(parts[3]))
+                        heights.append(int(parts[4]))
+
+    return frames, x_coords, y_coords, widths, heights
+
+
 def pre_process(image):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     transform = transforms.Compose([
@@ -50,11 +81,10 @@ def pre_process(image):
     ])
 
     image = transform(image)
-    image_batch = image.unsqueeze(0)
-    return image_batch
+    return image
 
 
-def expand_bbox(x_min, y_min, x_max, y_max, factor=0.2):
+def expand_bbox(x_min, y_min, x_max, y_max, factor=0.25):
     """Expand the bounding box by a given factor and make it square."""
     width = x_max - x_min
     height = y_max - y_min
@@ -103,60 +133,34 @@ def save_frame(image, angles, output_dir, counter):
     cv2.imwrite(filepath, image)
 
 
-def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, frame_count_start, batch_size=32):
+def process(frame, frame_idx, x,y,w,h, device, head_pose):
+    """Process a frame."""
+
+    x_min = x
+    y_min = y
+    x_max = x + w
+    y_max = y + h
+
+    #x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max)
+    cropped_face = frame[y_min:y_max, x_min:x_max]
+    processed_face = pre_process(cropped_face)
+
+    batched_images = processed_face.to(device).unsqueeze(0)
+    rotation_matrices = head_pose(batched_images)
+
+    eulers = compute_euler_angles_from_rotation_matrices(rotation_matrices).cpu().numpy()[0]
+    eulers_deg = np.degrees(eulers)
+
+    return [frame_idx, x_min, y_min, x_max, y_max, int(eulers_deg[1]), int(eulers_deg[0]), int(eulers_deg[2])]
+
+
+def video_to_pyr(head_pose, device, video_source, txt_dir, output_dir, batch_size=32):
+
+    frames_to_use, x_coords, y_coords, widths, heights = read_txt_files(txt_dir)
     cap = cv2.VideoCapture(video_source)
-    counter = frame_count_start
-    frames = []
+    current_frame_index = 0
+    current_list_index = -1
     frame_infos = []
-
-    def process_batch(frames_batch, frame_indices):
-        """Process a batch of frames."""
-        nonlocal counter
-        batch_frame_infos = []
-
-        # Detect faces for the entire batch
-        batch_bboxes = []
-        for frame in frames_batch:
-            bboxes = face_detector.detect(frame)
-            batch_bboxes.append(bboxes)
-
-        # Preprocess and move to GPU
-        batched_images = []
-        for frame, bboxes in zip(frames_batch, batch_bboxes):
-            for bbox in bboxes:
-                x_min, y_min, x_max, y_max = map(int, bbox[:4])
-                x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max)
-                cropped_face = frame[y_min:y_max, x_min:x_max]
-                processed_face = pre_process(cropped_face)
-                batched_images.append(processed_face)
-
-        # Stack and move the batch to the GPU
-        batched_images = torch.stack(batched_images).to(device)
-        batched_images = batched_images.squeeze(1)
-
-        # Head pose estimation in batch
-        rotation_matrices = head_pose(batched_images)
-
-        eulers = compute_euler_angles_from_rotation_matrices(rotation_matrices).cpu().numpy()  # Assumes batched output
-        eulers_deg = np.degrees(eulers)
-
-        # Process results back to frame info
-        idx = 0
-        for frame_idx, (frame, bboxes) in enumerate(zip(frames_batch, batch_bboxes)):
-            for bbox in bboxes:
-                x_min, y_min, x_max, y_max = map(int, bbox[:4])
-                x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max)
-                angles = eulers_deg[idx]
-                batch_frame_infos.append(
-                    [frame_indices[frame_idx], x_min, y_min, x_max, y_max, int(angles[1]), int(angles[0]),
-                     int(angles[2])]
-                )
-                idx += 1
-
-        counter += len(frames_batch)
-        return batch_frame_infos
-
-    frame_indices = []
 
     with torch.no_grad():
         while True:
@@ -164,24 +168,13 @@ def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, fra
             if not success:
                 break
 
-            frames.append(frame)
-            frame_indices.append(counter)
-            counter += 1
+            current_frame_index += 1
+            if current_frame_index in frames_to_use:
+                current_list_index += 1
+                infos = process(frame, frames_to_use[current_list_index], x_coords[current_list_index], y_coords[current_list_index], widths[current_list_index], heights[current_list_index], device, head_pose)
+                frame_infos.append(infos)
 
-            # Process when batch is full
-            if len(frames) == batch_size:
-                batch_infos = process_batch(frames, frame_indices)
-                frame_infos.extend(batch_infos)
-                frames = []
-                frame_indices = []
-
-        # Process remaining frames
-        if frames:
-            batch_infos = process_batch(frames, frame_indices)
-            frame_infos.extend(batch_infos)
-
-    # Save frame information to a text file
-    txt_output_file = os.path.join(output_dir, f"{frame_count_start}_frame_infos.txt")
+    txt_output_file = os.path.join(output_dir, "frame_infos.txt")
     with open(txt_output_file, 'w') as txt_file:
         for info in frame_infos:
             txt_file.write(','.join(map(str, info)) + '\n')
@@ -193,28 +186,17 @@ def video_to_pyr(face_detector, head_pose, device, video_source, output_dir, fra
 
 def main(params):
 
-    model_path_scrd= "~/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/det_10g.onnx"
-    model_path_hpe = "~/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
-    input_dir = "/home/gustav/voxceleb/VoxCeleb2_test"
-    output_dir = "/home/gustav/voxceleb_out/"
+    #model_path_hpe = "~/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
+    #input_dir = "/home/gustav/voxceleb/VoxCeleb2_test"
+    #output_dir = "/home/gustav/voxceleb_out/"
 
-    model_path_scrd = "C:\\Users\\Eduard\\Downloads\\voxceleb_preprocessing\\FaceHPE\\weights\\det_10g.onnx"
-    model_path_hpe = "C:\\Users\\Eduard\\Downloads\\voxceleb_preprocessing\\FaceHPE\\weights\\resnet50.pt"
-    input_dir = "C:\\Users\\Eduard\\Downloads\\voxceleb_preprocessing\\FaceHPE\\VoxCeleb1_test"
-    output_dir = "C:\\Users\\Eduard\\Downloads\\voxceleb_preprocessing\\FaceHPE\\VoxCeleb1_test_out"
+    model_path_hpe = "F:\\Face\\HPE\\weights\\resnet50.pt"
+    input_dir = "F:\\Face\\HPE\\VoxCeleb1_test"
+    output_dir = "F:\\Face\\HPE\\VoxCeleb1_test_out"
 
-    if onnxruntime.get_device() != "GPU":
-        print(onnxruntime.get_device(), "is not GPU")
-        raise Exception("ONNX runs on CPU and not GPU -> pip install onnxruntime-gpu")
-    try:
-        face_detector = SCRFD(model_path=model_path_scrd)
-        logging.info("Face Detection model weights loaded.")
-    except Exception as e:
-        logging.info(f"Exception occured while loading pre-trained weights of face detection model. Exception: {e}")
-        raise Exception()
     device = torch.device("cuda")
     try:
-        head_pose = get_model(params.arch, num_classes=6)
+        head_pose = get_model("resnet50", num_classes=6)
         state_dict = torch.load(model_path_hpe, map_location=device)
         head_pose.load_state_dict(state_dict)
         logging.info("Head Pose Estimation model weights loaded.")
@@ -229,22 +211,46 @@ def main(params):
     """
     Process videos in a folder structure and save frames in an identical folder structure.
     """
-    for root, dirs, files in os.walk(input_dir):
+    for root, dirs, files in os.walk(os.path.join(input_dir, "video")):
         for file in files:
             if file.endswith(('.mp4', '.avi', '.mkv', '.mov')):  # Add other formats if needed
                 video_path = os.path.join(root, file)
-                frame_count_start = int(file.split('#')[2].split('-')[0])
+                relative_path = os.path.relpath(root, os.path.join(input_dir, "video"))
+                txt_dir = os.path.join(input_dir, "txt", relative_path)
+
                 relative_path = os.path.relpath(root, input_dir)
-                save_path = os.path.join(output_dir, relative_path.replace("/chunk_videos", ""))
+                save_path = os.path.join(output_dir, relative_path)
                 os.makedirs(save_path, exist_ok=True)
                 # Check if the .txt file already exists
-                txt_file_path = os.path.join(save_path, f"{frame_count_start}_frame_infos.txt")
+                txt_file_path = os.path.join(save_path, "frame_infos.txt")
                 if os.path.exists(txt_file_path):
                     logging.info(f"Skipping Video {file}: Output file already exists.")
-                    continue
+
                 start = time.time()
-                video_to_pyr(face_detector, head_pose, device, video_path, save_path, frame_count_start)
+                video_to_pyr(head_pose, device, video_path, txt_dir, save_path)
                 logging.info(f'Head pose estimation for Video {file}: %.2f s' % (time.time() - start))
+
+
+
+
+
+
+
+        # for file in files:
+        #     if file.endswith(('.mp4', '.avi', '.mkv', '.mov')):  # Add other formats if needed
+        #         video_path = os.path.join(root, file)
+        #         frame_count_start = int(file.split('#')[2].split('-')[0])
+        #         relative_path = os.path.relpath(root, input_dir)
+        #         save_path = os.path.join(output_dir, relative_path.replace("/chunk_videos", ""))
+        #         os.makedirs(save_path, exist_ok=True)
+        #         # Check if the .txt file already exists
+        #         txt_file_path = os.path.join(save_path, f"{frame_count_start}_frame_infos.txt")
+        #         if os.path.exists(txt_file_path):
+        #             logging.info(f"Skipping Video {file}: Output file already exists.")
+        #             continue
+        #         start = time.time()
+        #         video_to_pyr(face_detector, head_pose, device, video_path, save_path, frame_count_start)
+        #         logging.info(f'Head pose estimation for Video {file}: %.2f s' % (time.time() - start))
 
 
 if __name__ == '__main__':

@@ -17,8 +17,7 @@ from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, I
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
 from src.backbone.model_resnet_torch import resnet_50_torch
 from src.backbone.mvpnet import mvpnet_tiny
-from src.util.ImageFolder4Channel import ImageFolder4Channel
-from src.util.eval_model_verification import evaluate_verification_lfw, evaluate_verification_colorferet
+from src.util.datapipeline.ImageFolder4Channel import ImageFolder4Channel
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
 from util.eval_model import evaluate_and_log

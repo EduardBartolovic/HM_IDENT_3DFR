@@ -25,6 +25,7 @@ def load_rgbd_backbone_checkpoint(model, checkpoint_path):
 
     return model
 
+
 def load_checkpoint(BACKBONE, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd=False):
 
     if os.path.isfile(BACKBONE_RESUME_ROOT) and os.path.isfile(HEAD_RESUME_ROOT):

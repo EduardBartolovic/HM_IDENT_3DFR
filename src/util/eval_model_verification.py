@@ -2,14 +2,12 @@ import os
 import mlflow
 import numpy as np
 import torch
-from numpy import dot
-from numpy.linalg import norm
-from scipy.spatial.distance import cosine, euclidean, cdist
+from scipy.spatial.distance import cosine, cdist
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.util.ImageFolderWithFilename import ImageFolderWithFilename
-from src.util.ImageFolderWithVoting import ImageFolderWithVoting
+from src.util.datapipeline.ImageFolderWithFilename import ImageFolderWithFilename
+from src.util.datapipeline.ImageFolderWithVoting import ImageFolderWithVoting
 from src.util.misc import colorstr
 from src.util.utils import gen_plot
 

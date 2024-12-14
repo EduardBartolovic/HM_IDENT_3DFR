@@ -7,22 +7,17 @@ from src.preprocess_datasets.headPoseEstimation.utils.general import draw_axis
 
 
 def process_txt_and_create_videos(txt_root_folder, video_root_folder, output_folder):
-    # Ensure output directory exists
     os.makedirs(output_folder, exist_ok=True)
 
     for root, _, files in os.walk(txt_root_folder):  # Recursively walk through directories
         for txt_file in files:
-            if txt_file.endswith('_frame_infos.txt'):
+            if txt_file.endswith('frame_infos.txt'):
                 txt_path = os.path.join(root, txt_file)
 
-                # Extract frame range from the txt filename
-                frame_start = txt_file.split('_')[0]
-
-                # Find the corresponding video file
-                video_dir = os.path.join(video_root_folder, os.path.relpath(root, txt_root_folder), "chunk_videos")
+                video_dir = os.path.join(video_root_folder, os.path.relpath(root, txt_root_folder))
                 video_file = None
                 for file in os.listdir(video_dir):
-                    if file.endswith('.mp4') and f"#{frame_start}-" in file:
+                    if file.endswith('.mp4'):
                         video_file = file
                         break
 
@@ -45,49 +40,61 @@ def process_txt_and_create_videos(txt_root_folder, video_root_folder, output_fol
                     continue
 
                 # Get video properties
-                fps = int(cap.get(cv2.CAP_PROP_FPS))
+                fps = 2#int(cap.get(cv2.CAP_PROP_FPS))
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for mp4 videos
 
                 # Prepare VideoWriter for cropped video
                 out = None
 
+                video_frame_counter = 0
                 # Read bounding box data from txt file
                 with open(txt_path, 'r') as file:
                     lines = file.readlines()
-                    for line in lines:
-                        frame_info = list(map(int, line.strip().split(',')))
-                        frame_number, x_min, y_min, x_max, y_max = frame_info[:5]
-                        y_pred_deg, p_pred_deg, r_pred_deg = frame_info[5:]
 
-                        # Set video frame position
+                for line in lines:
+                    frame_info = list(map(int, line.strip().split(',')))
+                    frame_number, x_min, y_min, x_max, y_max = frame_info[:5]
+                    y_pred_deg, p_pred_deg, r_pred_deg = frame_info[5:]
+
+                    while video_frame_counter != frame_number:
+                        video_frame_counter += 1
                         success, frame = cap.read()
                         if not success:
-                            #print(f"Failed to read frame {frame_number} from {video_path}.")
                             break
 
-                        # Crop the frame
-                        cropped_frame = frame[y_min:y_max, x_min:x_max]
+                    if r_pred_deg > 1 or r_pred_deg < -1:
+                        bbox_center_x = (x_min + x_max) // 2
+                        bbox_center_y = (y_min + y_max) // 2
+                        rotation_matrix = cv2.getRotationMatrix2D((bbox_center_x, bbox_center_y), -r_pred_deg, 1.0)
 
-                        if True:
-                            draw_axis(
-                                frame,
-                                y_pred_deg,
-                                p_pred_deg,
-                                r_pred_deg,
-                                bbox=[x_min, y_min, x_max, y_max],
-                                size_ratio=0.5
-                            )
+                        # Apply rotation to the full frame
+                        frame = cv2.warpAffine(
+                            frame,
+                            rotation_matrix,
+                            (frame.shape[1], frame.shape[0]),
+                            flags=cv2.INTER_LINEAR,
+                            borderMode=cv2.BORDER_CONSTANT,
+                            borderValue=(0, 0, 0)
+                        )
 
-                        # Initialize VideoWriter with cropped frame dimensions
-                        if out is None:
-                            crop_width = x_max - x_min
-                            crop_height = y_max - y_min
-                            out = cv2.VideoWriter(output_video_path, fourcc, fps, (crop_width, crop_height))
+                    cropped_frame = frame[y_min:y_max, x_min:x_max]
 
-                        # Write cropped frame to output video
-                        out.write(cropped_frame)
+                    if True:
+                        draw_axis(
+                            frame,
+                            y_pred_deg,
+                            p_pred_deg,
+                            r_pred_deg,
+                            bbox=[x_min, y_min, x_max, y_max],
+                            size_ratio=0.5
+                        )
 
-                # Release resources
+                    if out is None:
+                        crop_width = x_max - x_min
+                        crop_height = y_max - y_min
+                        out = cv2.VideoWriter(output_video_path, fourcc, fps, (crop_width, crop_height))
+                    out.write(cropped_frame)
+
                 cap.release()
                 if out:
                     out.release()
@@ -158,7 +165,7 @@ def merge_videos_in_folder(output_folder, final_output_folder):
 
 def merge_txt_files_in_folder(txt_root_folder, merged_txt_folder):
     """
-    Merge all _frame_infos.txt files in each subfolder into a single .txt file,
+    Merge all frame_infos.txt files in each subfolder into a single .txt file,
     sorted by the first number in filenames, and renumber frames sequentially.
     """
     os.makedirs(merged_txt_folder, exist_ok=True)
@@ -166,7 +173,7 @@ def merge_txt_files_in_folder(txt_root_folder, merged_txt_folder):
     for root, _, files in os.walk(txt_root_folder):
         # Sort files numerically by the first number in the filename
         txt_files = sorted(
-            [file for file in files if file.endswith('_frame_infos.txt')],
+            [file for file in files if file.endswith('frame_infos.txt')],
             key=lambda x: int(x.split('_')[0])
         )
 
@@ -197,15 +204,13 @@ def merge_txt_files_in_folder(txt_root_folder, merged_txt_folder):
 
 
 # Example usage
-txt_folder = "F:\\Face\\HPE\\hpe_txt"  # Folder containing _frame_infos.txt files
-video_folder = "F:\\Face\\HPE\\hpe_ori_videos"  # Folder containing original video files
+txt_folder = "F:\\Face\\HPE\\VoxCeleb1_test_out\\video"  # Folder containing frame_infos.txt files
+video_folder = "F:\\Face\\HPE\\VoxCeleb1_test\\video"  # Folder containing original video files
 output_folder = "F:\\Face\\HPE\\hpe_cropped"  # Folder to save cropped videos
-final_output_folder = "F:\\Face\\HPE\\hpe_cropped_merged"  # Folder to save merged videos
-merged_txt_folder = "F:\\Face\\HPE\\hpe_txt_merged"  # Folder to save merged .txt files
 
 
 process_txt_and_create_videos(txt_folder, video_folder, output_folder)
 
-merge_txt_files_in_folder(txt_folder, merged_txt_folder)
+#merge_txt_files_in_folder(txt_folder, merged_txt_folder)
 
-merge_videos_in_folder(output_folder, final_output_folder)
+#merge_videos_in_folder(output_folder, final_output_folder)
