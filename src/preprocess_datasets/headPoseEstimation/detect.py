@@ -142,6 +142,8 @@ def process(frame, frame_idx, x,y,w,h, device, head_pose):
     y_max = y + h
 
     #x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max)
+
+    #TODO: what happend s when x min max y min max are outside of frame
     cropped_face = frame[y_min:y_max, x_min:x_max]
     processed_face = pre_process(cropped_face)
 
@@ -221,6 +223,7 @@ def main(params):
                 relative_path = os.path.relpath(root, input_dir)
                 save_path = os.path.join(output_dir, relative_path)
                 os.makedirs(save_path, exist_ok=True)
+
                 # Check if the .txt file already exists
                 txt_file_path = os.path.join(save_path, "frame_infos.txt")
                 if os.path.exists(txt_file_path):
@@ -229,28 +232,6 @@ def main(params):
                 start = time.time()
                 video_to_pyr(head_pose, device, video_path, txt_dir, save_path)
                 logging.info(f'Head pose estimation for Video {file}: %.2f s' % (time.time() - start))
-
-
-
-
-
-
-
-        # for file in files:
-        #     if file.endswith(('.mp4', '.avi', '.mkv', '.mov')):  # Add other formats if needed
-        #         video_path = os.path.join(root, file)
-        #         frame_count_start = int(file.split('#')[2].split('-')[0])
-        #         relative_path = os.path.relpath(root, input_dir)
-        #         save_path = os.path.join(output_dir, relative_path.replace("/chunk_videos", ""))
-        #         os.makedirs(save_path, exist_ok=True)
-        #         # Check if the .txt file already exists
-        #         txt_file_path = os.path.join(save_path, f"{frame_count_start}_frame_infos.txt")
-        #         if os.path.exists(txt_file_path):
-        #             logging.info(f"Skipping Video {file}: Output file already exists.")
-        #             continue
-        #         start = time.time()
-        #         video_to_pyr(face_detector, head_pose, device, video_path, save_path, frame_count_start)
-        #         logging.info(f'Head pose estimation for Video {file}: %.2f s' % (time.time() - start))
 
 
 if __name__ == '__main__':
