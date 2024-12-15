@@ -6,13 +6,11 @@ import warnings
 
 import cv2
 import numpy as np
-import onnxruntime
 
 import torch
 from torchvision import transforms
 
 from src.preprocess_datasets.headPoseEstimation.models.resnet import resnet50
-from src.preprocess_datasets.headPoseEstimation.models.scrfd import SCRFD
 from src.preprocess_datasets.headPoseEstimation.utils.general import compute_euler_angles_from_rotation_matrices
 
 warnings.filterwarnings("ignore")
@@ -126,13 +124,6 @@ def save_frame(image, angles, output_dir, counter):
     cv2.imwrite(filepath, image)
 
 
-def save_frame(image, angles, output_dir, counter):
-    yaw, pitch, roll = angles
-    filename = f"frame_{counter}_yaw_{yaw:.2f}_pitch_{pitch:.2f}_roll_{roll:.2f}.jpg"
-    filepath = os.path.join(output_dir, filename)
-    cv2.imwrite(filepath, image)
-
-
 def process(frame, frame_idx, x,y,w,h, device, head_pose):
     """Process a frame."""
 
@@ -141,9 +132,9 @@ def process(frame, frame_idx, x,y,w,h, device, head_pose):
     x_max = x + w
     y_max = y + h
 
+    #TODO: what happend s when x min max y min max are outside of frame
     #x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max)
 
-    #TODO: what happend s when x min max y min max are outside of frame
     cropped_face = frame[y_min:y_max, x_min:x_max]
     processed_face = pre_process(cropped_face)
 
