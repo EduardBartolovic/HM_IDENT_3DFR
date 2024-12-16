@@ -4,10 +4,15 @@ import seaborn as sns
 
 
 def process_txt_and_analyze_angles(txt_root_folder, output_folder):
-    # Ensure output directory exists
+
     os.makedirs(output_folder, exist_ok=True)
 
-    for root, _, files in os.walk(txt_root_folder):  # Recursively walk through directories
+    total_frame_numbers = []
+    total_yaw_angles = []
+    total_pitch_angles = []
+    total_roll_angles = []
+
+    for root, _, files in os.walk(txt_root_folder):
         for txt_file in files:
             if txt_file.endswith('.txt'):
                 txt_path = os.path.join(root, txt_file)
@@ -20,7 +25,7 @@ def process_txt_and_analyze_angles(txt_root_folder, output_folder):
                 scatter_plot_output_path = os.path.join(save_dir, f"{os.path.splitext(txt_file)[0]}_angles_scatter_plot.png")
                 dense_plot_output_path = os.path.join(save_dir, f"{os.path.splitext(txt_file)[0]}_angles_dense_plot.png")
 
-                # Initialize lists to store angles for plotting
+                # Initialize lists to store angles
                 frame_numbers = []
                 yaw_angles = []
                 pitch_angles = []
@@ -40,31 +45,48 @@ def process_txt_and_analyze_angles(txt_root_folder, output_folder):
                         pitch_angles.append(p_pred_deg)
                         roll_angles.append(r_pred_deg)
 
-                plt.figure(figsize=(10, 6))
-                plt.plot(frame_numbers, yaw_angles, label='Yaw (°)', color='r', linestyle='-')
-                plt.plot(frame_numbers, pitch_angles, label='Pitch (°)', color='g', linestyle='-')
-                plt.plot(frame_numbers, roll_angles, label='Roll (°)', color='b', linestyle='-')
-                plt.title(f'Viewing Angle Changes (Line Plot) for {txt_file}')
-                plt.xlabel('Frame Number')
-                plt.ylabel('Angle (°)')
-                plt.legend()
-                plt.grid(True)
-                plt.tight_layout()
-                plt.savefig(line_plot_output_path)
-                plt.close()
+                plotting = False
+                if plotting:
+                    plt.figure(figsize=(10, 6))
+                    plt.plot(frame_numbers, yaw_angles, label='Yaw (°)', color='r', linestyle='-')
+                    plt.plot(frame_numbers, pitch_angles, label='Pitch (°)', color='g', linestyle='-')
+                    plt.plot(frame_numbers, roll_angles, label='Roll (°)', color='b', linestyle='-')
+                    plt.title(f'Viewing Angle Changes (Line Plot) for {txt_file}')
+                    plt.xlabel('Frame Number')
+                    plt.ylabel('Angle (°)')
+                    plt.legend()
+                    plt.grid(True)
+                    plt.tight_layout()
+                    plt.savefig(line_plot_output_path)
+                    plt.close()
 
-                plt.figure(figsize=(10, 6))
-                sns.kdeplot(x=yaw_angles, y=pitch_angles, cmap='Reds', fill=True, thresh=0.05, levels=50)
-                plt.scatter(yaw_angles, pitch_angles, color='b', s=10, alpha=0.4)
-                plt.title(f'Dense Plot of Yaw vs Pitch Angles for {txt_file}')
-                plt.xlabel('Yaw Angle (°)')
-                plt.ylabel('Pitch Angle (°)')
-                plt.grid(True)
-                plt.tight_layout()
-                plt.savefig(dense_plot_output_path)
-                plt.close()
+                    plt.figure(figsize=(10, 6))
+                    sns.kdeplot(x=yaw_angles, y=pitch_angles, cmap='Reds', fill=True, thresh=0.05, levels=50)
+                    plt.scatter(yaw_angles, pitch_angles, color='b', s=10, alpha=0.4)
+                    plt.title(f'Dense Plot of Yaw vs Pitch Angles for {txt_file}')
+                    plt.xlabel('Yaw Angle (°)')
+                    plt.ylabel('Pitch Angle (°)')
+                    plt.grid(True)
+                    plt.tight_layout()
+                    plt.savefig(dense_plot_output_path)
+                    plt.close()
 
                 print(f"Saved plot: {scatter_plot_output_path}")
+                total_frame_numbers.append(frame_numbers)
+                total_yaw_angles.append(yaw_angles)
+                total_pitch_angles.append(pitch_angles)
+                total_roll_angles.append(roll_angles)
+
+    plt.figure(figsize=(10, 6))
+    sns.kdeplot(x=total_yaw_angles, y=total_pitch_angles, cmap='Reds', fill=True, thresh=0.05, levels=50)
+    plt.scatter(total_yaw_angles, total_pitch_angles, color='b', s=10, alpha=0.4)
+    plt.title('Dense Plot of Yaw vs Pitch Angles for all')
+    plt.xlabel('Yaw Angle (°)')
+    plt.ylabel('Pitch Angle (°)')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(output_folder)
+    plt.close()
 
 
 txt_folder = "F:\\Face\\hpe_txt_merged"  # Folder containing _frame_infos.txt files

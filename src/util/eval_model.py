@@ -18,7 +18,7 @@ from src.util.embeddungs_metrics import calc_embedding_analysis
 from src.util.misc import colorstr
 
 
-def get_embeddings_and_distances(device, model, enrolled_loader, query_loader, distance_metric, batch_size):
+def get_embeddings(device, model, enrolled_loader, query_loader):
 
     enrolled = build_embedding_library(device, model, enrolled_loader)
     query = build_embedding_library(device, model, query_loader)
@@ -59,7 +59,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
 
     time.sleep(0.1)
 
-    embedding_library = get_embeddings_and_distances(device, backbone, enrolled_loader, query_loader, distance_metric, batch_size)
+    embedding_library = get_embeddings(device, backbone, enrolled_loader, query_loader)
 
     unique_labels = np.unique(embedding_library.enrolled_labels)  # Compute mean embeddings for each label
     enrolled_embeddings_mean = np.array(
@@ -103,12 +103,6 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
         metric_concat = {}
     else:
         metric_concat = concat(embedding_library)
-
-    # Multidatabase Voting
-    #if 'texas' in test_path or 'colorferet' in test_path:
-    #    pass
-    #else:
-    #    multidatabase_voting(embedding_library)
 
     return metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library
 
