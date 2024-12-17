@@ -70,7 +70,11 @@ def read_txt_files(txt_dir):
 
 
 def pre_process(image):
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    try:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    except Exception:
+        print(image)
+        raise Exception()
     transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize((224, 224)),
@@ -80,32 +84,6 @@ def pre_process(image):
 
     image = transform(image)
     return image
-
-
-def expand_bbox(x_min, y_min, x_max, y_max, factor=0.25):
-    """Expand the bounding box by a given factor and make it square."""
-    width = x_max - x_min
-    height = y_max - y_min
-
-    # Expand the bbox dimensions
-    x_min_new = x_min - int(factor * height)
-    y_min_new = y_min - int(factor * width)
-    x_max_new = x_max + int(factor * height)
-    y_max_new = y_max + int(factor * width)
-
-    # Ensure square by finding the max side length
-    square_size = max(x_max_new - x_min_new, y_max_new - y_min_new)
-    center_x = (x_min_new + x_max_new) // 2
-    center_y = (y_min_new + y_max_new) // 2
-
-    # Calculate new square bounding box
-    half_size = square_size // 2
-    x_min_square = max(0, center_x - half_size)
-    y_min_square = max(0, center_y - half_size)
-    x_max_square = x_min_square + square_size
-    y_max_square = y_min_square + square_size
-
-    return x_min_square, y_min_square, x_max_square, y_max_square
 
 
 def get_model(arch, num_classes=6, pretrained=True):
@@ -124,18 +102,25 @@ def save_frame(image, angles, output_dir, counter):
     cv2.imwrite(filepath, image)
 
 
-def process(frame, frame_idx, x,y,w,h, device, head_pose):
+def process(frame, frame_idx, x, y, w, h, device, head_pose):
     """Process a frame."""
+
+    if w > h:
+        w -= 1
+    elif w < h:
+        h -= 1
+    assert w == h
 
     x_min = x
     y_min = y
     x_max = x + w
     y_max = y + h
 
-    #TODO: what happend s when x min max y min max are outside of frame
-    #x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max)
-
     cropped_face = frame[y_min:y_max, x_min:x_max]
+
+    if cropped_face.shape != (h, w, 3):
+        raise Exception("cropped_face.shape != (h, w, 3):", cropped_face.shape, (h, w, 3))
+
     processed_face = pre_process(cropped_face)
 
     batched_images = processed_face.to(device).unsqueeze(0)
@@ -167,6 +152,9 @@ def video_to_pyr(head_pose, device, video_source, txt_dir, output_dir, batch_siz
                 infos = process(frame, frames_to_use[current_list_index], x_coords[current_list_index], y_coords[current_list_index], widths[current_list_index], heights[current_list_index], device, head_pose)
                 frame_infos.append(infos)
 
+    if len(frame_infos) == 0:
+        raise Exception("frame_infos has length 0. No headpose extraction done for:", video_source, txt_dir)
+
     txt_output_file = os.path.join(output_dir, "frame_infos.txt")
     with open(txt_output_file, 'w') as txt_file:
         for info in frame_infos:
@@ -174,7 +162,6 @@ def video_to_pyr(head_pose, device, video_source, txt_dir, output_dir, batch_siz
 
     cap.release()
     cv2.destroyAllWindows()
-    logging.info(f"Processing complete. Output saved to {txt_output_file}")
 
 
 def main(params):
@@ -219,10 +206,14 @@ def main(params):
                 txt_file_path = os.path.join(save_path, "frame_infos.txt")
                 if os.path.exists(txt_file_path):
                     logging.info(f"Skipping Video {file}: Output file already exists.")
-
-                start = time.time()
-                video_to_pyr(head_pose, device, video_path, txt_dir, save_path)
-                logging.info(f'Head pose estimation for Video {file}: %.2f s' % (time.time() - start))
+                else:
+                    logging.info(f"Processing Video {txt_file_path}...")
+                    start = time.time()
+                    try:
+                        video_to_pyr(head_pose, device, video_path, txt_dir, save_path)
+                    except Exception:
+                        print(f"Error for Video {txt_file_path}")
+                    logging.info(f'Head pose estimation for Video {file}: %.2f s' % (time.time() - start))
 
 
 if __name__ == '__main__':

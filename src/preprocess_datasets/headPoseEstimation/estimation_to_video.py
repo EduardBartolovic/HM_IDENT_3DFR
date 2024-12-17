@@ -187,12 +187,11 @@ def merge_txt_files_in_folder(txt_root_folder, merged_txt_folder):
                 for line in lines:
                     # Parse the line
                     frame_info = line.strip().split(',')
-                    frame_info[0] = str(new_frame_number)  # Update the frame number
+                    frame_info[0] = str(new_frame_number)
                     new_frame_number += 1
                     merged_lines.append(','.join(frame_info) + '\n')
 
         if merged_lines:
-            # Save the merged file
             relative_dir = os.path.relpath(root, txt_root_folder)
             merged_txt_path = os.path.join(merged_txt_folder, f"{relative_dir}_merged.txt")
             os.makedirs(os.path.dirname(merged_txt_path), exist_ok=True)
@@ -203,14 +202,9 @@ def merge_txt_files_in_folder(txt_root_folder, merged_txt_folder):
             print(f"Merged .txt file saved: {merged_txt_path}")
 
 
-# Example usage
-txt_folder = "F:\\Face\\HPE\\VoxCeleb1_test_out\\video"  # Folder containing frame_infos.txt files
-video_folder = "F:\\Face\\HPE\\VoxCeleb1_test\\video"  # Folder containing original video files
-output_folder = "F:\\Face\\HPE\\hpe_cropped"  # Folder to save cropped videos
+if __name__ == '__main__':
+    txt_folder = "F:\\Face\\HPE\\VoxCeleb1_test_out\\video"  # Folder containing frame_infos.txt files
+    video_folder = "F:\\Face\\HPE\\VoxCeleb1_test\\video"  # Folder containing original video files
+    output_folder = "F:\\Face\\HPE\\VoxCeleb1_hpe_cropped"  # Folder to save cropped videos
 
-
-process_txt_and_create_videos(txt_folder, video_folder, output_folder)
-
-#merge_txt_files_in_folder(txt_folder, merged_txt_folder)
-
-#merge_videos_in_folder(output_folder, final_output_folder)
+    process_txt_and_create_videos(txt_folder, video_folder, output_folder)

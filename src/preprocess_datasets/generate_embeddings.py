@@ -1,6 +1,8 @@
+import time
+from collections import defaultdict
+
 import numpy as np
 import torch
-import torch.nn as nn
 from torchvision import transforms
 
 from src.backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
@@ -10,8 +12,8 @@ from src.util.EmbeddingsUtils import build_embedding_library
 from src.util.misc import colorstr
 
 import os
-import yaml
 import argparse
+
 
 def main(cfg):
 
@@ -33,11 +35,10 @@ def main(cfg):
     OUTPUT_FOLDER = cfg['OUTPUT_FOLDER']
     TEST_TRANSFORM_SIZES = cfg['TEST_TRANSFORM_SIZES']
     print("=" * 60)
-    print("Overall Configurations:")
-    print(cfg)
+    print("Overall Configurations:", cfg)
     print("=" * 60)
 
-    os.makedirs(OUTPUT_FOLDER)
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
     BACKBONE_DICT = {'ResNet_50': ResNet_50(INPUT_SIZE, EMBEDDING_SIZE),
                      'ResNet_101': ResNet_101(INPUT_SIZE, EMBEDDING_SIZE),
@@ -50,10 +51,7 @@ def main(cfg):
                      'IR_SE_152': IR_SE_152(INPUT_SIZE, EMBEDDING_SIZE)}
 
     BACKBONE = BACKBONE_DICT[BACKBONE_NAME]
-    print("=" * 60)
-    print(colorstr('magenta', BACKBONE))
     print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
-    print("=" * 60)
 
     if BACKBONE_RESUME_ROOT:
         print("=" * 60)
@@ -73,38 +71,133 @@ def main(cfg):
         transforms.Resize(TEST_TRANSFORM_SIZES),
         transforms.CenterCrop([112, 112]),
         transforms.ToTensor(),
-        transforms.Normalize(mean=RGB_MEAN, std=RGB_STD), # 0.5 all
+        transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
     ])
 
     dataset_enrolled_path = os.path.join(DATA_ROOT)
-    _, data_loader = load_data(dataset_enrolled_path, transform, BATCH_SIZE)
+    _, data_loader = load_data(dataset_enrolled_path, transform, BATCH_SIZE, shuffle=False)
 
     embedding_library = build_embedding_library(DEVICE, BACKBONE, data_loader)
 
-    # Save the arrays compressed
-    output = os.path.join(OUTPUT_FOLDER,"embedding_library.npz")
+    # Initialize dictionaries to aggregate embeddings and perspectives
+    unique_labels = {}
+    aggregated_embeddings = defaultdict(list)
+    aggregated_perspectives = defaultdict(list)
+
+    # Iterate through the scan_ids and aggregate data
+    for i, scan_id in enumerate(embedding_library.scan_ids):
+        unique_labels[scan_id] = embedding_library.labels[i]  # Store unique label for each scan_id
+        aggregated_embeddings[scan_id].append(embedding_library.embeddings[i])
+        aggregated_perspectives[scan_id].append(embedding_library.perspectives[i])
+
+    # Step 3: Filter entries with exactly 5 perspectives
+    filtered_scan_ids = []
+    filtered_labels = []
+    filtered_embeddings = []
+    filtered_perspectives = []
+
+    for scan_id in unique_labels.keys():
+        if len(aggregated_perspectives[scan_id]) == 5 or len(aggregated_perspectives[scan_id]) == 25:
+            filtered_scan_ids.append(scan_id)
+            filtered_labels.append(unique_labels[scan_id])
+            filtered_embeddings.append(aggregated_embeddings[scan_id])
+            filtered_perspectives.append(aggregated_perspectives[scan_id])
+
+    output = os.path.join(OUTPUT_FOLDER, "embedding_library.npz")
     np.savez_compressed(output,
-                        embeddings=embedding_library.embeddings,
-                        labels=embedding_library.labels,
-                        scan_ids=embedding_library.scan_ids,
-                        perspectives=embedding_library.perspectives)
+                        embeddings=np.array(filtered_embeddings),
+                        labels=np.array(filtered_labels),
+                        scan_ids=np.array(filtered_scan_ids),
+                        perspectives=np.array(filtered_perspectives))
 
     print(f"Data saved to {output}")
 
-    print(embedding_library)
-
-
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, help='Path to the config file', default='config_exp_X.yaml')
-    args = parser.parse_args()
-    with open(args.config, 'r') as file:
-        config = yaml.safe_load(file)
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--config', type=str, help='Path to the config file', default='config_exp_X.yaml')
+    # args = parser.parse_args()
+    # with open(args.config, 'r') as file:
+    #     config = yaml.safe_load(file)
+
+    config = {"SEED": 42,
+              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_photo_bellus\\train",
+              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "BACKBONE_NAME": "IR_50",
+              "INPUT_SIZE": [112, 112],
+              "RGB_MEAN": [0.5, 0.5, 0.5],
+              "RGB_STD": [0.5, 0.5, 0.5],
+              "EMBEDDING_SIZE": 512,
+              "BATCH_SIZE": 128,
+              "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_photo_bellus\\train",
+              "TEST_TRANSFORM_SIZES": (200, 150)}
     main(config)
 
-    #data = np.load("embedding_library.npz")
-    #embeddings = data["embeddings"]
-    #labels = data["labels"]
-    #scan_ids = data["scan_ids"]
-    #perspectives = data["perspectives"]
+    config = {"SEED": 42,
+              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_photo_bellus\\validation",
+              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "BACKBONE_NAME": "IR_50",
+              "INPUT_SIZE": [112, 112],
+              "RGB_MEAN": [0.5, 0.5, 0.5],
+              "RGB_STD": [0.5, 0.5, 0.5],
+              "EMBEDDING_SIZE": 512,
+              "BATCH_SIZE": 128,
+              "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_photo_bellus\\validation",
+              "TEST_TRANSFORM_SIZES": (200, 150)}
+    main(config)
+
+    config = {"SEED": 42,
+              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_rgb_bellus\\train",
+              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "BACKBONE_NAME": "IR_50",
+              "INPUT_SIZE": [112, 112],
+              "RGB_MEAN": [0.5, 0.5, 0.5],
+              "RGB_STD": [0.5, 0.5, 0.5],
+              "EMBEDDING_SIZE": 512,
+              "BATCH_SIZE": 128,
+              "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_rgb_bellus\\train",
+              "TEST_TRANSFORM_SIZES": (150, 150)}
+    main(config)
+    config = {"SEED": 42,
+              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_rgb_bellus\\validation",
+              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "BACKBONE_NAME": "IR_50",
+              "INPUT_SIZE": [112, 112],
+              "RGB_MEAN": [0.5, 0.5, 0.5],
+              "RGB_STD": [0.5, 0.5, 0.5],
+              "EMBEDDING_SIZE": 512,
+              "BATCH_SIZE": 128,
+              "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_rgb_bellus\\validation",
+              "TEST_TRANSFORM_SIZES": (150, 150)}
+    main(config)
+
+    config = {"SEED": 42,
+              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_rgb_bff\\train",
+              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "BACKBONE_NAME": "IR_50",
+              "INPUT_SIZE": [112, 112],
+              "RGB_MEAN": [0.5, 0.5, 0.5],
+              "RGB_STD": [0.5, 0.5, 0.5],
+              "EMBEDDING_SIZE": 512,
+              "BATCH_SIZE": 128,
+              "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_rgb_bff\\train",
+              "TEST_TRANSFORM_SIZES": (150, 150)}
+    main(config)
+    config = {"SEED": 42,
+              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_rgb_bff\\validation",
+              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "BACKBONE_NAME": "IR_50",
+              "INPUT_SIZE": [112, 112],
+              "RGB_MEAN": [0.5, 0.5, 0.5],
+              "RGB_STD": [0.5, 0.5, 0.5],
+              "EMBEDDING_SIZE": 512,
+              "BATCH_SIZE": 128,
+              "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_rgb_bff\\validation",
+              "TEST_TRANSFORM_SIZES": (150, 150)}
+    main(config)

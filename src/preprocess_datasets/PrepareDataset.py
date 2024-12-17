@@ -555,9 +555,9 @@ class ImageFolderWithScanID(datasets.ImageFolder):
         return data_tuple
 
 
-def load_data(data_dir, transform, batch_size: int):
+def load_data(data_dir, transform, batch_size: int, shuffle=True):
     dataset = ImageFolderWithScanID(root=data_dir, transform=transform)
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=6,
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=6,
                                               drop_last=False)
     return dataset, data_loader
 
