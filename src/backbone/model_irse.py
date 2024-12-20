@@ -167,8 +167,6 @@ class Backbone(Module):
     def forward(self, x, return_featuremaps=False):
         x = self.input_layer(x)
         x = self.body(x)
-        #if return_featuremaps:
-        #    return x
         x = self.output_layer(x)
 
         return x
@@ -189,6 +187,19 @@ class Backbone(Module):
                 nn.init.xavier_uniform_(m.weight.data)
                 if m.bias is not None:
                     m.bias.data.zero_()
+
+
+class IR_50_without_linear(nn.Module):
+    def __init__(self, backbone):
+        super(IR_50_without_linear, self).__init__()
+        self.input_layer = backbone.input_layer
+        self.body = backbone.body
+
+    def forward(self, x):
+        x = self.input_layer(x)
+        x = self.body(x)
+        return x
+
 
 
 def IR_50(input_size, embedding_size):
@@ -237,3 +248,10 @@ def IR_SE_152(input_size, embedding_size):
     model = Backbone(input_size, 152, 'ir_se', embedding_size)
 
     return model
+
+
+def IR_50_reduced(input_size, embedding_size):
+    """Constructs a ir-50 model.
+    """
+    modified_model = IR_50_without_linear(IR_50(input_size, embedding_size))
+    return modified_model
