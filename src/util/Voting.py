@@ -146,12 +146,6 @@ def concat(embedding_library):
         combined.sort(key=lambda x: x[0])  # Sort by perspective
         _, sorted_embeddings = zip(*combined)
         concatenated_embedding = np.concatenate(sorted_embeddings, axis=0)  # Concatenate embeddings for the scan_id
-        if concatenated_embedding.shape[0] != 512*5 and concatenated_embedding.shape[0] != 512*25 and concatenated_embedding.shape[0] != 512:
-             # TODO: Find a solution for this problem
-            #print(concatenated_embedding.shape)
-            #print(scan_id)
-            continue
-
         concatenated_embeddings.append(concatenated_embedding)
         concatenated_labels.append(data['label'])
 

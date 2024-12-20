@@ -8,11 +8,10 @@ import torch
 import torchvision
 from tqdm import tqdm
 
-from src.util.EmbeddingsUtils import batched_distances_gpu
+from src.util.Voting import calculate_embedding_similarity_progress, compute_ranking_matrices, analyze_result
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.Metrics import calc_metrics, error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix
-from src.util.embeddungs_metrics import calc_embedding_analysis
 from src.util.misc import colorstr
 
 
@@ -68,18 +67,21 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric):
 
     embedding_library = get_embeddings(device, backbone, enrolled_loader, query_loader)
 
-    # Calculate distances between embeddings of query and library data
-    distances = batched_distances_gpu(device, embedding_library.query_embeddings, embedding_library.enrolled_embeddings, batch_size, distance_metric=distance_metric)
-    # Sort indices/classes of the closest vectors for each query embedding
-    y_pred = np.argsort(distances, axis=1)
-    y_pred_top1 = y_pred[:, 0]
-    # TODO: y_pred_top5 = y_pred[:, :5]
-    metrics = calc_metrics(embedding_library.query_labels, y_pred_top1)
-    # TODO:
-    # plot_confusion_matrix(embedding_library.query_labels, y_pred_top1, dataset_enrolled, os.path.basename(test_path), matplotlib=False)
-    # error_rate_per_class(embedding_library.query_labels, y_pred_top1, os.path.basename(test_path))
+    enrolled_embedding = np.array(embedding_library.enrolled_embeddings)
+    enrolled_label = np.array(embedding_library.enrolled_labels)
 
-    return metrics, embedding_library
+    query_embedding = np.array(embedding_library.query_embeddings)
+    query_label = np.array(embedding_library.query_labels)
+
+    similarity_matrix = calculate_embedding_similarity_progress(query_embedding, enrolled_embedding)
+    top_indices, top_values = compute_ranking_matrices(similarity_matrix)
+    result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
+
+    # metrics = calc_metrics(embedding_library.query_labels, top_indices[:, 0])
+    # plot_confusion_matrix(embedding_library.query_labels, top_indices[:, 0], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
+    # error_rate_per_class(embedding_library.query_labels, top_indices[:, 0], os.path.basename(test_path))
+
+    return result_metrics, embedding_library
 
 
 def evaluate_and_log_multiview(device, backbone, data_root, dataset, epoch, distance_metric, batch_size):
@@ -89,17 +91,17 @@ def evaluate_and_log_multiview(device, backbone, data_root, dataset, epoch, dist
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
-    mlflow.log_metric(f"{neutral_dataset}_RR1", metrics['Rank-1 Rate'], step=epoch + 1)
-    # TODO: mlflow.log_metric(f'{neutral_dataset}_RR5', metrics['Rank-5 Rate'], step=epoch + 1)
+    TODO: mlflow.log_metric(f'{neutral_dataset}_RR5', metrics['Rank-5 Rate'], step=epoch + 1)
 
     #if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
 
     rank_1 = metrics.get('Rank-1 Rate', 'N/A')
-    # TODO: rank_5 = metrics.get('Rank-5 Rate', 'N/A')
+    rank_5 = metrics.get('Rank-5 Rate', 'N/A')
 
     print(colorstr(
         'bright_green',
         f"{neutral_dataset} Evaluation: "
-        f"RR1: {rank_1} " # TODO: RR5: {rank_5} "
+        f"RR1: {rank_1} "
+        f"RR5: {rank_5} "
     ))
