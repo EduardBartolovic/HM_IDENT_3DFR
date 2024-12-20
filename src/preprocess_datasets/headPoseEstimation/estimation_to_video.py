@@ -53,7 +53,9 @@ def process_txt_and_create_videos(txt_root_folder, video_root_folder, output_fol
 
                 for line in lines:
                     frame_info = list(map(int, line.strip().split(',')))
-                    frame_number, x_min, y_min, x_max, y_max = frame_info[:5]
+                    frame_number, x_min, y_min, width, height = frame_info[:5]
+                    x_max = x_min+width
+                    y_max = y_min+height
                     y_pred_deg, p_pred_deg, r_pred_deg = frame_info[5:]
 
                     while video_frame_counter != frame_number:
@@ -62,7 +64,7 @@ def process_txt_and_create_videos(txt_root_folder, video_root_folder, output_fol
                         if not success:
                             break
 
-                    if r_pred_deg > 1 or r_pred_deg < -1:
+                    if False: #r_pred_deg > 1 or r_pred_deg < -1:
                         bbox_center_x = (x_min + x_max) // 2
                         bbox_center_y = (y_min + y_max) // 2
                         rotation_matrix = cv2.getRotationMatrix2D((bbox_center_x, bbox_center_y), -r_pred_deg, 1.0)
@@ -81,7 +83,7 @@ def process_txt_and_create_videos(txt_root_folder, video_root_folder, output_fol
 
                     if True:
                         draw_axis(
-                            frame,
+                            cropped_frame,
                             y_pred_deg,
                             p_pred_deg,
                             r_pred_deg,

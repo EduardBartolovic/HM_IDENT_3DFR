@@ -3,6 +3,7 @@ import time
 import logging
 import argparse
 import warnings
+import mediapipe as mp
 
 import cv2
 import numpy as np
@@ -11,7 +12,8 @@ import torch
 from torchvision import transforms
 
 from src.preprocess_datasets.headPoseEstimation.models.resnet import resnet50
-from src.preprocess_datasets.headPoseEstimation.utils.general import compute_euler_angles_from_rotation_matrices
+from src.preprocess_datasets.headPoseEstimation.utils.general import compute_euler_angles_from_rotation_matrices, \
+    draw_axis
 
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -140,6 +142,8 @@ def video_to_pyr(head_pose, device, video_source, txt_dir, output_dir, batch_siz
     current_list_index = -1
     frame_infos = []
 
+    out=None
+
     with torch.no_grad():
         while True:
             success, frame = cap.read()
@@ -149,8 +153,36 @@ def video_to_pyr(head_pose, device, video_source, txt_dir, output_dir, batch_siz
             current_frame_index += 1
             if current_frame_index in frames_to_use:
                 current_list_index += 1
+
+
+
                 infos = process(frame, frames_to_use[current_list_index], x_coords[current_list_index], y_coords[current_list_index], widths[current_list_index], heights[current_list_index], device, head_pose)
                 frame_infos.append(infos)
+                y_pred_deg, p_pred_deg, r_pred_deg = infos[5:]
+                cv2.rectangle(frame, (x_coords[current_list_index], y_coords[current_list_index]), (x_coords[current_list_index] + widths[current_list_index], y_coords[current_list_index] + heights[current_list_index]), (0, 255, 0), 2)
+
+                draw_axis(
+                    frame,
+                    y_pred_deg,
+                    p_pred_deg,
+                    r_pred_deg,
+                    bbox=[x_coords[current_list_index], y_coords[current_list_index], x_coords[current_list_index] + widths[current_list_index], y_coords[current_list_index] + heights[current_list_index]],
+                    size_ratio=0.5
+                )
+                #cv2.imshow("video", frame)
+                #cv2.waitKey(0)
+            else:
+                cv2.rectangle(frame, (x_coords[current_list_index], y_coords[current_list_index]), (
+                x_coords[current_list_index] + widths[current_list_index],
+                y_coords[current_list_index] + heights[current_list_index]), (255, 0, 0), 2)
+                #cv2.imshow("video", frame)
+                #cv2.waitKey(0)
+
+            if out is None:
+                output_video_path = os.path.join(output_dir, "0.mp4")
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                out = cv2.VideoWriter(output_video_path, fourcc, 25, (frame.shape[1], frame.shape[0]))
+            out.write(frame)
 
     if len(frame_infos) == 0:
         raise Exception("frame_infos has length 0. No headpose extraction done for:", video_source, txt_dir)
@@ -209,10 +241,7 @@ def main(params):
                 else:
                     logging.info(f"Processing Video {txt_file_path}...")
                     start = time.time()
-                    try:
-                        video_to_pyr(head_pose, device, video_path, txt_dir, save_path)
-                    except Exception:
-                        print(f"Error for Video {txt_file_path}")
+                    video_to_pyr(head_pose, device, video_path, txt_dir, save_path)
                     logging.info(f'Head pose estimation for Video {file}: %.2f s' % (time.time() - start))
 
 
