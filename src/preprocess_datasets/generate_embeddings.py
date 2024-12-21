@@ -59,8 +59,8 @@ def main(cfg):
             print(colorstr('blue', f"Loading ONLY Backbone Checkpoint {BACKBONE_RESUME_ROOT}"))
             BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT, weights_only=True))
         else:
-            print(colorstr('red', f"No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}"))
-            raise AttributeError(f'No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}')
+            print(colorstr('red', f"No Checkpoint Found at {BACKBONE_RESUME_ROOT}"))
+            raise AttributeError(f'No Checkpoint Found at {BACKBONE_RESUME_ROOT}')
         print("=" * 60)
     else:
         print(colorstr('red', "BACKBONE_RESUME_ROOT not activated"))
@@ -90,27 +90,27 @@ def main(cfg):
         aggregated_embeddings[scan_id].append(embedding_library.embeddings[i])
         aggregated_perspectives[scan_id].append(embedding_library.perspectives[i])
 
-    # Step 3: Filter entries with exactly 5 perspectives
-    filtered_scan_ids = []
-    filtered_labels = []
-    filtered_embeddings = []
-    filtered_perspectives = []
-
+    # Filter entries with exactly 5 or 25 perspectives
+    filtered_data = []
     for scan_id in unique_labels.keys():
-        if len(aggregated_perspectives[scan_id]) == 5 or len(aggregated_perspectives[scan_id]) == 25:
-            filtered_scan_ids.append(scan_id)
-            filtered_labels.append(unique_labels[scan_id])
-            filtered_embeddings.append(aggregated_embeddings[scan_id])
-            filtered_perspectives.append(aggregated_perspectives[scan_id])
+        if len(aggregated_perspectives[scan_id]) in {5, 25}:
+            filtered_data.append({
+                "scan_id": scan_id,
+                "label": unique_labels[scan_id],
+                "embeddings": aggregated_embeddings[scan_id],
+                "perspectives": aggregated_perspectives[scan_id]
+            })
 
-    output = os.path.join(OUTPUT_FOLDER, "embedding_library.npz")
-    np.savez_compressed(output,
-                        embeddings=np.array(filtered_embeddings),
-                        labels=np.array(filtered_labels),
-                        scan_ids=np.array(filtered_scan_ids),
-                        perspectives=np.array(filtered_perspectives))
+    for data in filtered_data:
+        person_folder = os.path.join(OUTPUT_FOLDER, str(data["label"]))
+        os.makedirs(person_folder, exist_ok=True)
 
-    print(f"Data saved to {output}")
+        embedding_file = os.path.join(person_folder, f"{data["scan_id"]}_embedding.npz")
+        np.savez_compressed(embedding_file, data["embeddings"])
+        perspective_file = os.path.join(person_folder, f"{data["scan_id"]}_perspective.npz")
+        np.savez_compressed(perspective_file, data["perspectives"])
+
+    print(f"Data saved to {OUTPUT_FOLDER}")
 
 
 if __name__ == '__main__':
@@ -121,8 +121,8 @@ if __name__ == '__main__':
     #     config = yaml.safe_load(file)
 
     config = {"SEED": 42,
-              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_photo_bellus\\train",
-              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_photo_bellus\\train",
+              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -130,13 +130,13 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_photo_bellus\\train",
+              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_photo_bellus\\train",
               "TEST_TRANSFORM_SIZES": (200, 150)}
     main(config)
 
     config = {"SEED": 42,
-              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_photo_bellus\\validation",
-              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_photo_bellus\\validation",
+              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -144,13 +144,13 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_photo_bellus\\validation",
+              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_photo_bellus\\validation",
               "TEST_TRANSFORM_SIZES": (200, 150)}
     main(config)
 
     config = {"SEED": 42,
-              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_rgb_bellus\\train",
-              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_rgb_bellus\\train",
+              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -158,12 +158,12 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_rgb_bellus\\train",
+              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_rgb_bellus\\train",
               "TEST_TRANSFORM_SIZES": (150, 150)}
     main(config)
     config = {"SEED": 42,
-              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_rgb_bellus\\validation",
-              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_rgb_bellus\\validation",
+              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -171,13 +171,13 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_rgb_bellus\\validation",
+              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_rgb_bellus\\validation",
               "TEST_TRANSFORM_SIZES": (150, 150)}
     main(config)
 
     config = {"SEED": 42,
-              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_rgb_bff\\train",
-              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_rgb_bff\\train",
+              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -185,12 +185,12 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_rgb_bff\\train",
+              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_rgb_bff\\train",
               "TEST_TRANSFORM_SIZES": (150, 150)}
     main(config)
     config = {"SEED": 42,
-              "DATA_ROOT": "F:\\Face\\data\\datasets8\\test_rgb_bff\\validation",
-              "BACKBONE_RESUME_ROOT": "F:\\Face\\HM_IDENT_3DFR\\src\\pretrained\\backbone_ir50_ms1m_epoch63.pth",
+              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_rgb_bff\\validation",
+              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -198,6 +198,6 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "F:\\Face\\data\\dataset8_embeddings\\test_rgb_bff\\validation",
+              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_rgb_bff\\validation",
               "TEST_TRANSFORM_SIZES": (150, 150)}
     main(config)

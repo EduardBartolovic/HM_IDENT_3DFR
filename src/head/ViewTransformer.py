@@ -25,6 +25,7 @@ class ViewTransformer(nn.Module):
         x = x.permute(1, 0, 2)  # Transformer expects (seq_length, batch_size, embedding_dim)
         x = self.transformer_encoder(x)  # Pass through transformer
         x = x.mean(dim=0)  # Pooling (mean across sequence length)
+        #x, _ = x.max(dim=0)  # Pooling (mean across sequence length)
         # Todo: Check other pooling
         x = self.fc(x)  # Final projection to 512-dimensional output
         return x

@@ -1,7 +1,7 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP186-MVS-enc_512-ArcFace-FocalLoss-112_112-batchsize_128-epochs10-IR_50_PRE_MS1M63'  # experiment_name
-DATA_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings'  # the parent root
+DATA_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\dataset8_featuremap'  # the parent root
 TRAIN_SET: 'rgb_bellus'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints

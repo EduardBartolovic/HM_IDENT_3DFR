@@ -11,7 +11,6 @@ from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.eval_model_multiview import evaluate_and_log_multiview
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
-from util.eval_model import evaluate_and_log
 from util.utils import separate_irse_bn_paras, \
     separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
 
@@ -87,7 +86,7 @@ if __name__ == '__main__':
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
 
-        dataset_train = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET))
+        dataset_train = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET), input_name="featuremap")
 
         sampler_train = torch.utils.data.RandomSampler(dataset_train)
 
@@ -101,7 +100,9 @@ if __name__ == '__main__':
 
         # ======= model & loss & optimizer =======#
         seq_length = 25
-        BACKBONE_DICT = {'ViewTransformer': ViewTransformer(embedding_dim=EMBEDDING_SIZE, num_heads=8, num_layers=1, seq_length=seq_length)}
+        input_feature_map_shape = (7, 7, 512)  # Shape of each feature map
+        flattened_dim = input_feature_map_shape[0] * input_feature_map_shape[1] * input_feature_map_shape[2]
+        BACKBONE_DICT = {'ViewTransformer': ViewTransformer(embedding_dim=flattened_dim, num_heads=8, num_layers=1, seq_length=seq_length)}
 
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]
         print("=" * 60)
