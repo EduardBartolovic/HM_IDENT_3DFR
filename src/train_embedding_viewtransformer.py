@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.optim as optim
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
+from src.head.AttentionCombiner import AttentionCombiner
+from src.head.LinearViewCombiner import LinearViewCombiner
 from src.head.ViewTransformer import ViewTransformer
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.eval_model_multiview import evaluate_and_log_multiview
@@ -100,11 +102,17 @@ if __name__ == '__main__':
 
         # ======= model & loss & optimizer =======#
         seq_length = 25
-        BACKBONE_DICT = {'ViewTransformer': ViewTransformer(embedding_dim=EMBEDDING_SIZE, num_heads=8, num_layers=1, seq_length=seq_length)}
+        BACKBONE_DICT = {'ViewTransformer': ViewTransformer(embedding_dim=EMBEDDING_SIZE, num_heads=8, num_layers=1, seq_length=seq_length),
+                         'LinearViewCombiner': LinearViewCombiner(25, embedding_dim=EMBEDDING_SIZE),
+                         'AttentionCombiner': AttentionCombiner(embedding_dim=EMBEDDING_SIZE)}
 
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]
         print("=" * 60)
-        model_stats = summary(BACKBONE, (BATCH_SIZE, seq_length, EMBEDDING_SIZE), verbose=0)
+        if "Transformer" in BACKBONE_NAME:
+            model_stats = summary(BACKBONE, (BATCH_SIZE, seq_length, EMBEDDING_SIZE), verbose=0)
+        else:
+            model_stats = summary(BACKBONE, (BATCH_SIZE, 25, EMBEDDING_SIZE), verbose=0)
+
         print(colorstr('magenta', str(model_stats)))
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
         print("=" * 60)
@@ -231,7 +239,7 @@ if __name__ == '__main__':
             test_bellus = 'test_rgb_bellus'
             test_bff = 'test_rgb_bff'
 
-            evaluate_and_log_multiview(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, BATCH_SIZE)
+            # evaluate_and_log_multiview(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, BATCH_SIZE)
             evaluate_and_log_multiview(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, BATCH_SIZE)
             print("=" * 60)
 
