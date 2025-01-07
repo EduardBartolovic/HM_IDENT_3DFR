@@ -18,8 +18,6 @@ def read_file(file_path):
 
 def generate_voxceleb_dataset(input_folder, dataset_output_folder):
 
-
-
     for root, _, files in os.walk(input_folder):
         if "hpe" in root:
             for txt_file in files:
