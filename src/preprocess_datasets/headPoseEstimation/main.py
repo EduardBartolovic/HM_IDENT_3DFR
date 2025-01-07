@@ -25,7 +25,7 @@ if __name__ == '__main__':
     head_pose.to(device)
     head_pose.eval()
 
-    headpose_estimation(input_folder, output_folder, fix_rotation=True)
+    headpose_estimation(input_folder, output_folder, device, fix_rotation=True)
 
     references = [
         [25, 25, 0],

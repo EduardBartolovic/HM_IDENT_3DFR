@@ -51,7 +51,7 @@ def process(cropped_face, device, head_pose):
     return int(eulers_deg[1]), int(eulers_deg[0]), int(eulers_deg[2])
 
 
-def headpose_estimation(input_folder, output_folder, fix_rotation=False, draw=True):
+def headpose_estimation(input_folder, output_folder, device, fix_rotation=False, draw=True):
 
     for root, _, files in os.walk(input_folder):  # Recursively walk through directories
 
@@ -145,4 +145,4 @@ if __name__ == '__main__':
     head_pose.to(device)
     head_pose.eval()
 
-    headpose_estimation(input_folder, output_folder, fix_rotation=True)
+    headpose_estimation(input_folder, output_folder, device, fix_rotation=True)
