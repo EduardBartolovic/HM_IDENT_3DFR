@@ -52,15 +52,6 @@ def generate_voxceleb_dataset(input_folder, dataset_output_folder):
                         frame_counter += 1
 
 
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
     input_folder = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files
     dataset_output_folder = "E:\\Download\\face\\VoxCeleb1_test_dataset"

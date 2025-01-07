@@ -86,7 +86,7 @@ data/
 ### Training
 
 ```bash
-python main.py --data data/300W_LP --dataset 300W --arch resnet18
+python train.py --data data/300W_LP --dataset 300W --arch resnet18
                                                          resnet34
                                                          resnet50
                                                          mobilenetv2
