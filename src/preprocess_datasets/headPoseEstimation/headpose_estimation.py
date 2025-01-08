@@ -135,7 +135,7 @@ if __name__ == '__main__':
     device = torch.device("cuda")
     try:
         head_pose = get_model("resnet50", num_classes=6)
-        state_dict = torch.load(model_path_hpe, map_location=device)
+        state_dict = torch.load(model_path_hpe, map_location=device, weights_only=True)
         head_pose.load_state_dict(state_dict)
         logging.info("Head Pose Estimation model weights loaded.")
     except Exception as e:
