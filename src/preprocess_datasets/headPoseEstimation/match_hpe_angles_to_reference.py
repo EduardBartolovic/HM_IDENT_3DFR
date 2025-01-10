@@ -33,6 +33,8 @@ def find_matches(input_folder, references):
                     data = np.array(lines)
                     infos = match_hpe_angles_to_referecenes(data, references)
 
+                    assert len(infos) == len(references)
+
                     file_path = os.path.join(root, "matched_angles.txt")
                     with open(file_path, 'w') as file:
                         for i in infos:
