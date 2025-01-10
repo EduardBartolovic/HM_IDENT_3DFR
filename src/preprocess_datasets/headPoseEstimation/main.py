@@ -1,3 +1,4 @@
+import itertools
 import logging
 
 import numpy as np
@@ -9,8 +10,8 @@ from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference im
 
 if __name__ == '__main__':
     input_folder = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files   # --------------------------------------------------------------
-    output_folder = "hpe"  # Folder to save cropped videos
     model_path_hpe = "F:\\Face\\HPE\\weights\\resnet50.pt"   # --------------------------------------------------------------
+    dataset_output_folder = "E:\\Download\\face\\VoxCeleb1_test_dataset"  # --------------------------------------------------------------
 
     device = torch.device("cuda")
     try:
@@ -25,24 +26,12 @@ if __name__ == '__main__':
     head_pose.to(device)
     head_pose.eval()
 
-    headpose_estimation(input_folder, output_folder, head_pose, device, fix_rotation=True, draw=False)
+    headpose_estimation(input_folder, "hpe", head_pose, device, fix_rotation=True, draw=False)
 
-    references = [
-        [25, 25, 0],
-        [25, 0, 0],
-        [25, -25, 0],
-        [0, 25, 0],
-        [0, 0, 0],
-        [0, -25, 0],
-        [-25, 25, 0],
-        [-25, 0, 0],
-        [-25, -25, 0],
-
-    ]  # --------------------------------------------------------------
-    references = np.array(references)
-
-    find_matches(input_folder, references)
-
-    dataset_output_folder = "E:\\Download\\face\\VoxCeleb1_test_dataset"  # --------------------------------------------------------------
+    ref_angles = [-25, -10, 0, 10, 25]
+    permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
+    print(len(permutations))
+    print(permutations)
+    find_matches(input_folder, permutations)
 
     generate_voxceleb_dataset(input_folder, dataset_output_folder)
