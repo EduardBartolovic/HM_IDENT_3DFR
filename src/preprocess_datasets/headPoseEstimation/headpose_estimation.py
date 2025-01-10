@@ -12,11 +12,7 @@ from src.preprocess_datasets.headPoseEstimation.utils.general import draw_axis, 
 
 
 def pre_process(image):
-    try:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    except Exception:
-        print("Error:", image)
-        raise Exception()
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize((224, 224)),
@@ -48,10 +44,10 @@ def process(cropped_face, device, head_pose):
     eulers = compute_euler_angles_from_rotation_matrices(rotation_matrices).detach().cpu().numpy()[0]
     eulers_deg = np.degrees(eulers)
 
-    return int(eulers_deg[1]), int(eulers_deg[0]), int(eulers_deg[2])
+    return [int(eulers_deg[1]), int(eulers_deg[0]), int(eulers_deg[2])]
 
 
-def headpose_estimation(input_folder, output_folder, head_pose_model, device, fix_rotation=False, draw=True):
+def headpose_estimation(input_folder, output_folder, head_pose_model, device, fix_rotation=False, draw=True, make_vid=False):
 
     for root, _, files in os.walk(input_folder):  # Recursively walk through directories
 
@@ -63,69 +59,72 @@ def headpose_estimation(input_folder, output_folder, head_pose_model, device, fi
             os.makedirs(output_video_folder, exist_ok=True)
 
             imgs = []
-            for img_file in files:
-                if ".png" in img_file:
-                    img_path = os.path.join(root, img_file)
-                    img = cv2.imread(img_path, cv2.IMREAD_COLOR)
-                    imgs.append(img)
-
             frame_infos = []
-            for img in imgs:
-                info = process(img, device, head_pose_model)
-                frame_infos.append(info)
+            for img_file_name in files:
+                if ".png" in img_file_name:
+                    img_path = os.path.join(root, img_file_name)
+                    img = cv2.imread(img_path, cv2.IMREAD_COLOR)
+                    if img is not None:
+                        imgs.append(img)
+                        info = process(img, device, head_pose_model)
+                        info.append(img_file_name)
+                        frame_infos.append(info)
 
             assert len(frame_infos) == len(imgs)
             assert len(frame_infos) > 0
 
-            fps = 2  # int(cap.get(cv2.CAP_PROP_FPS))
+            fps = 3
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for mp4 videos
-            # Prepare VideoWriter for cropped video
             out = None
 
+            frames_written = 0
             for frame, info in zip(imgs, frame_infos):
-                y_pred_deg, p_pred_deg, r_pred_deg = info
-
+                y_pred_deg, p_pred_deg, r_pred_deg, _ = info
                 w, h, c = frame.shape
 
-                if fix_rotation:  # r_pred_deg > 1 or r_pred_deg < -1:
+                if make_vid:
+                    if fix_rotation:
 
-                    bbox_center_x = w // 2
-                    bbox_center_y = h // 2
-                    rotation_matrix = cv2.getRotationMatrix2D((bbox_center_x, bbox_center_y), r_pred_deg, 1.0)
+                        bbox_center_x = w // 2
+                        bbox_center_y = h // 2
+                        rotation_matrix = cv2.getRotationMatrix2D((bbox_center_x, bbox_center_y), r_pred_deg, 1.0)
 
-                    # Apply rotation to the full frame
-                    frame = cv2.warpAffine(
-                        frame,
-                        rotation_matrix,
-                        (frame.shape[1], frame.shape[0]),
-                        flags=cv2.INTER_LINEAR,
-                        borderMode=cv2.BORDER_CONSTANT,
-                        borderValue=(0, 0, 0)
-                    )
-                    r_pred_deg = 0
+                        # Apply rotation to the full frame
+                        frame = cv2.warpAffine(
+                            frame,
+                            rotation_matrix,
+                            (frame.shape[1], frame.shape[0]),
+                            flags=cv2.INTER_LINEAR,
+                            borderMode=cv2.BORDER_CONSTANT,
+                            borderValue=(0, 0, 0)
+                        )
+                        r_pred_deg = 0
 
-                if draw:
-                    draw_axis(
-                        frame,
-                        y_pred_deg,
-                        p_pred_deg,
-                        r_pred_deg,
-                        bbox=[0, 0, w, h],
-                        size_ratio=0.5
-                    )
+                    if draw:
+                        draw_axis(
+                            frame,
+                            y_pred_deg,
+                            p_pred_deg,
+                            r_pred_deg,
+                            bbox=[0, 0, w, h],
+                            size_ratio=0.5
+                        )
 
-                if out is None:
-                    out = cv2.VideoWriter(output_video_path, fourcc, fps, (w, h))
-                out.write(frame)
+                    if out is None:
+                        out = cv2.VideoWriter(output_video_path, fourcc, fps, (w, h))
+                    out.write(frame)
+                    frames_written += 1
 
                 with open(output_txt_path, 'w') as txt_file:
                     for i in frame_infos:
                         txt_file.write(','.join(map(str, i)) + '\n')
 
-            if out:
+            if make_vid:
+                out.write(frame)
                 out.release()
-            print(f"Processed and saved cropped video: {output_video_path}")
-
+                print(f"Processed and saved cropped video: {output_video_path} frames_written: {frames_written}")
+            else:
+                print(f"Processed: {output_txt_path}")
 
 if __name__ == '__main__':
     input_folder = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files
@@ -145,4 +144,4 @@ if __name__ == '__main__':
     head_pose.to(device)
     head_pose.eval()
 
-    headpose_estimation(input_folder, output_folder, device, fix_rotation=True)
+    headpose_estimation(input_folder, output_folder, device, fix_rotation=True, make_vid=False)

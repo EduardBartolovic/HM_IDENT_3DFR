@@ -31,5 +31,5 @@ python src/preprocess_datasets/headPoseEstimation/headPoseEstimation.py
 
 python src/preprocess_datasets/headPoseEstimation/match_hpe_angles_to_reference.py
 
-python src/preprocess_datasets/headPoseEstimation/hpe_videos_to_dataset.py
+python src/preprocess_datasets/headPoseEstimation/hpe_to_dataset.py
 ```
