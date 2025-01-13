@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import os
 import shutil
 
@@ -37,12 +38,13 @@ def generate_voxceleb_dataset(input_folder, dataset_output_folder):
                     sample_name = os.path.basename(sample_name)
                     id_name = os.path.basename(id_name)
 
-                    destination = os.path.join(dataset_output_folder, id_name, sample_name)
+                    destination = os.path.join(dataset_output_folder, id_name)#, sample_name)
                     os.makedirs(destination, exist_ok=True)
 
                     for info in data:
                         src = os.path.join(folder_image_path, info[6])
-                        dst = os.path.join(destination, f'{info[0]}_{info[1]}_{info[7]}.jpg')
+                        hashlib.sha1((id_name + sample_name).encode()).hexdigest()
+                        dst = os.path.join(destination, f'{hashlib}{info[0]}_{info[1]}_{info[7]}.jpg')
                         shutil.copy(src, dst)
 
 
