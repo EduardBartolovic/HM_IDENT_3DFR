@@ -2,6 +2,7 @@ import time
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
@@ -13,7 +14,7 @@ from src.util.misc import colorstr
 from util.eval_model import evaluate_and_log
 from util.visualize_feature_maps import visualize_feature_maps
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
-    separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter
+    separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
 
 from torchinfo import summary
 from tqdm import tqdm
@@ -97,7 +98,7 @@ if __name__ == '__main__':
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
         ])
 
-        dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), train_transform)
+        dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=25, transform=train_transform)
 
         # create a weighted random sampler to process imbalanced data
         weights = make_weights_for_balanced_classes(dataset_train.data, len(dataset_train.classes))
@@ -114,9 +115,10 @@ if __name__ == '__main__':
 
         # ======= model & loss & optimizer =======#
         BACKBONE_DICT = {'IR_MV_50': IR_MV_50(INPUT_SIZE, EMBEDDING_SIZE)}
-        BACKBONE = BACKBONE_DICT[BACKBONE_NAME]
+        BACKBONE_reg = BACKBONE_DICT[BACKBONE_NAME]
+        BACKBONE_agg = BACKBONE_DICT[BACKBONE_NAME]
         print("=" * 60)
-        model_stats = summary(BACKBONE, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
+        model_stats = summary(BACKBONE_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
         print(colorstr('magenta', str(model_stats)))
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
         print("=" * 60)
@@ -138,15 +140,18 @@ if __name__ == '__main__':
         print(colorstr('blue', f"{LOSS_NAME} Loss Generated"))
         print("=" * 60)
 
+        # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
         if BACKBONE_NAME.find("IR") >= 0:
-            backbone_paras_only_bn, backbone_paras_wo_bn = separate_irse_bn_paras(BACKBONE)  # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
+            backbone_paras_only_bn_reg, backbone_paras_wo_bn_reg = separate_irse_bn_paras(BACKBONE_reg)
+            backbone_paras_only_bn_agg, backbone_paras_wo_bn_agg = separate_irse_bn_paras(BACKBONE_agg)
             _, head_paras_wo_bn = separate_irse_bn_paras(HEAD)
         else:
-            backbone_paras_only_bn, backbone_paras_wo_bn = separate_resnet_bn_paras(BACKBONE)  # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
+            backbone_paras_only_bn_reg, backbone_paras_wo_bn_reg = separate_resnet_bn_paras(BACKBONE_reg)
+            backbone_paras_only_bn_agg, backbone_paras_wo_bn_agg = separate_resnet_bn_paras(BACKBONE_agg)
             _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
 
-        OPTIMIZER_DICT = {'SGD': optim.SGD([{'params': backbone_paras_wo_bn + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn}], lr=LR, momentum=MOMENTUM),
-                          'ADAM': torch.optim.Adam([{'params': backbone_paras_wo_bn + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn}], lr=LR)}
+        OPTIMIZER_DICT = {'SGD': optim.SGD([{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}], lr=LR, momentum=MOMENTUM),
+                          'ADAM': torch.optim.Adam([{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}], lr=LR)}
 
         OPTIMIZER = OPTIMIZER_DICT[OPTIMIZER_NAME]
         print(colorstr('magenta', OPTIMIZER))
@@ -154,14 +159,18 @@ if __name__ == '__main__':
         print("=" * 60)
 
         print("=" * 60)
-        load_checkpoint(BACKBONE, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
+        load_checkpoint(BACKBONE_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
+        load_checkpoint(BACKBONE_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         print("=" * 60)
 
         if MULTI_GPU:
-            BACKBONE = nn.DataParallel(BACKBONE, device_ids=GPU_ID)
-            BACKBONE = BACKBONE.to(DEVICE)
+            BACKBONE_reg = nn.DataParallel(BACKBONE_reg, device_ids=GPU_ID)
+            BACKBONE_agg = nn.DataParallel(BACKBONE_agg, device_ids=GPU_ID)
+            BACKBONE_reg = BACKBONE_reg.to(DEVICE)
+            BACKBONE_agg = BACKBONE_agg.to(DEVICE)
         else:
-            BACKBONE = BACKBONE.to(DEVICE)
+            BACKBONE_reg = BACKBONE_reg.to(DEVICE)
+            BACKBONE_agg = BACKBONE_agg.to(DEVICE)
 
         # ======= train & validation & save checkpoint =======#
         DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc # was 100
@@ -183,7 +192,8 @@ if __name__ == '__main__':
             if epoch == STAGES[2]:
                 schedule_lr(OPTIMIZER)
 
-            BACKBONE.train()  # set to training mode
+            BACKBONE_reg.eval() # set to eval mode
+            BACKBONE_agg.train()  # set to training mode
             HEAD.train()
 
             losses = AverageMeter()
@@ -198,37 +208,53 @@ if __name__ == '__main__':
 
                 # compute output
                 labels = labels.to(DEVICE).long()
-                stage_features_list = []
+                # Initialize a dictionary to hold stage features for all views
+                all_views_stage_features = [[], [], [], [], []]
                 for view in inputs:
-                    inputs = view.to(DEVICE)
-                    features_stages = BACKBONE(inputs, return_featuremaps=True)
-                    stage_featuremaps = {}
+                    print("CCCCC")
+                    view = view.to(DEVICE)
+                    features_stages = BACKBONE_reg(view, return_featuremaps=True)
+                    # Extract and store features from specific stages
                     for k, v in features_stages.items():
                         if k == "input_stage":
-                            stage_featuremaps["stage_0"] = v
+                            all_views_stage_features[0].append(v)
                         elif k == "block_2":
-                            stage_featuremaps["stage_1"] = v
+                            all_views_stage_features[1].append(v)
                         elif k == "block_6":
-                            stage_featuremaps["stage_2"] = v
+                            all_views_stage_features[2].append(v)
                         elif k == "block_20":
-                            stage_featuremaps["stage_3"] = v
+                            all_views_stage_features[3].append(v)
                         elif k == "block_23":
-                            stage_featuremaps["stage_4"] = v
-                        #print(k, v.shape)
-                    batch_size = stage_featuremaps["stage_0"].shape[0]
-                    #for i in range(batch_size):
-                    visualize_feature_maps(stage_featuremaps, stage_names=["stage_0"], batch_idx=0)
-                    stage_features_list.append(stage_featuremaps)
-                #print(stage_features_list)
-                raise ValueError("")
+                            all_views_stage_features[4].append(v)
+
+                #print(all_views_stage_features.shape)
+                    #batch_size = stage_featuremaps["stage_0"].shape[0]
+                    #visualize_feature_maps(stage_featuremaps, "C:\\Users\\Eduard\\Desktop\\Face", stage_names=["stage_0"], batch_idx=0)
+                    #for k,v in stage_featuremaps.items():
+                    #    print(k, v.shape)
+
+                # Average pooling across views for each stage
+
+                features = 0
+                for stage in all_views_stage_features:
+                    all_view_stage = torch.stack(stage, dim=0)  # [view, batch, c, w, h]
+                    #print(all_view_stage.shape)
+                    all_view_stage = all_view_stage.permute(1, 0, 2, 3, 4)  # [batch, view, c, w, h]
+                    #print(all_view_stage.shape)
+                    views_pooled_stage = all_view_stage.mean(dim=1)  # [batch, c, w, h]
+                    #print(views_pooled_stage.shape)
+                    if views_pooled_stage.shape[-1] == 7:
+                        features = BACKBONE_agg(views_pooled_stage, execute_input=False, execute_body=False, execute_output=True)
+                        break
+
                 outputs = HEAD(features, labels)
                 loss = LOSS(outputs, labels)
 
                 # measure accuracy and record loss
                 prec1, prec5 = accuracy(outputs.data, labels, topk=(1, 5))
-                losses.update(loss.data.item(), inputs.size(0))
-                top1.update(prec1.data.item(), inputs.size(0))
-                top5.update(prec5.data.item(), inputs.size(0))
+                losses.update(loss.data.item(), inputs[0].size(0))
+                top1.update(prec1.data.item(), inputs[0].size(0))
+                top5.update(prec5.data.item(), inputs[0].size(0))
 
                 # compute gradient and do SGD step
                 OPTIMIZER.zero_grad()

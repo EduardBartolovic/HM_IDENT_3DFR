@@ -6,7 +6,7 @@ TRAIN_SET: 'VoxCeleb1_test_dataset'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
-BACKBONE_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
+BACKBONE_RESUME_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_ms1m_epoch63.pth'  # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 BACKBONE_NAME: 'IR_MV_50'#'LinearViewCombiner'
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']

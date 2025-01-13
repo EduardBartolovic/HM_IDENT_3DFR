@@ -8,7 +8,7 @@ def get_block(in_channel, depth, num_units, stride=2):
     return [Bottleneck(in_channel, depth, stride)] + [Bottleneck(depth, depth, 1) for i in range(num_units - 1)]
 
 
-def get_blocks(num_layers):
+def get_blocks():
     return [
         get_block(in_channel=64, depth=64, num_units=3),
         get_block(in_channel=64, depth=128, num_units=4),
@@ -20,9 +20,8 @@ def get_blocks(num_layers):
 class Backbone(Module):
     def __init__(self, input_size, num_layers, embedding_size=512):
         super(Backbone, self).__init__()
-        assert input_size[0] in [112, 224], "input_size should be [112, 112] or [224, 224]"
-        assert num_layers in [50], "num_layers should be 50"
-        blocks = get_blocks(num_layers)
+        assert input_size[0] in [112], "input_size should be [112, 112]"
+
         unit_module = bottleneck_IR
         self.input_layer = Sequential(Conv2d(3, 64, (3, 3), 1, 1, bias=False),
                                       BatchNorm2d(64),
@@ -33,43 +32,43 @@ class Backbone(Module):
                                            Linear(512 * 7 * 7, embedding_size),
                                            BatchNorm1d(embedding_size))
 
-
         modules = []
+        blocks = get_blocks()
         for block in blocks:
-            print(len(blocks))
             for bottleneck in block:
                 modules.append(
                     unit_module(bottleneck.in_channel,
                                 bottleneck.depth,
                                 bottleneck.stride))
         self.body = Sequential(*modules)
-
-        def hook_fn(module, _, output):
-            print(f"Output of {module}: {output.shape}")
-
-        # Register hooks on the layers where you want to capture the feature maps
-        #self.input_layer[0].register_forward_hook(hook_fn)
-        #for block in self.body:
-        #    block.register_forward_hook(hook_fn)
-
         self._initialize_weights()
 
-    def forward(self, x, return_featuremaps=False):
+    def forward(self, x, return_featuremaps=False, execute_input=True, execute_body=True, execute_output=True):
         feature_maps = {}
 
-        x = self.input_layer(x)
-        feature_maps['input_stage'] = x
+        if execute_input:
+            x = self.input_layer(x)
+            feature_maps['input_stage'] = x.cpu()
 
-        for i, layer in enumerate(self.body):
-            x = layer(x)
+        if execute_body:
+            for i, layer in enumerate(self.body):
+                x = layer(x)
+                if return_featuremaps:
+                    if i == 2:
+                        feature_maps[f'block_{i}'] = x.cpu()
+                    elif i == 6:
+                        feature_maps[f'block_{i}'] = x.cpu()
+                    elif i == 20:
+                        feature_maps[f'block_{i}'] = x.cpu()
+                    elif i == 23:
+                        feature_maps[f'block_{i}'] = x.cpu()
+                    #feature_maps[f'block_{i}'] = x # Store feature maps at each block
+
+        if execute_output:
+            x = self.output_layer(x)
             if return_featuremaps:
-                # Store feature maps at each stage/block
-                feature_maps[f'block_{i}'] = x
-
-        x = self.output_layer(x)
-        if return_featuremaps:
-            feature_maps['output_stage'] = x
-            return feature_maps
+                feature_maps['output_stage'] = x.cpu()
+                return feature_maps
 
         return x
 
