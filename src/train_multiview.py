@@ -73,6 +73,13 @@ if __name__ == '__main__':
     print(cfg)
     print("=" * 60)
 
+    # ===== Test set naming ============
+    test_bellus = 'test_rgb_bellus'
+    test_facescape = 'test_rgb_facescape'
+    test_faceverse = 'test_rgb_faceverse'
+    test_texas = 'test_rgb_texas'
+    test_bff = 'test_rgb_bff'
+
     # ===== ML FLOW SET up ============
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
     mlflow.set_experiment(RUN_NAME)
@@ -193,6 +200,16 @@ if __name__ == '__main__':
             if epoch == STAGES[2]:
                 schedule_lr(OPTIMIZER)
 
+            #  ======= perform validation =======
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE)
+            #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+            #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+            #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+            #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
+            #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+            print("=" * 60)
+
             BACKBONE_reg.eval()  # set to eval mode
             BACKBONE_agg.train()  # set to training mode
             HEAD.train()
@@ -241,24 +258,6 @@ if __name__ == '__main__':
                                            f'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                                            f'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'))
             print("#" * 60)
-
-            #  ======= perform validation =======
-            test_bellus = 'test_rgb_bellus'
-            test_facescape = 'test_rgb_facescape'
-            test_faceverse = 'test_rgb_faceverse'
-            test_texas = 'test_rgb_texas'
-            test_bff = 'test_rgb_bff'
-
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE)
-
-            #     evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-            #     evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-            #     evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-            #     evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
-            #     evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-
-            print("=" * 60)
 
             if epoch_acc > best_acc:  # Early stopping check
                 best_acc = epoch_acc
