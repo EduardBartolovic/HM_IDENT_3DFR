@@ -1,5 +1,6 @@
 import os
 from collections import namedtuple
+from copy import deepcopy
 
 import mlflow
 import numpy as np
@@ -52,14 +53,14 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, enrolled_loader, quer
     for inputs, labels in tqdm(iter(enrolled_loader)):
         embeddings = execute_model(device, backbone_reg, backbone_agg, inputs).cpu().numpy()
         enrolled_embeddings.extend(embeddings)
-        enrolled_labels.extend(labels)
+        enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
 
     query_embeddings = []
     query_labels = []
     for inputs, labels in tqdm(iter(query_loader)):
         embeddings = execute_model(device, backbone_reg, backbone_agg, inputs).cpu().numpy()
         query_embeddings.extend(embeddings)
-        query_labels.extend(labels)
+        query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
 
     Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "query_embeddings", "query_labels"])
     return Results(enrolled_embeddings, enrolled_labels, np.array(query_embeddings), query_labels)
