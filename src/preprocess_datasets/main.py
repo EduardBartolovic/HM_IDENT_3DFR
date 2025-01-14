@@ -2,7 +2,7 @@ from pathlib import Path
 
 from src.preprocess_datasets import PrepareDataset
 from Extract2DFaces import Extract2DFaces
-from OBJToRGBD import ObjFileRenderer
+from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 
 def main():
@@ -262,8 +262,6 @@ def main():
         input_path = Path('H:\\Maurer\\colorferet\\colorferet\\images')
         output_dir = Path(root + 'test_photo_colorferet1_n')
         PrepareDataset.prepare_dataset_colorferet_1_n(input_path, output_dir)
-
-
 
     if bff:
 

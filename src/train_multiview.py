@@ -7,8 +7,9 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
-from src.backbone.model_multiview_irse import IR_MV_50
+from src.backbone.model_multiview_irse import IR_MV_50, execute_model
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
+from src.util.eval_model_multiview import evaluate_and_log_mvs
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
 from util.eval_model import evaluate_and_log
@@ -91,7 +92,7 @@ if __name__ == '__main__':
         log_dir = f'{LOG_ROOT}/tensorboard/{RUN_NAME}'
 
         train_transform = transforms.Compose([
-            transforms.Resize((112, 112)),
+            transforms.Resize((150, 150)),
             transforms.RandomCrop((112, 112)),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
@@ -113,7 +114,7 @@ if __name__ == '__main__':
         NUM_CLASS = len(train_loader.dataset.classes)
         print("Number of Training Classes: {}".format(NUM_CLASS))
 
-        # ======= model & loss & optimizer =======#
+        # ======= model & loss & optimizer =======
         BACKBONE_DICT = {'IR_MV_50': IR_MV_50(INPUT_SIZE, EMBEDDING_SIZE)}
         BACKBONE_reg = BACKBONE_DICT[BACKBONE_NAME]
         BACKBONE_agg = BACKBONE_DICT[BACKBONE_NAME]
@@ -172,14 +173,14 @@ if __name__ == '__main__':
             BACKBONE_reg = BACKBONE_reg.to(DEVICE)
             BACKBONE_agg = BACKBONE_agg.to(DEVICE)
 
-        # ======= train & validation & save checkpoint =======#
+        # ======= train & validation & save checkpoint =======
         DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc # was 100
 
         NUM_EPOCH_WARM_UP = NUM_EPOCH // 25  # use the first 1/25 epochs to warm up
         NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP  # use the first 1/25 epochs to warm up
         batch = 0  # batch index
 
-        # ======= Initialize early stopping parameters =======#
+        # ======= Initialize early stopping parameters =======
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
 
@@ -192,71 +193,29 @@ if __name__ == '__main__':
             if epoch == STAGES[2]:
                 schedule_lr(OPTIMIZER)
 
-            BACKBONE_reg.eval() # set to eval mode
+            BACKBONE_reg.eval()  # set to eval mode
             BACKBONE_agg.train()  # set to training mode
             HEAD.train()
 
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
-
             for inputs, labels in tqdm(iter(train_loader)):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (
                         batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
                     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
 
-                # compute output
                 labels = labels.to(DEVICE).long()
-                # Initialize a dictionary to hold stage features for all views
-                all_views_stage_features = [[], [], [], [], []]
-                for view in inputs:
-                    print("CCCCC")
-                    view = view.to(DEVICE)
-                    features_stages = BACKBONE_reg(view, return_featuremaps=True)
-                    # Extract and store features from specific stages
-                    for k, v in features_stages.items():
-                        if k == "input_stage":
-                            all_views_stage_features[0].append(v)
-                        elif k == "block_2":
-                            all_views_stage_features[1].append(v)
-                        elif k == "block_6":
-                            all_views_stage_features[2].append(v)
-                        elif k == "block_20":
-                            all_views_stage_features[3].append(v)
-                        elif k == "block_23":
-                            all_views_stage_features[4].append(v)
-
-                #print(all_views_stage_features.shape)
-                    #batch_size = stage_featuremaps["stage_0"].shape[0]
-                    #visualize_feature_maps(stage_featuremaps, "C:\\Users\\Eduard\\Desktop\\Face", stage_names=["stage_0"], batch_idx=0)
-                    #for k,v in stage_featuremaps.items():
-                    #    print(k, v.shape)
-
-                # Average pooling across views for each stage
-
-                features = 0
-                for stage in all_views_stage_features:
-                    all_view_stage = torch.stack(stage, dim=0)  # [view, batch, c, w, h]
-                    #print(all_view_stage.shape)
-                    all_view_stage = all_view_stage.permute(1, 0, 2, 3, 4)  # [batch, view, c, w, h]
-                    #print(all_view_stage.shape)
-                    views_pooled_stage = all_view_stage.mean(dim=1)  # [batch, c, w, h]
-                    #print(views_pooled_stage.shape)
-                    if views_pooled_stage.shape[-1] == 7:
-                        features = BACKBONE_agg(views_pooled_stage, execute_input=False, execute_body=False, execute_output=True)
-                        break
-
-                outputs = HEAD(features, labels)
+                embeddings = execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, inputs)
+                outputs = HEAD(embeddings, labels)
                 loss = LOSS(outputs, labels)
 
-                # measure accuracy and record loss
                 prec1, prec5 = accuracy(outputs.data, labels, topk=(1, 5))
                 losses.update(loss.data.item(), inputs[0].size(0))
                 top1.update(prec1.data.item(), inputs[0].size(0))
                 top5.update(prec5.data.item(), inputs[0].size(0))
 
-                # compute gradient and do SGD step
                 OPTIMIZER.zero_grad()
                 loss.backward()
                 OPTIMIZER.step()
@@ -270,10 +229,8 @@ if __name__ == '__main__':
                                    f'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                                    f'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'))
                     print("=" * 60)
+                batch += 1
 
-                batch += 1  # batch index
-
-            # training statistics per epoch (buffer for visualization)
             epoch_loss = losses.avg
             epoch_acc = top1.avg
             mlflow.log_metric('train_loss', epoch_loss, step=epoch + 1)
@@ -286,44 +243,24 @@ if __name__ == '__main__':
             print("#" * 60)
 
             #  ======= perform validation =======
-            if 'rgbd' in TRAIN_SET:
-                test_bellus = 'test_rgbd_bellus'
-                test_facescape = 'test_rgbd_facescape'
-                test_faceverse = 'test_rgbd_faceverse'
-                test_texas = 'test_rgbd_texas'
-                test_bff = 'test_rgbd_bff'
-            elif 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
-                test_bellus = 'test_rgb_bellus'
-                test_facescape = 'test_rgb_facescape'
-                test_faceverse = 'test_rgb_faceverse'
-                test_texas = 'test_rgb_texas'
-                test_bff = 'test_rgb_bff'
-            elif 'depth' in TRAIN_SET:
-                test_bellus = 'test_depth_bellus'
-                test_facescape = 'test_depth_facescape'
-                test_faceverse = 'test_depth_faceverse'
-                test_texas = 'test_depth_texas'
-                test_bff = 'test_depth_bff'
+            test_bellus = 'test_rgb_bellus'
+            test_facescape = 'test_rgb_facescape'
+            test_faceverse = 'test_rgb_faceverse'
+            test_texas = 'test_rgb_texas'
+            test_bff = 'test_rgb_bff'
 
-            if 'rgbd' not in TRAIN_SET:
-                #    evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                #    #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                #    print(colorstr('blue', "=" * 60))
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', epoch, DISTANCE_METRIC, (200, 150), BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE)
 
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-            if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-                # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-                # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+            #     evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+            #     evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+            #     evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+            #     evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
+            #     evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
 
             print("=" * 60)
 
-            # Early stopping check
-            if epoch_acc > best_acc:
+            if epoch_acc > best_acc:  # Early stopping check
                 best_acc = epoch_acc
                 counter = 0
             else:
@@ -334,7 +271,7 @@ if __name__ == '__main__':
                     print(colorstr('red', "=" * 60))
                     break
 
-            time.sleep(0.3)
+            time.sleep(0.2)
             # save checkpoints per epoch
             # if MULTI_GPU:
             #     torch.save(BACKBONE.module.state_dict(), os.path.join(MODEL_ROOT, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(BACKBONE_NAME, epoch + 1, batch, get_time())))
