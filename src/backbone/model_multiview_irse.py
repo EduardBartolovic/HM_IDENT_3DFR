@@ -1,3 +1,5 @@
+import time
+
 import torch
 from torch import nn
 from torch.nn import Module, Sequential, Conv2d, BatchNorm2d, PReLU, Dropout, Linear, BatchNorm1d
@@ -46,7 +48,7 @@ class Backbone(Module):
 
     def forward(self, x, return_featuremaps=False, execute_stage=None):
         if execute_stage is None:
-            execute_stage = {0, 1, 2, 3, 4}
+            execute_stage = {0, 1, 2, 3, 4, 5}
 
         feature_maps = {}
 
@@ -56,17 +58,18 @@ class Backbone(Module):
             feature_maps['input_stage'] = x
 
         # Body Layer Execution
-        if {1, 2, 3} & execute_stage:  # Check if body should be executed
+        if {1, 2, 3, 4} & execute_stage:  # Check if body should be executed
             body_layers_to_execute = set()
 
             # Define layers to execute for each stage
             if 1 in execute_stage:
-                body_layers_to_execute.update({0, 1, 2})
+                body_layers_to_execute.update({0, 1, 2})  # Layers 0 to 2
             if 2 in execute_stage:
-                body_layers_to_execute.update(range(3, 21))  # Layers 3 to 20
+                body_layers_to_execute.update({3, 4, 5, 6})  # Layers 3 to 6
             if 3 in execute_stage:
+                body_layers_to_execute.update(range(7, 21))  # Layers 7 to 20
+            if 4 in execute_stage:
                 body_layers_to_execute.update({21, 22, 23})
-
             # Execute only selected layers
             for i, layer in enumerate(self.body):
                 if i in body_layers_to_execute:
@@ -75,7 +78,7 @@ class Backbone(Module):
                         feature_maps[f'block_{i}'] = x
 
         # Stage 4: Output Layer
-        if 4 in execute_stage:
+        if 5 in execute_stage:
             x = self.output_layer(x)
             if return_featuremaps:
                 feature_maps['output_stage'] = x
@@ -112,7 +115,7 @@ def IR_MV_50(input_size, embedding_size):
 def aggregator(all_view_stage):
 
     # ========== Average ==========
-    # views_pooled_stage = all_view_stage.mean(dim=1)
+    views_pooled_stage = all_view_stage.mean(dim=1)
 
     # ========== Max ==========
     # views_pooled_stage = all_view_stage.max(dim=1)[0]
@@ -127,9 +130,9 @@ def aggregator(all_view_stage):
     # views_pooled_stage = weighted_views.mean(dim=1)  # [batch, c, w, h]
 
     # ========== Attention ==========
-    attention_weights = torch.softmax(torch.matmul(all_view_stage.flatten(2), all_view_stage.flatten(2).transpose(-1, -2)), dim=-1)
-    views_pooled_stage = torch.matmul(attention_weights, all_view_stage.flatten(2)).view_as(all_view_stage)
-    views_pooled_stage = views_pooled_stage.mean(dim=1)  # [batch, c, w, h]
+    #attention_weights = torch.softmax(torch.matmul(all_view_stage.flatten(2), all_view_stage.flatten(2).transpose(-1, -2)), dim=-1)
+    #views_pooled_stage = torch.matmul(attention_weights, all_view_stage.flatten(2)).view_as(all_view_stage)
+    #views_pooled_stage = views_pooled_stage.mean(dim=1)  # [batch, c, w, h]
 
     return views_pooled_stage
 
@@ -149,9 +152,26 @@ def perform_aggregation_branch(device, backbone_agg, all_views_stage_features):
         # Perform average pooling across views
         views_pooled_stage = aggregator(all_view_stage)  # [batch, c, w, h]
 
-        # If the spatial dimensions match a specific criterion, process with BACKBONE_agg
-        if views_pooled_stage.shape[-1] == 7:
-            embeddings = backbone_agg(views_pooled_stage, execute_stage={4})
+        if views_pooled_stage.shape[-1] == 112:
+            x = backbone_agg(views_pooled_stage, execute_stage={1})
+            x = backbone_agg(x, execute_stage={2})
+            x = backbone_agg(x, execute_stage={3})
+            x = backbone_agg(x, execute_stage={4})
+            embeddings = backbone_agg(x, execute_stage={5})
+        elif views_pooled_stage.shape[-1] == 56:
+            x = backbone_agg(views_pooled_stage, execute_stage={2})
+            x = backbone_agg(x, execute_stage={3})
+            x = backbone_agg(x, execute_stage={4})
+            embeddings = backbone_agg(x, execute_stage={5})
+        elif views_pooled_stage.shape[-1] == 28:
+            x = backbone_agg(views_pooled_stage, execute_stage={3})
+            x = backbone_agg(x, execute_stage={4})
+            embeddings = backbone_agg(x, execute_stage={5})
+        elif views_pooled_stage.shape[-1] == 14:
+            x = backbone_agg(views_pooled_stage, execute_stage={4})
+            embeddings = backbone_agg(x, execute_stage={5})
+        elif views_pooled_stage.shape[-1] == 7:
+            embeddings = backbone_agg(views_pooled_stage, execute_stage={5})
             break
 
     return embeddings
