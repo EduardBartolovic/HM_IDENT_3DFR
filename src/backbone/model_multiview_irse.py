@@ -109,6 +109,31 @@ def IR_MV_50(input_size, embedding_size):
     return model
 
 
+def aggregator(all_view_stage):
+
+    # ========== Average ==========
+    # views_pooled_stage = all_view_stage.mean(dim=1)
+
+    # ========== Max ==========
+    # views_pooled_stage = all_view_stage.max(dim=1)[0]
+
+    # ========== Weighted Average Pooling ==========
+    # weights = torch.softmax(torch.randn(all_view_stage.size(1), device=all_view_stage.device), dim=0)  # Create weights for each view (shape: [view])
+    # views_pooled_stage = torch.einsum('bvchw,v->bchw', all_view_stage, weights)  # Apply weights to views
+
+    # ========== Global Context Pooling ==========
+    # global_descriptor = all_view_stage.mean(dim=(1, 3, 4), keepdim=True)  # [batch, view, c, 1, 1]
+    # weighted_views = all_view_stage * global_descriptor
+    # views_pooled_stage = weighted_views.mean(dim=1)  # [batch, c, w, h]
+
+    # ========== Attention ==========
+    attention_weights = torch.softmax(torch.matmul(all_view_stage.flatten(2), all_view_stage.flatten(2).transpose(-1, -2)), dim=-1)
+    views_pooled_stage = torch.matmul(attention_weights, all_view_stage.flatten(2)).view_as(all_view_stage)
+    views_pooled_stage = views_pooled_stage.mean(dim=1)  # [batch, c, w, h]
+
+    return views_pooled_stage
+
+
 def perform_aggregation_branch(device, backbone_agg, all_views_stage_features):
 
     # Average pooling across views for each stage
@@ -122,7 +147,7 @@ def perform_aggregation_branch(device, backbone_agg, all_views_stage_features):
         all_view_stage = all_view_stage.permute(1, 0, 2, 3, 4)  # [batch, view, c, w, h]
 
         # Perform average pooling across views
-        views_pooled_stage = all_view_stage.mean(dim=1)  # [batch, c, w, h]
+        views_pooled_stage = aggregator(all_view_stage)  # [batch, c, w, h]
 
         # If the spatial dimensions match a specific criterion, process with BACKBONE_agg
         if views_pooled_stage.shape[-1] == 7:
