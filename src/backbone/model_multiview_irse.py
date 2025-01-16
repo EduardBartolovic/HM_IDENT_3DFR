@@ -140,42 +140,41 @@ def aggregator(all_view_stage):
 
 def perform_aggregation_branch(device, backbone_agg, all_views_stage_features):
 
-    # Average pooling across views for each stage
-    embeddings = []
+    x_1 = None
+    x_2 = None
+    x_3 = None
+    x_4 = None
     for stage_index, stage_features in enumerate(all_views_stage_features):
-        if not stage_features:
-            continue  # Skip if no features for this stage
 
         # Stack features from all views
         all_view_stage = torch.stack(stage_features, dim=0)  # [view, batch, c, w, h]
         all_view_stage = all_view_stage.permute(1, 0, 2, 3, 4)  # [batch, view, c, w, h]
 
-        # Perform average pooling across views
+        if all_view_stage.shape[-1] == 56:
+            all_view_stage = torch.cat((all_view_stage, x_1.unsqueeze(1)), dim=1)
+        if all_view_stage.shape[-1] == 28:
+            all_view_stage = torch.cat((all_view_stage, x_2.unsqueeze(1)), dim=1)
+        if all_view_stage.shape[-1] == 14:
+            all_view_stage = torch.cat((all_view_stage, x_3.unsqueeze(1)), dim=1)
+        elif all_view_stage.shape[-1] == 7:
+            all_view_stage = torch.cat((all_view_stage, x_4.unsqueeze(1)), dim=1)
+
+        # Perform pooling across views
         views_pooled_stage = aggregator(all_view_stage)  # [batch, c, w, h]
 
         if views_pooled_stage.shape[-1] == 112:
-            x = backbone_agg(views_pooled_stage, execute_stage={1})
-            x = backbone_agg(x, execute_stage={2})
-            x = backbone_agg(x, execute_stage={3})
-            x = backbone_agg(x, execute_stage={4})
-            embeddings.append(backbone_agg(x, execute_stage={5}))
+            x_1 = backbone_agg(views_pooled_stage, execute_stage={1})
         elif views_pooled_stage.shape[-1] == 56:
-            x = backbone_agg(views_pooled_stage, execute_stage={2})
-            x = backbone_agg(x, execute_stage={3})
-            x = backbone_agg(x, execute_stage={4})
-            embeddings.append(backbone_agg(x, execute_stage={5}))
+            x_2 = backbone_agg(views_pooled_stage, execute_stage={2})
         elif views_pooled_stage.shape[-1] == 28:
-            x = backbone_agg(views_pooled_stage, execute_stage={3})
-            x = backbone_agg(x, execute_stage={4})
-            embeddings.append(backbone_agg(x, execute_stage={5}))
+            x_3 = backbone_agg(views_pooled_stage, execute_stage={3})
         elif views_pooled_stage.shape[-1] == 14:
-            x = backbone_agg(views_pooled_stage, execute_stage={4})
-            embeddings.append(backbone_agg(x, execute_stage={5}))
+            x_4 = backbone_agg(views_pooled_stage, execute_stage={4})
         elif views_pooled_stage.shape[-1] == 7:
-            embeddings.append(backbone_agg(views_pooled_stage, execute_stage={5}))
-            break
+            embeddings = backbone_agg(views_pooled_stage, execute_stage={5})
+            return embeddings
 
-    return embeddings
+    raise ValueError("Illegal State")
 
 
 def execute_model(device, backbone_reg, backbone_agg, inputs):
@@ -197,6 +196,6 @@ def execute_model(device, backbone_reg, backbone_agg, inputs):
 
     # visualize_feature_maps(all_views_stage_features, "E:\\Download", batch_idx=0)
 
-    embeddings = perform_aggregation_branch(device, backbone_agg, all_views_stage_features)[-1]
+    embeddings = perform_aggregation_branch(device, backbone_agg, all_views_stage_features)
 
     return embeddings
