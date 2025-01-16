@@ -5,6 +5,7 @@ from torch import nn
 from torch.nn import Module, Sequential, Conv2d, BatchNorm2d, PReLU, Dropout, Linear, BatchNorm1d
 
 from src.backbone.model_irse import Bottleneck, bottleneck_IR, Flatten
+from src.util.visualize_feature_maps import visualize_feature_maps
 
 
 def get_block(in_channel, depth, num_units, stride=2):
@@ -140,7 +141,7 @@ def aggregator(all_view_stage):
 def perform_aggregation_branch(device, backbone_agg, all_views_stage_features):
 
     # Average pooling across views for each stage
-    embeddings = None
+    embeddings = []
     for stage_index, stage_features in enumerate(all_views_stage_features):
         if not stage_features:
             continue  # Skip if no features for this stage
@@ -157,21 +158,21 @@ def perform_aggregation_branch(device, backbone_agg, all_views_stage_features):
             x = backbone_agg(x, execute_stage={2})
             x = backbone_agg(x, execute_stage={3})
             x = backbone_agg(x, execute_stage={4})
-            embeddings = backbone_agg(x, execute_stage={5})
+            embeddings.append(backbone_agg(x, execute_stage={5}))
         elif views_pooled_stage.shape[-1] == 56:
             x = backbone_agg(views_pooled_stage, execute_stage={2})
             x = backbone_agg(x, execute_stage={3})
             x = backbone_agg(x, execute_stage={4})
-            embeddings = backbone_agg(x, execute_stage={5})
+            embeddings.append(backbone_agg(x, execute_stage={5}))
         elif views_pooled_stage.shape[-1] == 28:
             x = backbone_agg(views_pooled_stage, execute_stage={3})
             x = backbone_agg(x, execute_stage={4})
-            embeddings = backbone_agg(x, execute_stage={5})
+            embeddings.append(backbone_agg(x, execute_stage={5}))
         elif views_pooled_stage.shape[-1] == 14:
             x = backbone_agg(views_pooled_stage, execute_stage={4})
-            embeddings = backbone_agg(x, execute_stage={5})
+            embeddings.append(backbone_agg(x, execute_stage={5}))
         elif views_pooled_stage.shape[-1] == 7:
-            embeddings = backbone_agg(views_pooled_stage, execute_stage={5})
+            embeddings.append(backbone_agg(views_pooled_stage, execute_stage={5}))
             break
 
     return embeddings
@@ -194,12 +195,8 @@ def execute_model(device, backbone_reg, backbone_agg, inputs):
             if stage in features_stages:
                 all_views_stage_features[index].append(features_stages[stage])
 
-    # print(all_views_stage_features.shape)
-    # batch_size = stage_featuremaps["stage_0"].shape[0]
-    # visualize_feature_maps(stage_featuremaps, "C:\\Users\\Eduard\\Desktop\\Face", stage_names=["stage_0"], batch_idx=0)
-    # for k,v in stage_featuremaps.items():
-    #    print(k, v.shape)
+    # visualize_feature_maps(all_views_stage_features, "E:\\Download", batch_idx=0)
 
-    embeddings = perform_aggregation_branch(device, backbone_agg, all_views_stage_features)
+    embeddings = perform_aggregation_branch(device, backbone_agg, all_views_stage_features)[-1]
 
     return embeddings
