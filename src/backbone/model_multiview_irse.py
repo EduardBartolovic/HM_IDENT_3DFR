@@ -113,13 +113,20 @@ def IR_MV_50(input_size, embedding_size):
     return model
 
 
-def aggregator(all_view_stage):
+
+def aggregator(aggregators, stage_index, all_view_stage):
 
     # ========== Average ==========
-    views_pooled_stage = all_view_stage.mean(dim=1)
+    #views_pooled_stage = all_view_stage.mean(dim=1)
 
     # ========== Max ==========
     # views_pooled_stage = all_view_stage.max(dim=1)[0]
+
+    # ========== Sum ==========
+    # views_pooled_stage = all_view_stage.sum(dim=1)
+
+    # ========== Weighted Sum ==========
+    views_pooled_stage = aggregators[stage_index](all_view_stage)
 
     # ========== Weighted Average Pooling ==========
     # weights = torch.softmax(torch.randn(all_view_stage.size(1), device=all_view_stage.device), dim=0)  # Create weights for each view (shape: [view])
@@ -138,7 +145,7 @@ def aggregator(all_view_stage):
     return views_pooled_stage
 
 
-def perform_aggregation_branch(device, backbone_agg, all_views_stage_features):
+def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features):
 
     x_1 = None
     x_2 = None
@@ -160,7 +167,7 @@ def perform_aggregation_branch(device, backbone_agg, all_views_stage_features):
             all_view_stage = torch.cat((all_view_stage, x_4.unsqueeze(1)), dim=1)
 
         # Perform pooling across views
-        views_pooled_stage = aggregator(all_view_stage)  # [batch, c, w, h]
+        views_pooled_stage = aggregator(aggregators, stage_index, all_view_stage)  # [batch, c, w, h]
 
         if views_pooled_stage.shape[-1] == 112:
             x_1 = backbone_agg(views_pooled_stage, execute_stage={1})
@@ -177,7 +184,7 @@ def perform_aggregation_branch(device, backbone_agg, all_views_stage_features):
     raise ValueError("Illegal State")
 
 
-def execute_model(device, backbone_reg, backbone_agg, inputs):
+def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs):
     # Initialize a dictionary to hold stage features for all views
     stage_to_index = {
         "input_stage": 0,
@@ -196,6 +203,6 @@ def execute_model(device, backbone_reg, backbone_agg, inputs):
 
     # visualize_feature_maps(all_views_stage_features, "E:\\Download", batch_idx=0)
 
-    embeddings = perform_aggregation_branch(device, backbone_agg, all_views_stage_features)
+    embeddings = perform_aggregation_branch( backbone_agg, aggregators, all_views_stage_features)
 
     return embeddings

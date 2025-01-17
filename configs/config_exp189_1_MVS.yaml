@@ -8,7 +8,9 @@ MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
 BACKBONE_RESUME_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_ms1m_epoch63.pth'  # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
+TRAIN_ALL: False
 BACKBONE_NAME: 'IR_MV_50'#'LinearViewCombiner'
+AGG_NAME: 'WeightedSumAggregator'
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 DISTANCE_METRIC: 'cosine'  # support: ['euclidean', 'cosine']
@@ -17,7 +19,7 @@ INPUT_SIZE: [112, 112]  # support: [112, 112] and [224, 224]
 RGB_MEAN: [0.5, 0.5, 0.5]  # for normalize inputs to [-1, 1]
 RGB_STD: [0.5, 0.5, 0.5]
 EMBEDDING_SIZE: 512  # feature dimension
-BATCH_SIZE: 16
+BATCH_SIZE: 4
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
 LR: 0.0005  # initial LR
 NUM_EPOCH: 10  # total epoch number (use the first 1/25 epochs to warm up)

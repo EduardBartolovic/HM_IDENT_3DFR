@@ -7,7 +7,8 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
-from src.backbone.model_multiview_irse import IR_MV_50, execute_model
+from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
+from src.backbone.model_multiview_irse import IR_MV_50, execute_model, aggregator
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mvs
 from src.util.load_checkpoint import load_checkpoint
@@ -45,8 +46,10 @@ if __name__ == '__main__':
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
 
     BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
+    AGG_NAME = cfg['AGG_NAME']
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
+    TRAIN_ALL = cfg['TRAIN_ALL'] # Train whole Network
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
     DISTANCE_METRIC = cfg['DISTANCE_METRIC']  # support: ['euclidian', 'cosine']
 
@@ -131,6 +134,9 @@ if __name__ == '__main__':
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
         print("=" * 60)
 
+        AGG_DICT = {'WeightedSumAggregator': make_weighted_sum_aggregator([25,26,26,26,26])}
+        aggregators = AGG_DICT[AGG_NAME]
+
         HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'CosFace': CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'SphereFace': SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
@@ -158,8 +164,14 @@ if __name__ == '__main__':
             backbone_paras_only_bn_agg, backbone_paras_wo_bn_agg = separate_resnet_bn_paras(BACKBONE_agg)
             _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
 
-        OPTIMIZER_DICT = {'SGD': optim.SGD([{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}], lr=LR, momentum=MOMENTUM),
-                          'ADAM': torch.optim.Adam([{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}], lr=LR)}
+        if TRAIN_ALL:
+            params_list = [{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}].extend([ {'params': i.parameters()} for i in aggregators])
+        else:
+            params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
+            params_list.extend([ {'params': i.parameters()} for i in aggregators])
+
+        OPTIMIZER_DICT = {'SGD': optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
+                          'ADAM': torch.optim.Adam(params_list, lr=LR)}
 
         OPTIMIZER = OPTIMIZER_DICT[OPTIMIZER_NAME]
         print(colorstr('magenta', OPTIMIZER))
@@ -174,11 +186,11 @@ if __name__ == '__main__':
         if MULTI_GPU:
             BACKBONE_reg = nn.DataParallel(BACKBONE_reg, device_ids=GPU_ID)
             BACKBONE_agg = nn.DataParallel(BACKBONE_agg, device_ids=GPU_ID)
-            BACKBONE_reg = BACKBONE_reg.to(DEVICE)
-            BACKBONE_agg = BACKBONE_agg.to(DEVICE)
-        else:
-            BACKBONE_reg = BACKBONE_reg.to(DEVICE)
-            BACKBONE_agg = BACKBONE_agg.to(DEVICE)
+
+        BACKBONE_reg = BACKBONE_reg.to(DEVICE)
+        BACKBONE_agg = BACKBONE_agg.to(DEVICE)
+        for i in aggregators:
+            i = i.to(DEVICE)
 
         # ======= train & validation & save checkpoint =======
         DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc # was 100
@@ -201,8 +213,8 @@ if __name__ == '__main__':
                 schedule_lr(OPTIMIZER)
 
             #  ======= perform validation =======
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE)
             #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
             #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
             #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
@@ -210,8 +222,9 @@ if __name__ == '__main__':
             #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
             print("=" * 60)
 
-            BACKBONE_reg.eval()  # set to eval mode
-            BACKBONE_agg.train()  # set to training mode
+            BACKBONE_reg.eval()
+            BACKBONE_agg.train()
+            [i.train() for i in aggregators]
             HEAD.train()
 
             losses = AverageMeter()
@@ -224,7 +237,7 @@ if __name__ == '__main__':
                     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
 
                 labels = labels.to(DEVICE).long()
-                embeddings = execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, inputs)
+                embeddings = execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs)
                 outputs = HEAD(embeddings, labels)
                 loss = LOSS(outputs, labels)
 

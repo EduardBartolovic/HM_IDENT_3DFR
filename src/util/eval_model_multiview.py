@@ -43,22 +43,23 @@ def get_embeddings(device, model, enrolled_loader, query_loader):
 
 
 @torch.no_grad()
-def get_embeddings_mvs(device, backbone_reg, backbone_agg, enrolled_loader, query_loader):
+def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader):
 
     backbone_reg.eval()
     backbone_agg.eval()
+    [i.eval() for i in aggregators]
 
     enrolled_embeddings = []
     enrolled_labels = []
     for inputs, labels in tqdm(iter(enrolled_loader)):
-        embeddings = execute_model(device, backbone_reg, backbone_agg, inputs).cpu().numpy()
+        embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs).cpu().numpy()
         enrolled_embeddings.extend(embeddings)
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
 
     query_embeddings = []
     query_labels = []
     for inputs, labels in tqdm(iter(query_loader)):
-        embeddings = execute_model(device, backbone_reg, backbone_agg, inputs).cpu().numpy()
+        embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs).cpu().numpy()
         query_embeddings.extend(embeddings)
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
 
@@ -148,7 +149,7 @@ def load_data_mvs(data_dir, max_batch_size: int, test_transform) -> (torchvision
     return dataset, data_loader
 
 
-def evaluate_mvs(device, backbone_reg, backbone_agg, test_path, test_transform, batch_size):
+def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
@@ -159,7 +160,7 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, test_path, test_transform, 
 
     time.sleep(0.1)
 
-    embedding_library = get_embeddings_mvs(device, backbone_reg, backbone_agg, enrolled_loader, query_loader)
+    embedding_library = get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader)
 
     enrolled_embedding = np.array(embedding_library.enrolled_embeddings)
     enrolled_label = np.array(embedding_library.enrolled_labels)
@@ -178,7 +179,7 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, test_path, test_transform, 
     return result_metrics, embedding_library
 
 
-def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, data_root, dataset, epoch, test_transform_sizes, batch_size):
+def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size):
 
     test_transform = transforms.Compose([
         transforms.Resize(test_transform_sizes),
@@ -188,7 +189,7 @@ def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, data_root, dataset,
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset}"))
-    metrics, embedding_library = evaluate_mvs(device, backbone_reg, backbone_agg, os.path.join(data_root, dataset), test_transform, batch_size)
+    metrics, embedding_library = evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
