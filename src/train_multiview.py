@@ -82,6 +82,7 @@ if __name__ == '__main__':
     test_faceverse = 'test_rgb_faceverse'
     test_texas = 'test_rgb_texas'
     test_bff = 'test_rgb_bff'
+    test_vox1 = 'VoxCeleb1_test_dataset_TEST'
 
     # ===== ML FLOW SET up ============
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
@@ -214,6 +215,9 @@ if __name__ == '__main__':
 
             #  ======= perform validation =======
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(200, 200), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch, (150, 150), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(124, 124), BATCH_SIZE)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE)
             #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
             #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
