@@ -63,7 +63,8 @@ def download_video(video_id, video_path, id_path, fail_video_ids=None):
         'format': 'mp4',
         'outtmpl': video_path,
         'progress_hooks': [my_hook],
-        'cookies': 'cookies.txt'
+        'cookies': 'cookies.txt',
+        'format': 'bestvideo',
     }
     success = True
     try:
@@ -138,6 +139,10 @@ if __name__ == "__main__":
         videos_path.sort()
         print('*********************************************************')
         print('Identity {}/{}: {} videos for {} identity'.format(i, len(ids_path), len(videos_path), id_index))
+
+        if i < 785:
+            print(f"skipped {i}")
+            continue
 
         for j, video_path in enumerate(videos_path):
 
