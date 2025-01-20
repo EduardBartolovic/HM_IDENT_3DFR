@@ -116,6 +116,8 @@ def IR_MV_50(input_size, embedding_size):
 
 def aggregator(aggregators, stage_index, all_view_stage):
 
+    views_pooled_stage = aggregators[stage_index](all_view_stage)
+
     # ========== Average ==========
     #views_pooled_stage = all_view_stage.mean(dim=1)
 
@@ -124,9 +126,6 @@ def aggregator(aggregators, stage_index, all_view_stage):
 
     # ========== Sum ==========
     # views_pooled_stage = all_view_stage.sum(dim=1)
-
-    # ========== Weighted Sum ==========
-    views_pooled_stage = aggregators[stage_index](all_view_stage)
 
     # ========== Weighted Average Pooling ==========
     # weights = torch.softmax(torch.randn(all_view_stage.size(1), device=all_view_stage.device), dim=0)  # Create weights for each view (shape: [view])

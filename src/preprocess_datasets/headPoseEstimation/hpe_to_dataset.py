@@ -31,7 +31,7 @@ def generate_voxceleb_dataset(input_folder, dataset_output_folder):
                     file_path = os.path.join(root, txt_file)
                     data = read_file(file_path)
 
-                    folder_image_path = os.path.join(root, "..", "frames_cropped")
+                    folder_image_path = os.path.join(root, "..", "face_cropped")
 
                     sample_name = os.path.abspath(os.path.join(root, os.pardir))
                     id_name = os.path.abspath(os.path.join(sample_name, os.pardir))
