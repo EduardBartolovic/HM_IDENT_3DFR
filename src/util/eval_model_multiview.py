@@ -53,25 +53,31 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
 
     enrolled_embeddings = []
     enrolled_labels = []
-    for inputs, labels in tqdm(iter(enrolled_loader)):
+    enrolled_perspectives= []
+    for inputs, labels, perspectives in tqdm(iter(enrolled_loader)):
         embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs).cpu().numpy()
         enrolled_embeddings.extend(embeddings)
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
+        enrolled_perspectives.extend(deepcopy(perspectives))
 
     query_embeddings = []
     query_labels = []
-    for inputs, labels in tqdm(iter(query_loader)):
+    query_perspectives= []
+    for inputs, labels, perspectives in tqdm(iter(query_loader)):
         embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs).cpu().numpy()
         query_embeddings.extend(embeddings)
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
+        query_perspectives.extend(deepcopy(perspectives))
 
     enrolled_embeddings = np.array(enrolled_embeddings)
     enrolled_labels = np.array([t.item() for t in enrolled_labels])
+    enrolled_perspectives = np.array(enrolled_perspectives)
     query_embeddings = np.array(query_embeddings)
     query_labels = np.array([t.item() for t in query_labels])
+    query_perspectives = np.array(query_perspectives)
 
-    Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "query_embeddings", "query_labels"])
-    return Results(enrolled_embeddings, enrolled_labels, query_embeddings, query_labels)
+    Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "enrolled_perspectives", "query_embeddings", "query_labels", "query_perspectives"])
+    return Results(enrolled_embeddings, enrolled_labels, enrolled_perspectives, query_embeddings, query_labels, query_perspectives)
 
 
 def load_data(data_dir, max_batch_size: int) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):

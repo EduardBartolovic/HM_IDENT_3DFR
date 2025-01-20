@@ -60,19 +60,6 @@ class MultiviewDataset(Dataset):
                     else:
                         raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}")
 
-
-                    # if os.path.isdir(set_path):
-                    #     images = []
-                    #     # Loop through the images in each set
-                    #     if len(os.listdir(set_path)) == self.num_views:
-                    #         for img_name in os.listdir(set_path):
-                    #             img_path = os.path.join(set_path, img_name)
-                    #             if img_path.lower().endswith(('png', 'jpg', 'jpeg')):
-                    #                 images.append(img_path)
-                    #         # Store the class, set, and corresponding images
-                    #         data.append((images, class_idx, set_name))
-                    #     else:
-                    #         raise ValueError(f"Dataset Mistake in: {set_path} with len: {len(os.listdir(set_path))}")
         return data
 
     def __len__(self):
@@ -84,10 +71,12 @@ class MultiviewDataset(Dataset):
         # Load all images in the set
         images = [Image.open(img_path).convert("RGB") for img_path in img_paths]
 
+        # Load all perspectives
+        perspectives = [os.path.basename(img_path)[40:-10] for img_path in img_paths]
+
         # Apply the transform if any
         if self.transform:
             images = [self.transform(img) for img in images]
 
-        # Return images as a tensor batch along with class and set info
-        #return images[0], class_name
-        return images, class_name
+        # Return images as a tensor batch along with class and perspective
+        return images, class_name, perspectives
