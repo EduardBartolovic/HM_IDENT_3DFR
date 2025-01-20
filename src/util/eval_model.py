@@ -79,7 +79,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     if 'texas' in test_path:
         metrics_front = metrics
     else:
-        metrics_front = accuracy_front_perspective(device, embedding_library, distance_metric)
+        metrics_front = accuracy_front_perspective(embedding_library, distance_metric)
 
     # VotingV1 Single Encoding
     if 'texas' in test_path:

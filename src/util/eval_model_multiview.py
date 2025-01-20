@@ -11,6 +11,8 @@ from torchvision.transforms import transforms
 from tqdm import tqdm
 
 from src.backbone.model_multiview_irse import execute_model
+from src.util.Metrics import error_rate_per_class
+from src.util.Plotter import plot_confusion_matrix
 from src.util.Voting import calculate_embedding_similarity_progress, compute_ranking_matrices, analyze_result
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
@@ -63,8 +65,13 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
         query_embeddings.extend(embeddings)
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
 
+    enrolled_embeddings = np.array(enrolled_embeddings)
+    enrolled_labels = np.array([t.item() for t in enrolled_labels])
+    query_embeddings = np.array(query_embeddings)
+    query_labels = np.array([t.item() for t in query_labels])
+
     Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "query_embeddings", "query_labels"])
-    return Results(enrolled_embeddings, enrolled_labels, np.array(query_embeddings), query_labels)
+    return Results(enrolled_embeddings, enrolled_labels, query_embeddings, query_labels)
 
 
 def load_data(data_dir, max_batch_size: int) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
@@ -162,19 +169,19 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
 
     embedding_library = get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader)
 
-    enrolled_embedding = np.array(embedding_library.enrolled_embeddings)
-    enrolled_label = np.array(embedding_library.enrolled_labels)
+    enrolled_embedding = embedding_library.enrolled_embeddings
+    enrolled_label = embedding_library.enrolled_labels
 
-    query_embedding = np.array(embedding_library.query_embeddings)
-    query_label = np.array(embedding_library.query_labels)
+    query_embedding = embedding_library.query_embeddings
+    query_label = embedding_library.query_labels
 
     similarity_matrix = calculate_embedding_similarity_progress(query_embedding, enrolled_embedding)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
 
-    # metrics = calc_metrics(embedding_library.query_labels, top_indices[:, 0])
-    # plot_confusion_matrix(embedding_library.query_labels, top_indices[:, 0], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
-    # error_rate_per_class(embedding_library.query_labels, top_indices[:, 0], os.path.basename(test_path))
+    #metrics = calc_metrics(embedding_library.query_labels, top_indices[:, 0])
+    plot_confusion_matrix(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
+    error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], os.path.basename(test_path))
 
     return result_metrics, embedding_library
 

@@ -11,9 +11,9 @@ class ImageFolderWithFilename(ImageFolder):
         # Get the image file path
         file_path, _ = self.samples[index]
 
-        filename = os.path.basename(file_path)  # This gives 'Yasser_Arafat_0008.jpg'
+        filename = os.path.basename(file_path)
 
-        name, number = filename.rsplit('_', 1)  # Splits into ['Yasser_Arafat', '0008.jpg']
+        name, number = filename.rsplit('_', 1)
 
         number = int(number.split('.')[0])
         return img, name, number

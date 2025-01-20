@@ -29,10 +29,26 @@ def plot_metric(output_path, epochs, metric_values: List[float], metric_name: st
 
 def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matplotlib=True):
 
+    assert len(true_labels) == len(pred_labels)
+
+    class_to_idx = dataset.class_to_idx
+    idx_to_class = {v: k for k, v in class_to_idx.items()}
+
+    if len(np.unique(true_labels)) < len(np.unique(pred_labels)):
+        print(len(np.unique(true_labels)), len(np.unique(pred_labels)))
+        print(np.unique(true_labels))
+        print(np.unique(pred_labels))
+        print("true_labels")
+        for i in np.unique(true_labels):
+            print(idx_to_class[i])
+        print("pred_labels")
+        for i in np.unique(pred_labels):
+            print(idx_to_class[i])
+        raise ValueError("len(np.unique(true_labels)), len(np.unique(pred_labels))")
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
 
-        """Plot confusion matrix"""
         if matplotlib:
             classes = dataset.classes
             cm = confusion_matrix(true_labels, pred_labels)
@@ -58,11 +74,8 @@ def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matpl
             plt.xlabel('Predicted label')
             plt.savefig(os.path.join(tmp_dir, 'confusion_matrix'+extension+'_mpl.jpg'))
 
-        class_to_idx = dataset.class_to_idx
-        idx_to_class = {v: k for k, v in class_to_idx.items()}
-
         # https://github.com/sepandhaghighi/pycm
-        cm = ConfusionMatrix(actual_vector=true_labels, predict_vector=pred_labels)
+        cm = ConfusionMatrix(actual_vector=true_labels, predict_vector=pred_labels, classes=np.unique(true_labels).tolist())
         try:
             cm.relabel(idx_to_class)
         except:

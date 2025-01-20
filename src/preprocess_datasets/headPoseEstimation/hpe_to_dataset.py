@@ -45,7 +45,7 @@ def generate_voxceleb_dataset(input_folder, dataset_output_folder):
                     for info in data:
                         src = os.path.join(folder_image_path, info[6])
                         hash_name = hashlib.sha1((id_name + sample_name).encode()).hexdigest()
-                        dst = os.path.join(destination, f'{hash_name}{info[0]}_{info[1]}_{info[7]}.jpg')
+                        dst = os.path.join(destination, f'{hash_name}{info[0]}_{info[1]}_{info[7]}_image.jpg')
                         shutil.copy(src, dst)
 
 

@@ -33,6 +33,11 @@ def create_train_test_split(input_folder, output_folder):
         # Sort groups to ensure deterministic order
         sorted_groups = sorted(groups.items())
 
+        # Not enough groups
+        if len(sorted_groups) < 2:
+            print(sorted_groups)
+            continue
+
         # Use the first group for training and the rest for testing
         for idx, (hash_prefix, file_paths) in enumerate(sorted_groups):
             dest_folder = train_folder if idx == 0 else test_folder

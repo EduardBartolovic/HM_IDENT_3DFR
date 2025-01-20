@@ -48,6 +48,7 @@ class MultiviewDataset(Dataset):
                     file_path = os.path.join(class_path, filename)
                     if os.path.isfile(file_path):
                         sha_hash = filename[:40]  # Extract SHA hash from filename
+                        # perspective = filename[40:-10]
                         if sha_hash not in sha_groups:
                             sha_groups[sha_hash] = []
                         sha_groups[sha_hash].append(file_path)

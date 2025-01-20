@@ -334,7 +334,7 @@ def voting(y_pred, scan_ids, query_labels):
     return np.array(y_true_scan), np.array(y_pred_scan)
 
 
-def accuracy_front_perspective(device, embedding_library, distance_metric):
+def accuracy_front_perspective(embedding_library, distance_metric):
     # enrolled_embeddings.shape -> (num_samples, embedding_dim)
     # enrolled_labels.shape -> (num_samples,)
     # enrolled_perspectives.shape -> (num_samples,)
