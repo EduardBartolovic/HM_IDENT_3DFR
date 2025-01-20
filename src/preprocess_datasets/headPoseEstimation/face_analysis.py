@@ -51,11 +51,10 @@ def face_analysis(input_folder, output_folder, device):
             for txt_file in files:
                 if txt_file.endswith('hpe.txt'):
                     file_path = os.path.join(root, txt_file)
-                    data = read_file(file_path)
+                    data = read_file(file_path, remove_header=False)
 
                     folder_image_path = os.path.join(root, "..", "frames_cropped")
                     folder_image_output_path = os.path.join(root, "..", "face_cropped")
-
 
                     os.makedirs(folder_image_output_path, exist_ok=True)
 
@@ -74,7 +73,8 @@ def face_analysis(input_folder, output_folder, device):
                             last_land_marks = results.multi_face_landmarks
                         else:
                             if last_land_marks:
-                                print("NO LANDMARKS BUT USED PREV")
+                                print("NO LANDMARKS BUT USED PREV", dst)
                                 process_landmarks(last_land_marks, dst, r_pred_deg, image)
                             else:
                                 print("NO LANDMARKS")
+                                raise Exception("NO LANDMARKS")

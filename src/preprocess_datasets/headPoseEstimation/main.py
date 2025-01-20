@@ -24,7 +24,7 @@ if __name__ == '__main__':
         logging.info("Head Pose Estimation model weights loaded.")
     except Exception as e:
         logging.info(f"Exception occured while loading weights of head pose estimation model: {e}")
-        raise Exception()
+        #raise Exception()
 
     print("##################################")
     print("#############HPE##################")

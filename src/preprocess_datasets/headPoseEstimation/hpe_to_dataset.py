@@ -6,11 +6,12 @@ import shutil
 import numpy as np
 
 
-def read_file(file_path):
+def read_file(file_path, remove_header=True):
     data = []
     with open(file_path, mode='r') as file:
         reader = csv.reader(file)
-        header = next(reader)
+        if remove_header:
+            header = next(reader)
         for row in reader:
             data.append(row)
 
