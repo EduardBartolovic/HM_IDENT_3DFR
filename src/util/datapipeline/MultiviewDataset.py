@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 from PIL import Image
@@ -15,10 +16,10 @@ class MultiviewDataset(Dataset):
         """
         self.root_dir = root_dir
         self.transform = transform
+        self.num_views = num_views
         self.class_to_idx = self._get_class_to_idx()
         self.data = self._load_data()
         self.classes = self._find_classes()
-        self.num_views = num_views
 
     def _get_class_to_idx(self):
         """
@@ -55,7 +56,7 @@ class MultiviewDataset(Dataset):
 
                 # Append each grouped data point to the dataset
                 for sha_hash, file_paths in sha_groups.items():
-                    if len(file_paths) == self.num_views: # TODO use var
+                    if len(file_paths) == self.num_views:
                         data.append((file_paths, class_idx))
                     else:
                         raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}: to many views")

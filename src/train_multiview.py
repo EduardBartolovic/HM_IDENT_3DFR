@@ -111,7 +111,7 @@ if __name__ == '__main__':
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
         ])
 
-        dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=25, transform=train_transform)
+        dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=50, transform=train_transform)
 
         # create a weighted random sampler to process imbalanced data
         weights = make_weights_for_balanced_classes(dataset_train.data, len(dataset_train.classes))
@@ -219,11 +219,6 @@ if __name__ == '__main__':
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(112, 112), BATCH_SIZE)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(112, 112), BATCH_SIZE)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE)
-            #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-            #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-            #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-            #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
-            #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
             print("=" * 60)
 
             BACKBONE_reg.eval()
@@ -234,7 +229,7 @@ if __name__ == '__main__':
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
-            for inputs, labels in tqdm(iter(train_loader)):
+            for inputs, labels, _ in tqdm(iter(train_loader)):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (
                         batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up

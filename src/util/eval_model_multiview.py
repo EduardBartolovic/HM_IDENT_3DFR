@@ -13,7 +13,8 @@ from tqdm import tqdm
 from src.backbone.model_multiview_irse import execute_model
 from src.util.Metrics import error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix
-from src.util.Voting import calculate_embedding_similarity_progress, compute_ranking_matrices, analyze_result
+from src.util.Voting import calculate_embedding_similarity_progress, compute_ranking_matrices, analyze_result, \
+    accuracy_front_perspective
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.misc import colorstr
@@ -58,7 +59,7 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
         embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs).cpu().numpy()
         enrolled_embeddings.extend(embeddings)
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
-        enrolled_perspectives.extend(deepcopy(perspectives))
+        enrolled_perspectives.append(np.array(perspectives).T)
 
     query_embeddings = []
     query_labels = []
@@ -67,14 +68,14 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
         embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs).cpu().numpy()
         query_embeddings.extend(embeddings)
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
-        query_perspectives.extend(deepcopy(perspectives))
+        query_perspectives.append(np.array(perspectives).T)
 
     enrolled_embeddings = np.array(enrolled_embeddings)
     enrolled_labels = np.array([t.item() for t in enrolled_labels])
-    enrolled_perspectives = np.array(enrolled_perspectives)
+    enrolled_perspectives = np.concatenate(enrolled_perspectives, axis=0)
     query_embeddings = np.array(query_embeddings)
     query_labels = np.array([t.item() for t in query_labels])
-    query_perspectives = np.array(query_perspectives)
+    query_perspectives = np.concatenate(query_perspectives, axis=0)
 
     Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "enrolled_perspectives", "query_embeddings", "query_labels", "query_perspectives"])
     return Results(enrolled_embeddings, enrolled_labels, enrolled_perspectives, query_embeddings, query_labels, query_perspectives)
@@ -188,8 +189,9 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
     #metrics = calc_metrics(embedding_library.query_labels, top_indices[:, 0])
     plot_confusion_matrix(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], os.path.basename(test_path))
+    result_metrics_front = accuracy_front_perspective(embedding_library)
 
-    return result_metrics, embedding_library
+    return result_metrics, result_metrics_front, embedding_library
 
 
 def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size):
@@ -202,22 +204,29 @@ def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_r
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset}"))
-    metrics, embedding_library = evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size)
+    metrics, result_metrics_front, embedding_library = evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
+    mlflow.log_metric(f'{neutral_dataset}_RR1', metrics['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_RR5', metrics['Rank-5 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_Front_RR1', result_metrics_front['Rank-1 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_Front_RR5', result_metrics_front['Rank-5 Rate'], step=epoch)
 
     #if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
 
     rank_1 = metrics.get('Rank-1 Rate', 'N/A')
     rank_5 = metrics.get('Rank-5 Rate', 'N/A')
+    rank_1_front = result_metrics_front.get('Rank-1 Rate', 'N/A')
+    rank_5_front = result_metrics_front.get('Rank-5 Rate', 'N/A')
 
     print(colorstr(
         'bright_green',
         f"{neutral_dataset} Evaluation: "
         f"RR1: {rank_1} "
         f"RR5: {rank_5} "
+        f"Front RR1: {rank_1_front} "
+        f"Front RR5: {rank_5_front} "
     ))
 
