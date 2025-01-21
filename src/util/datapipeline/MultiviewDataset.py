@@ -55,10 +55,10 @@ class MultiviewDataset(Dataset):
 
                 # Append each grouped data point to the dataset
                 for sha_hash, file_paths in sha_groups.items():
-                    if len(file_paths) == 25: # TODO use var
+                    if len(file_paths) == self.num_views: # TODO use var
                         data.append((file_paths, class_idx))
                     else:
-                        raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}")
+                        raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}: to many views")
 
         return data
 

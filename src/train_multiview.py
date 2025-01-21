@@ -82,10 +82,10 @@ if __name__ == '__main__':
     test_faceverse = 'test_rgb_faceverse'
     test_texas = 'test_rgb_texas'
     test_bff = 'test_rgb_bff'
-    test_vox1 = 'VoxCeleb1_test_dataset_TEST_old'
-    test_vox1_new = 'VoxCeleb1_test_dataset_TEST'
+    test_vox1 = 'VoxCeleb1_test_dataset_TEST'
+    test_vox2 = 'VoxCeleb2_test_dataset_TEST'
 
-    # ===== ML FLOW SET up ============
+    # ===== ML FLOW Set up ============
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
     mlflow.set_experiment(RUN_NAME)
 
@@ -104,7 +104,7 @@ if __name__ == '__main__':
         log_dir = f'{LOG_ROOT}/tensorboard/{RUN_NAME}'
 
         train_transform = transforms.Compose([
-            transforms.Resize((150, 150)),
+            transforms.Resize((112, 112)),
             transforms.RandomCrop((112, 112)),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
@@ -216,9 +216,8 @@ if __name__ == '__main__':
 
             #  ======= perform validation =======
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch, (150, 150), BATCH_SIZE)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(112, 112), BATCH_SIZE)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1_new, epoch,(112, 112), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(112, 112), BATCH_SIZE)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE)
             #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
             #     evaluate_and_log_mvs(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)

@@ -15,7 +15,7 @@ def process_landmarks(multi_face_landmarks, dst, r_pred_deg, image):
         y_min, y_max = min(y_coords), max(y_coords)
 
         # Expand bounding box with padding
-        padding = 20
+        padding = int(w*0.25)
         x_min = max(0, x_min - padding)
         y_min = max(0, y_min - padding)
         x_max = min(w, x_max + padding)
@@ -36,7 +36,7 @@ def process_landmarks(multi_face_landmarks, dst, r_pred_deg, image):
 
         # Crop and resize the face
         face_crop = image[y_min:y_max, x_min:x_max]
-        resized_face = cv2.resize(face_crop, (112, 112))  # Adjust as needed
+        resized_face = cv2.resize(face_crop, (224, 224))  # Adjust as needed
 
         cv2.imwrite(dst, resized_face)
 

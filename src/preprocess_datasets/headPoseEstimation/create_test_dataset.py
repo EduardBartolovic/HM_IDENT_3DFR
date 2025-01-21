@@ -49,7 +49,6 @@ def create_train_test_split(input_folder, output_folder):
 
     print(f"Train-test split created in '{output_folder}'")
 
-# Example usage
 if __name__ == '__main__':
     input_folder = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset"  # Replace with your input folder path
     output_folder = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST"  # Replace with your output folder path
