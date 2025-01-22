@@ -24,11 +24,12 @@ def match_hope_angles_to_references(data, references, ignore_roll=False):
 
 
 def find_matches(input_folder, references):
-
+    counter = 0
     for root, _, files in os.walk(input_folder):
         if "hpe" in root:
             for txt_file in files:
                 if txt_file.endswith('hpe.txt'):
+                    counter += 1
                     file_path = os.path.join(root, txt_file)
                     with open(file_path) as file:
                         lines = []
@@ -51,7 +52,7 @@ def find_matches(input_folder, references):
                             array2 = row[1].tolist()  # Convert second array to a list
                             other_values = row[2:]  # Remaining values
                             writer.writerow(array1 + array2 + list(other_values))
-
+    print("Found matches for", counter, "files")
 
 if __name__ == '__main__':
 

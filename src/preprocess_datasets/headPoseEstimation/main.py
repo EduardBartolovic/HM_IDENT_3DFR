@@ -36,7 +36,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##########FACE Analysis###########")
     print("##################################")
-    face_analysis(folder_root, "face_cropped", device)
+    #face_analysis(folder_root, "face_cropped", device)
 
     ref_angles = [-25, -10, 0, 10, 25]
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])

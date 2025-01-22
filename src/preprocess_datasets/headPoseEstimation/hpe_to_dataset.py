@@ -24,6 +24,7 @@ def read_file(file_path, remove_header=True):
 
 
 def generate_voxceleb_dataset(folder_root, input_folder, dataset_output_folder):
+    counter = 0
     for root, _, files in os.walk(os.path.join(folder_root, input_folder)):
         if "hpe" in root:
             for txt_file in files:
@@ -47,7 +48,8 @@ def generate_voxceleb_dataset(folder_root, input_folder, dataset_output_folder):
                         #dst = os.path.join(destination, f'{hash_name}{info[0]}_{info[1]}_{info[7]}_image.jpg') # With Error
                         dst = os.path.join(destination, f'{hash_name}{info[0]}_{info[1]}_image.jpg')
                         shutil.copy(src, dst)
-
+                        counter += 1
+    print("Copied", counter, "files")
 
 if __name__ == '__main__':
     input_folder = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files
