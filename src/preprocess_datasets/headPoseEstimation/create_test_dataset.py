@@ -35,7 +35,7 @@ def create_train_test_split(input_folder, output_folder):
 
         # Not enough groups
         if len(sorted_groups) < 2:
-            print(sorted_groups)
+            print(sorted_groups[:2])
             continue
 
         # Use the first group for training and the rest for testing

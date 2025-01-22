@@ -14,7 +14,7 @@ from src.backbone.model_multiview_irse import execute_model
 from src.util.Metrics import error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix
 from src.util.Voting import calculate_embedding_similarity_progress, compute_ranking_matrices, analyze_result, \
-    accuracy_front_perspective
+    accuracy_front_perspective, concat
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.misc import colorstr
@@ -185,15 +185,17 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
     similarity_matrix = calculate_embedding_similarity_progress(query_embedding, enrolled_embedding)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
-    print(result_metrics)
+
+    # result_metrics_front = accuracy_front_perspective(embedding_library) #TODO Use correct emebdding
 
     #metrics = calc_metrics(embedding_library.query_labels, top_indices[:, 0])
     plot_confusion_matrix(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], os.path.basename(test_path))
-    result_metrics_front = accuracy_front_perspective(embedding_library)
-    print("front", result_metrics_front)
 
-    return result_metrics, result_metrics_front, embedding_library
+    #metric_concat = concat(embedding_library)  #TODO Use correct emebddin
+    #print(metric_concat)
+
+    return result_metrics, embedding_library
 
 
 def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size):
@@ -206,29 +208,29 @@ def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_r
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset}"))
-    metrics, result_metrics_front, embedding_library = evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size)
+    metrics, embedding_library = evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
     mlflow.log_metric(f'{neutral_dataset}_RR1', metrics['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_RR5', metrics['Rank-5 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Front_RR1', result_metrics_front['Rank-1 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Front_RR5', result_metrics_front['Rank-5 Rate'], step=epoch)
+    #mlflow.log_metric(f'{neutral_dataset}_Front_RR1', result_metrics_front['Rank-1 Rate'], step=epoch)
+    #mlflow.log_metric(f'{neutral_dataset}_Front_RR5', result_metrics_front['Rank-5 Rate'], step=epoch)
 
     #if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
 
     rank_1 = metrics.get('Rank-1 Rate', 'N/A')
     rank_5 = metrics.get('Rank-5 Rate', 'N/A')
-    rank_1_front = result_metrics_front.get('Rank-1 Rate', 'N/A')
-    rank_5_front = result_metrics_front.get('Rank-5 Rate', 'N/A')
+    #rank_1_front = result_metrics_front.get('Rank-1 Rate', 'N/A')
+    #rank_5_front = result_metrics_front.get('Rank-5 Rate', 'N/A')
 
     print(colorstr(
         'bright_green',
         f"{neutral_dataset} Evaluation: "
         f"RR1: {rank_1} "
         f"RR5: {rank_5} "
-        f"Front RR1: {rank_1_front} "
-        f"Front RR5: {rank_5_front} "
+        #f"Front RR1: {rank_1_front} "
+        #f"Front RR5: {rank_5_front} "
     ))
 

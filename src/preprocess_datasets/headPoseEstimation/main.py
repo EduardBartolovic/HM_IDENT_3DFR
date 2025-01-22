@@ -54,5 +54,6 @@ if __name__ == '__main__':
 
     print("##################################")
     print("###########GEN TEST DATASET############")
+    print("for:", dataset_output_folder, "to:", output_test_dataset)
     print("##################################")
-    create_train_test_split(folder_root, output_test_dataset)
+    create_train_test_split(dataset_output_folder, output_test_dataset)
