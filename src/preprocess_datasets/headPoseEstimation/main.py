@@ -4,6 +4,7 @@ import logging
 import numpy as np
 import torch
 
+from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.face_analysis import face_analysis
 from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_model, headpose_estimation
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_voxceleb_dataset
@@ -13,6 +14,7 @@ if __name__ == '__main__':
     folder_root = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb1_test"  # Folder containing original preprocessed files   # --------------------------------------------------------------
     model_path_hpe = "F:\\Face\\HPE\\weights\\resnet50.pt"   # --------------------------------------------------------------
     dataset_output_folder = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb1_test_dataset"  # --------------------------------------------------------------
+    output_test_dataset = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb1_test_dataset_TEST"
 
     device = torch.device("cuda")
     try:
@@ -49,3 +51,8 @@ if __name__ == '__main__':
     print("###########GEN DATASET############")
     print("##################################")
     generate_voxceleb_dataset(folder_root, "hpe", dataset_output_folder)
+
+    print("##################################")
+    print("###########GEN TEST DATASET############")
+    print("##################################")
+    create_train_test_split(folder_root, output_test_dataset)
