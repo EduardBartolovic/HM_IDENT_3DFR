@@ -111,7 +111,7 @@ if __name__ == '__main__':
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
         ])
 
-        dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=50, transform=train_transform)
+        dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=25, transform=train_transform)
 
         # create a weighted random sampler to process imbalanced data
         weights = make_weights_for_balanced_classes(dataset_train.data, len(dataset_train.classes))
@@ -148,9 +148,7 @@ if __name__ == '__main__':
         print(colorstr('blue', f"{HEAD_NAME} Head Generated"))
         print("=" * 60)
 
-        LOSS_DICT = {'Focal': FocalLoss(),
-                     'Softmax': nn.CrossEntropyLoss()
-                     }
+        LOSS_DICT = {'Focal': FocalLoss(), 'Softmax': nn.CrossEntropyLoss()}
         LOSS = LOSS_DICT[LOSS_NAME]
         print(colorstr('magenta', LOSS))
         print(colorstr('blue', f"{LOSS_NAME} Loss Generated"))
@@ -185,26 +183,22 @@ if __name__ == '__main__':
         load_checkpoint(BACKBONE_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         print("=" * 60)
 
+        # ======= GPU Settings =======
         if MULTI_GPU:
             BACKBONE_reg = nn.DataParallel(BACKBONE_reg, device_ids=GPU_ID)
             BACKBONE_agg = nn.DataParallel(BACKBONE_agg, device_ids=GPU_ID)
-
         BACKBONE_reg = BACKBONE_reg.to(DEVICE)
         BACKBONE_agg = BACKBONE_agg.to(DEVICE)
         for i in aggregators:
             i = i.to(DEVICE)
-
         # ======= train & validation & save checkpoint =======
         DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc # was 100
-
         NUM_EPOCH_WARM_UP = NUM_EPOCH // 25  # use the first 1/25 epochs to warm up
         NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP  # use the first 1/25 epochs to warm up
         batch = 0  # batch index
-
         # ======= Initialize early stopping parameters =======
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
-
         for epoch in range(NUM_EPOCH):  # start training process
             # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
             if epoch == STAGES[0]:
@@ -215,10 +209,10 @@ if __name__ == '__main__':
                 schedule_lr(OPTIMIZER)
 
             #  ======= perform validation =======
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(112, 112), BATCH_SIZE)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(112, 112), BATCH_SIZE)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE*2)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(112, 112), BATCH_SIZE*2)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(112, 112), BATCH_SIZE)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE*2)
             print("=" * 60)
 
             BACKBONE_reg.eval()

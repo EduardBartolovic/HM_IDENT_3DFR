@@ -10,7 +10,7 @@ from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_v
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
 
 if __name__ == '__main__':
-    input_folder = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb1_test"  # Folder containing original preprocessed files   # --------------------------------------------------------------
+    folder_root = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb1_test"  # Folder containing original preprocessed files   # --------------------------------------------------------------
     model_path_hpe = "F:\\Face\\HPE\\weights\\resnet50.pt"   # --------------------------------------------------------------
     dataset_output_folder = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb1_test_dataset"  # --------------------------------------------------------------
 
@@ -29,12 +29,12 @@ if __name__ == '__main__':
     print("##################################")
     print("#############HPE##################")
     print("##################################")
-    #headpose_estimation(input_folder, "hpe", head_pose, device, fix_rotation=True, draw=True)
+    #headpose_estimation(folder_root, "hpe", head_pose, device, fix_rotation=True, draw=True)
 
     print("##################################")
     print("##########FACE Analysis###########")
     print("##################################")
-    face_analysis(input_folder, "face_cropped", device)
+    face_analysis(folder_root, "face_cropped", device)
 
     ref_angles = [-25, -10, 0, 10, 25]
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
@@ -43,9 +43,9 @@ if __name__ == '__main__':
     print("##################################")
     print("###########FINDMATCHES############")
     print("##################################")
-    find_matches(input_folder, permutations)
+    find_matches(folder_root, permutations)
 
     print("##################################")
     print("###########GEN DATASET############")
     print("##################################")
-    generate_voxceleb_dataset(input_folder, dataset_output_folder)
+    generate_voxceleb_dataset(folder_root, "hpe", dataset_output_folder)

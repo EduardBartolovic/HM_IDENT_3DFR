@@ -185,11 +185,13 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
     similarity_matrix = calculate_embedding_similarity_progress(query_embedding, enrolled_embedding)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
+    print(result_metrics)
 
     #metrics = calc_metrics(embedding_library.query_labels, top_indices[:, 0])
     plot_confusion_matrix(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], os.path.basename(test_path))
     result_metrics_front = accuracy_front_perspective(embedding_library)
+    print("front", result_metrics_front)
 
     return result_metrics, result_metrics_front, embedding_library
 

@@ -23,9 +23,8 @@ def read_file(file_path, remove_header=True):
     return np.array(data)
 
 
-def generate_voxceleb_dataset(input_folder, dataset_output_folder):
-
-    for root, _, files in os.walk(input_folder):
+def generate_voxceleb_dataset(folder_root, input_folder, dataset_output_folder):
+    for root, _, files in os.walk(os.path.join(folder_root, input_folder)):
         if "hpe" in root:
             for txt_file in files:
                 if txt_file.endswith('matched_angles.txt'):
@@ -54,4 +53,4 @@ if __name__ == '__main__':
     input_folder = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files
     dataset_output_folder = "E:\\Download\\face\\VoxCeleb1_test_dataset"
 
-    generate_voxceleb_dataset(input_folder, dataset_output_folder)
+    generate_voxceleb_dataset(input_folder, "face_cropped", dataset_output_folder)

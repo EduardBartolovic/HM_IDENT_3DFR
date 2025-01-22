@@ -53,8 +53,8 @@ def face_analysis(input_folder, output_folder, device):
                     file_path = os.path.join(root, txt_file)
                     data = read_file(file_path, remove_header=False)
 
-                    folder_image_path = os.path.join(root, "..", "frames_cropped")
-                    folder_image_output_path = os.path.join(root, "..", "face_cropped")
+                    folder_image_path = os.path.join(root, "..", output_folder)
+                    folder_image_output_path = os.path.join(root, "..", output_folder)
 
                     os.makedirs(folder_image_output_path, exist_ok=True)
 
