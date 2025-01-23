@@ -104,7 +104,7 @@ if __name__ == '__main__':
         log_dir = f'{LOG_ROOT}/tensorboard/{RUN_NAME}'
 
         train_transform = transforms.Compose([
-            transforms.Resize((112, 112)),
+            transforms.Resize((150, 150)),
             transforms.RandomCrop((112, 112)),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
@@ -209,10 +209,10 @@ if __name__ == '__main__':
                 schedule_lr(OPTIMIZER)
 
             #  ======= perform validation =======
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE*2)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(112, 112), BATCH_SIZE*2)
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(112, 112), BATCH_SIZE)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE*2)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE*2)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(150, 150), BATCH_SIZE*2)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(150, 150), BATCH_SIZE * 2)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch,(150, 150), BATCH_SIZE*2)
             print("=" * 60)
 
             BACKBONE_reg.eval()
@@ -223,14 +223,14 @@ if __name__ == '__main__':
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
-            for inputs, labels, _ in tqdm(iter(train_loader)):
+            for inputs, labels, perspectives, face_corrs in tqdm(iter(train_loader)):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (
                         batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
                     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
 
                 labels = labels.to(DEVICE).long()
-                embeddings = execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs)
+                embeddings = execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs, perspectives, face_corrs)
                 outputs = HEAD(embeddings, labels)
                 loss = LOSS(outputs, labels)
 

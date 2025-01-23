@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 import numpy as np
 import torch
@@ -17,6 +16,7 @@ class MultiviewDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
         self.num_views = num_views
+        self.face_cor_exist = False
         self.class_to_idx = self._get_class_to_idx()
         self.data = self._load_data()
         self.classes = self._find_classes()
@@ -46,13 +46,17 @@ class MultiviewDataset(Dataset):
                 class_idx = self.class_to_idx[class_name]
                 sha_groups = {}
                 for filename in os.listdir(class_path):
-                    file_path = os.path.join(class_path, filename)
-                    if os.path.isfile(file_path):
-                        sha_hash = filename[:40]  # Extract SHA hash from filename
-                        # perspective = filename[40:-10]
-                        if sha_hash not in sha_groups:
-                            sha_groups[sha_hash] = []
-                        sha_groups[sha_hash].append(file_path)
+                    if filename.endswith((".jpg", ".png", ".jpeg", ".webp")):
+                        file_path = os.path.join(class_path, filename)
+                        if os.path.isfile(file_path):
+                            sha_hash = filename[:40]  # Extract SHA hash from filename
+                            # perspective = filename[40:-10]
+                            if sha_hash not in sha_groups:
+                                sha_groups[sha_hash] = []
+                            sha_groups[sha_hash].append(file_path)
+                    else:
+                        if filename.endswith(".npz"):
+                            self.face_cor_exist = True
 
                 # Append each grouped data point to the dataset
                 for sha_hash, file_paths in sha_groups.items():
@@ -72,6 +76,11 @@ class MultiviewDataset(Dataset):
         # Load all images in the set
         images = [Image.open(img_path).convert("RGB") for img_path in img_paths]
 
+        if self.face_cor_exist:
+            facial_corr = torch.Tensor(np.array([np.load(img_path.replace(".jpg", ".npz"))['landmarks'] for img_path in img_paths]))
+        else:
+            facial_corr = torch.Tensor([])
+
         # Load all perspectives
         perspectives = [os.path.basename(img_path)[40:-10] for img_path in img_paths]
 
@@ -80,4 +89,4 @@ class MultiviewDataset(Dataset):
             images = [self.transform(img) for img in images]
 
         # Return images as a tensor batch along with class and perspective
-        return images, class_name, perspectives
+        return images, class_name, perspectives, facial_corr

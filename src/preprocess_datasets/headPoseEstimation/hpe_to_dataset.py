@@ -25,14 +25,14 @@ def read_file(file_path, remove_header=True):
 
 def generate_voxceleb_dataset(folder_root, input_folder, dataset_output_folder):
     counter = 0
-    for root, _, files in os.walk(os.path.join(folder_root, input_folder)):
+    for root, _, files in os.walk(os.path.join(folder_root)):
         if "hpe" in root:
             for txt_file in files:
                 if txt_file.endswith('matched_angles.txt'):
                     file_path = os.path.join(root, txt_file)
                     data = read_file(file_path)
 
-                    folder_image_path = os.path.join(root, "..", "face_cropped")
+                    folder_image_path = os.path.join(root, "..", input_folder)
 
                     sample_name = os.path.abspath(os.path.join(root, os.pardir))
                     id_name = os.path.abspath(os.path.join(sample_name, os.pardir))

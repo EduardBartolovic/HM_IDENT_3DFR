@@ -4,11 +4,14 @@ import logging
 import numpy as np
 import torch
 
+from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_correspondences, \
+    calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.face_analysis import face_analysis
 from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_model, headpose_estimation
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_voxceleb_dataset
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
+from src.util.eval_model_verification import calculate_roc
 
 if __name__ == '__main__':
     folder_root = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb1_test"  # Folder containing original preprocessed files   # --------------------------------------------------------------
@@ -51,6 +54,11 @@ if __name__ == '__main__':
     print("###########GEN DATASET############")
     print("##################################")
     generate_voxceleb_dataset(folder_root, "hpe", dataset_output_folder)
+
+    print("##################################")
+    print("######face_correspondences########")
+    print("##################################")
+    calculate_face_correspondences_dataset(dataset_output_folder)
 
     print("##################################")
     print("###########GEN TEST DATASET############")

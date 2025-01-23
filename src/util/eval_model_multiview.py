@@ -13,8 +13,7 @@ from tqdm import tqdm
 from src.backbone.model_multiview_irse import execute_model
 from src.util.Metrics import error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix
-from src.util.Voting import calculate_embedding_similarity_progress, compute_ranking_matrices, analyze_result, \
-    accuracy_front_perspective, concat
+from src.util.Voting import calculate_embedding_similarity_progress, compute_ranking_matrices, analyze_result
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.misc import colorstr
@@ -55,8 +54,8 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
     enrolled_embeddings = []
     enrolled_labels = []
     enrolled_perspectives= []
-    for inputs, labels, perspectives in tqdm(iter(enrolled_loader)):
-        embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs).cpu().numpy()
+    for inputs, labels, perspectives, face_corr in tqdm(iter(enrolled_loader), desc="Generate Enrolled Embeddings"):
+        embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr).cpu().numpy()
         enrolled_embeddings.extend(embeddings)
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         enrolled_perspectives.append(np.array(perspectives).T)
@@ -64,8 +63,8 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
     query_embeddings = []
     query_labels = []
     query_perspectives= []
-    for inputs, labels, perspectives in tqdm(iter(query_loader)):
-        embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs).cpu().numpy()
+    for inputs, labels, perspectives, face_corr in tqdm(iter(query_loader), desc="Generate Query Embeddings"):
+        embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr).cpu().numpy()
         query_embeddings.extend(embeddings)
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         query_perspectives.append(np.array(perspectives).T)

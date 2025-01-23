@@ -1,15 +1,17 @@
-import time
-
+import cv2
+import numpy as np
 import torch
+from scipy.interpolate import Rbf
 from torch import nn
 from torch.nn import Module, Sequential, Conv2d, BatchNorm2d, PReLU, Dropout, Linear, BatchNorm1d
+from tqdm import tqdm
 
 from src.backbone.model_irse import Bottleneck, bottleneck_IR, Flatten
 from src.util.visualize_feature_maps import visualize_feature_maps
 
 
 def get_block(in_channel, depth, num_units, stride=2):
-    return [Bottleneck(in_channel, depth, stride)] + [Bottleneck(depth, depth, 1) for i in range(num_units - 1)]
+    return [Bottleneck(in_channel, depth, stride)] + [Bottleneck(depth, depth, 1) for _ in range(num_units - 1)]
 
 
 def get_blocks():
@@ -113,8 +115,89 @@ def IR_MV_50(input_size, embedding_size):
     return model
 
 
+# Thin-Plate Spline Transformation
+def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
+    """
+    Perform Thin-Plate Spline Transformation
+    """
+    rbf_x = Rbf(source_points[:, 0], source_points[:, 1], target_points[:, 0], function='thin_plate', smooth=smooth)
+    rbf_y = Rbf(source_points[:, 0], source_points[:, 1], target_points[:, 1], function='thin_plate', smooth=smooth)
 
-def aggregator(aggregators, stage_index, all_view_stage):
+    warped_x = rbf_x(grid_x, grid_y)
+    warped_y = rbf_y(grid_x, grid_y)
+    return warped_x, warped_y
+
+def align_featuremap(featuremap, source_landmarks, target_landmarks, grid_x, grid_y):
+    """
+    Align a single feature map using TPS transformation.
+    """
+    c, h, w = featuremap.shape
+
+    # Scale landmarks to feature map dimensions
+    source_points = np.array(source_landmarks) * [w, h]
+    target_points = np.array(target_landmarks) * [w, h]
+
+    # Compute TPS transformation
+    warped_x, warped_y = tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.5)
+    map_x = np.clip(warped_x, 0, w - 1).astype(np.float32)
+    map_y = np.clip(warped_y, 0, h - 1).astype(np.float32)
+
+    # Warp each channel of the feature map
+    warped_featuremap = np.zeros_like(featuremap)
+    for channel in range(c):  # Iterate over channels
+        warped_featuremap[channel] = cv2.remap(featuremap[channel], map_x, map_y, interpolation=cv2.INTER_LINEAR)
+
+    return warped_featuremap
+
+
+def align_featuremaps(featuremaps, face_corr, device="cuda"):
+    """
+    Align feature maps in a batch using facial landmarks.
+
+    Args:
+        featuremaps: torch.Tensor of shape [B, V, C, H, W]
+        face_corr: torch.Tensor of shape [B, V, P, 2]
+        device: device: Target device for the output tensor, e.g., 'cuda' or 'cpu'.
+
+    Returns:
+        Aligned feature maps as torch.Tensor of shape [B, V, C, H, W]
+    """
+    batch_size, num_views, num_channels, h, w = featuremaps.shape
+
+    # Precompute grid for warping
+    grid_x, grid_y = np.meshgrid(np.arange(w), np.arange(h))
+
+    aligned_batched_featuremaps = []
+    for b in tqdm(range(batch_size), desc="Aligning feature maps"):
+        view_featuremaps = featuremaps[b].cpu().numpy()  # Shape: [V, C, H, W]
+        view_landmarks = face_corr[b].cpu().numpy()  # Shape: [V, P, 2]
+
+        # Use the first view's landmarks as the target TODO: Use 0 Pose
+        target_landmarks = view_landmarks[0]
+
+        # Align all other views to the first view
+        aligned_views = [view_featuremaps[0]]
+        for v in range(1, num_views):  # Skip the first view
+            aligned_view = align_featuremap(view_featuremaps[v], view_landmarks[v], target_landmarks, grid_x, grid_y)
+            aligned_views.append(aligned_view)
+
+        # Stack aligned views for this batch
+        aligned_batched_featuremaps.append(np.stack(aligned_views, axis=0))
+
+    aligned_batched_featuremaps = torch.tensor(np.stack(aligned_batched_featuremaps), dtype=featuremaps.dtype).to(device)
+
+    return aligned_batched_featuremaps
+
+
+def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr):
+
+    if face_corr is not None:
+        if stage_index == 0:
+            #print(all_view_stage.shape)
+            #print(face_corr.shape)
+            #print(perspectives)
+            all_view_stage = align_featuremaps(all_view_stage, face_corr)
+
 
     views_pooled_stage = aggregators[stage_index](all_view_stage)
 
@@ -144,7 +227,7 @@ def aggregator(aggregators, stage_index, all_view_stage):
     return views_pooled_stage
 
 
-def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features):
+def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr):
 
     x_1 = None
     x_2 = None
@@ -166,7 +249,7 @@ def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_featur
             all_view_stage = torch.cat((all_view_stage, x_4.unsqueeze(1)), dim=1)
 
         # Perform pooling across views
-        views_pooled_stage = aggregator(aggregators, stage_index, all_view_stage)  # [batch, c, w, h]
+        views_pooled_stage = aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr)  # [batch, c, w, h]
 
         if views_pooled_stage.shape[-1] == 112:
             x_1 = backbone_agg(views_pooled_stage, execute_stage={1})
@@ -183,7 +266,7 @@ def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_featur
     raise ValueError("Illegal State")
 
 
-def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs):
+def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr):
     # Initialize a dictionary to hold stage features for all views
     stage_to_index = {
         "input_stage": 0,
@@ -202,6 +285,6 @@ def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs):
 
     # visualize_feature_maps(all_views_stage_features, "E:\\Download", batch_idx=0)
 
-    embeddings = perform_aggregation_branch( backbone_agg, aggregators, all_views_stage_features)
+    embeddings = perform_aggregation_branch( backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr)
 
     return embeddings

@@ -11,6 +11,7 @@ def create_train_test_split(input_folder, output_folder):
         input_folder (str): Path to the folder containing the class subfolders with images.
         output_folder (str): Path to the output folder where train and test folders will be created.
     """
+    counter = 0
     os.makedirs(output_folder, exist_ok=True)
     train_folder = os.path.join(output_folder, "train")
     test_folder = os.path.join(output_folder, "validation")
@@ -46,8 +47,9 @@ def create_train_test_split(input_folder, output_folder):
 
             for file_path in file_paths:
                 shutil.copy(file_path, class_dest_folder)
+                counter += 1
 
-    print(f"Train-test split created in '{output_folder}'")
+    print(f"Train-test split created in {output_folder} for {counter} files")
 
 if __name__ == '__main__':
     input_folder = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset"  # Replace with your input folder path
