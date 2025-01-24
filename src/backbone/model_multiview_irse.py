@@ -5,6 +5,7 @@ from scipy.interpolate import Rbf
 from torch import nn
 from torch.nn import Module, Sequential, Conv2d, BatchNorm2d, PReLU, Dropout, Linear, BatchNorm1d
 from tqdm import tqdm
+import torch.nn.functional as F
 
 from src.backbone.model_irse import Bottleneck, bottleneck_IR, Flatten
 from src.util.visualize_feature_maps import visualize_feature_maps
@@ -128,6 +129,30 @@ def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
     return warped_x, warped_y
 
 def align_featuremap(featuremap, source_landmarks, target_landmarks, grid_x, grid_y):
+    """
+    Align a single feature map using TPS transformation using PyTorch.
+    """
+    c, h, w = featuremap.shape
+
+    # Scale landmarks to feature map dimensions
+    source_points = np.array(source_landmarks) * [w, h]
+    target_points = np.array(target_landmarks) * [w, h]
+
+    # Compute TPS transformation
+    warped_x, warped_y = tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.5)
+
+    # Normalize grid for PyTorch
+    warped_x = torch.tensor(warped_x, dtype=torch.float32) / (w - 1) * 2 - 1
+    warped_y = torch.tensor(warped_y, dtype=torch.float32) / (h - 1) * 2 - 1
+    grid = torch.stack((warped_x, warped_y), dim=-1).unsqueeze(0)  # Shape: (1, H, W, 2)
+
+    # Convert feature map to PyTorch tensor and warp
+    featuremap_tensor = torch.tensor(featuremap, dtype=torch.float32).unsqueeze(0)  # Shape: (1, C, H, W)
+    warped_featuremap = F.grid_sample(featuremap_tensor, grid, mode='bilinear', align_corners=True)
+
+    return warped_featuremap.squeeze(0).numpy()  # Convert back to NumPy array
+
+def align_featuremap_cpu(featuremap, source_landmarks, target_landmarks, grid_x, grid_y):
     """
     Align a single feature map using TPS transformation.
     """
