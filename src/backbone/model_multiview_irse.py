@@ -191,7 +191,7 @@ def align_featuremaps(featuremaps, face_corr, device="cuda"):
 
 def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr):
 
-    if face_corr is not None:
+    if face_corr.shape[1] > 0:
         if stage_index == 0:
             #print(all_view_stage.shape)
             #print(face_corr.shape)
