@@ -1,5 +1,6 @@
 import itertools
 import logging
+import os
 
 import numpy as np
 import torch
@@ -65,3 +66,9 @@ if __name__ == '__main__':
     print("for:", dataset_output_folder, "to:", output_test_dataset)
     print("##################################")
     create_train_test_split(dataset_output_folder, output_test_dataset)
+
+    print("##################################")
+    print("######face_correspondences########")
+    print("##################################")
+    calculate_face_correspondences_dataset(os.path.join(dataset_output_folder,"train"))
+    calculate_face_correspondences_dataset(os.path.join(dataset_output_folder,"validation"))
