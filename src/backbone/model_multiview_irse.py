@@ -116,7 +116,6 @@ def IR_MV_50(input_size, embedding_size):
     return model
 
 
-# Thin-Plate Spline Transformation
 def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
     """
     Perform Thin-Plate Spline Transformation
@@ -130,7 +129,7 @@ def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
 
 def align_featuremap(featuremap, source_landmarks, target_landmarks, grid_x, grid_y):
     """
-    Align a single feature map using TPS transformation using PyTorch.
+    Align a single feature map using TPS transformation
     """
     c, h, w = featuremap.shape
 
@@ -144,13 +143,13 @@ def align_featuremap(featuremap, source_landmarks, target_landmarks, grid_x, gri
     # Normalize grid for PyTorch
     warped_x = torch.tensor(warped_x, dtype=torch.float32) / (w - 1) * 2 - 1
     warped_y = torch.tensor(warped_y, dtype=torch.float32) / (h - 1) * 2 - 1
-    grid = torch.stack((warped_x, warped_y), dim=-1).unsqueeze(0)  # Shape: (1, H, W, 2)
+    grid = torch.stack((warped_x, warped_y), dim=-1).to("cuda").unsqueeze(0)  # Shape: (1, H, W, 2)
 
     # Convert feature map to PyTorch tensor and warp
-    featuremap_tensor = torch.tensor(featuremap, dtype=torch.float32).unsqueeze(0)  # Shape: (1, C, H, W)
+    featuremap_tensor = featuremap.unsqueeze(0)  # Shape: (1, C, H, W)
     warped_featuremap = F.grid_sample(featuremap_tensor, grid, mode='bilinear', align_corners=True)
 
-    return warped_featuremap.squeeze(0).numpy()  # Convert back to NumPy array
+    return warped_featuremap.squeeze(0)
 
 def align_featuremap_cpu(featuremap, source_landmarks, target_landmarks, grid_x, grid_y):
     """
@@ -175,13 +174,14 @@ def align_featuremap_cpu(featuremap, source_landmarks, target_landmarks, grid_x,
     return warped_featuremap
 
 
-def align_featuremaps(featuremaps, face_corr, device="cuda"):
+def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
     """
     Align feature maps in a batch using facial landmarks.
 
     Args:
         featuremaps: torch.Tensor of shape [B, V, C, H, W]
         face_corr: torch.Tensor of shape [B, V, P, 2]
+        zero_position: position in array of the zero position
         device: device: Target device for the output tensor, e.g., 'cuda' or 'cpu'.
 
     Returns:
@@ -192,24 +192,24 @@ def align_featuremaps(featuremaps, face_corr, device="cuda"):
     # Precompute grid for warping
     grid_x, grid_y = np.meshgrid(np.arange(w), np.arange(h))
 
-    aligned_batched_featuremaps = []
+    # Pre-allocate array for aligned feature maps
+    aligned_batched_featuremaps = torch.empty((batch_size, num_views, num_channels, h, w), dtype=featuremaps.dtype, device=device)
     for b in tqdm(range(batch_size), desc="Aligning feature maps"):
-        view_featuremaps = featuremaps[b].cpu().numpy()  # Shape: [V, C, H, W]
-        view_landmarks = face_corr[b].cpu().numpy()  # Shape: [V, P, 2]
-
-        # Use the first view's landmarks as the target TODO: Use 0 Pose
-        target_landmarks = view_landmarks[0]
-
-        # Align all other views to the first view
-        aligned_views = [view_featuremaps[0]]
-        for v in range(1, num_views):  # Skip the first view
-            aligned_view = align_featuremap(view_featuremaps[v], view_landmarks[v], target_landmarks, grid_x, grid_y)
-            aligned_views.append(aligned_view)
-
-        # Stack aligned views for this batch
-        aligned_batched_featuremaps.append(np.stack(aligned_views, axis=0))
-
-    aligned_batched_featuremaps = torch.tensor(np.stack(aligned_batched_featuremaps), dtype=featuremaps.dtype).to(device)
+        view_featuremaps = featuremaps[b]  # Shape: [V, C, H, W]
+        view_landmarks = face_corr[b]  # Shape: [V, P, 2]
+        target_landmarks = view_landmarks[zero_position] # reference is the zero face position
+        # Align all views to the zero view
+        for v in range(num_views):
+            if v == zero_position:
+                aligned_batched_featuremaps[b, v] = view_featuremaps[v]
+            else:
+                aligned_batched_featuremaps[b, v] = align_featuremap(
+                    view_featuremaps[v],
+                    view_landmarks[v],
+                    target_landmarks,
+                    grid_x,
+                    grid_y
+                )
 
     return aligned_batched_featuremaps
 
@@ -217,12 +217,9 @@ def align_featuremaps(featuremaps, face_corr, device="cuda"):
 def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr):
 
     if face_corr.shape[1] > 0:
+        zero_position = np.where(np.array(perspectives)[:,0] == '0_0')[0][0]
         if stage_index == 0:
-            #print(all_view_stage.shape)
-            #print(face_corr.shape)
-            #print(perspectives)
-            all_view_stage = align_featuremaps(all_view_stage, face_corr)
-
+            all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
 
     views_pooled_stage = aggregators[stage_index](all_view_stage)
 
