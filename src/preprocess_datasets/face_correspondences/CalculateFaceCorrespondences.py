@@ -131,16 +131,6 @@ def calculate_face_correspondences_dataset(dataset_folder):
     counter = 0
     face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True)
 
-    # train_transform = transforms.Compose([
-    #     transforms.Resize((150, 150)),
-    #     transforms.CenterCrop((112, 112)),
-    #     transforms.ToTensor(),
-    #     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-    # ])
-    # model = IR_50([112,112], 512)
-    # model = model.to("cuda")
-    # model.eval()
-
     # Iterate over class subfolders
     for class_name in os.listdir(dataset_folder):
         class_path = os.path.join(dataset_folder, class_name)
