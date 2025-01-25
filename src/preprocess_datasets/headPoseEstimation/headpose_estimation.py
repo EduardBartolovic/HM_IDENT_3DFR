@@ -49,6 +49,7 @@ def process(cropped_face, device, head_pose):
 
 def headpose_estimation(input_folder, output_folder, head_pose_model, device, fix_rotation=False, draw=True, make_vid=False,):
 
+    counter = 0
     for root, _, files in os.walk(input_folder):  # Recursively walk through directories
 
         if "frames_cropped" in root and "hpe" not in root:
@@ -118,6 +119,7 @@ def headpose_estimation(input_folder, output_folder, head_pose_model, device, fi
                 with open(output_txt_path, 'w') as txt_file:
                     for i in frame_infos:
                         txt_file.write(','.join(map(str, i)) + '\n')
+                        counter += 1
 
             if make_vid:
                 out.write(frame)
@@ -125,6 +127,8 @@ def headpose_estimation(input_folder, output_folder, head_pose_model, device, fi
                 print(f"Processed and saved cropped video: {output_video_path} frames_written: {frames_written}")
             else:
                 print(f"Processed: {output_txt_path}")
+
+    print(f"HPE for {counter} frames")
 
 if __name__ == '__main__':
     input_folder = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files

@@ -5,20 +5,20 @@ import os
 import numpy as np
 import torch
 
-from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_correspondences, \
+from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import \
     calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
-from src.preprocess_datasets.headPoseEstimation.face_analysis import face_analysis
+from src.preprocess_datasets.headPoseEstimation.face_analysis import filter_wrong_faces
 from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_model, headpose_estimation
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_voxceleb_dataset
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
-from src.util.eval_model_verification import calculate_roc
 
 if __name__ == '__main__':
-    folder_root = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb1_test"  # Folder containing original preprocessed files   # --------------------------------------------------------------
-    model_path_hpe = "F:\\Face\\HPE\\weights\\resnet50.pt"   # --------------------------------------------------------------
-    dataset_output_folder = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb1_test_dataset"  # --------------------------------------------------------------
-    output_test_dataset = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb1_test_dataset_TEST"
+    folder_root = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb2_train"
+    model_path_hpe = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
+    dataset_output_folder = "C:\\Users\\Eduard\\Desktop\\Face\\VoxCeleb2_train_dataset"
+    output_test_dataset = "C:\\Users\\Eduard\\Desktop\\Face\\test_VoxCeleb2_train_dataset"
+    backbone_face_model = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth"
 
     device = torch.device("cuda")
     try:
@@ -30,17 +30,17 @@ if __name__ == '__main__':
         logging.info("Head Pose Estimation model weights loaded.")
     except Exception as e:
         logging.info(f"Exception occured while loading weights of head pose estimation model: {e}")
-        #raise Exception()
+        raise Exception()
 
     print("##################################")
     print("#############HPE##################")
     print("##################################")
-    #headpose_estimation(folder_root, "hpe", head_pose, device, fix_rotation=True, draw=True)
+    headpose_estimation(folder_root, "hpe", head_pose, device, fix_rotation=True, draw=True)
 
     print("##################################")
-    print("##########FACE Analysis###########")
+    print("##########Filter wrong faces###########")
     print("##################################")
-    #face_analysis(folder_root, "face_cropped", device)
+    filter_wrong_faces(folder_root, "frames_filtered", backbone_face_model, "cuda")
 
     ref_angles = [-25, -10, 0, 10, 25]
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     print("##################################")
     print("###########GEN DATASET############")
     print("##################################")
-    generate_voxceleb_dataset(folder_root, "hpe", dataset_output_folder)
+    generate_voxceleb_dataset(folder_root, "frames_cropped", dataset_output_folder)
 
     print("##################################")
     print("######face_correspondences########")
@@ -70,5 +70,5 @@ if __name__ == '__main__':
     print("##################################")
     print("######face_correspondences########")
     print("##################################")
-    calculate_face_correspondences_dataset(os.path.join(dataset_output_folder,"train"))
-    calculate_face_correspondences_dataset(os.path.join(dataset_output_folder,"validation"))
+    calculate_face_correspondences_dataset(os.path.join(output_test_dataset,"train"))
+    calculate_face_correspondences_dataset(os.path.join(output_test_dataset,"validation"))

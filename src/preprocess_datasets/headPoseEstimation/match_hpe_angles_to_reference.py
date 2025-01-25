@@ -28,7 +28,7 @@ def find_matches(input_folder, references):
     for root, _, files in os.walk(input_folder):
         if "hpe" in root:
             for txt_file in files:
-                if txt_file.endswith('hpe.txt'):
+                if txt_file.endswith('hpe_filtered.txt'):
                     counter += 1
                     file_path = os.path.join(root, txt_file)
                     with open(file_path) as file:
