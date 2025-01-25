@@ -200,7 +200,7 @@ def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
         target_landmarks = view_landmarks[zero_position] # reference is the zero face position
         # Align all views to the zero view
         for v in range(num_views):
-            if v == zero_position:
+            if v == zero_position or v >= view_landmarks.shape[0]: # Skip alignment if zero pose or merged features
                 aligned_batched_featuremaps[b, v] = view_featuremaps[v]
             else:
                 aligned_batched_featuremaps[b, v] = align_featuremap(
@@ -219,6 +219,8 @@ def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr
     if face_corr.shape[1] > 0:
         zero_position = np.where(np.array(perspectives)[:,0] == '0_0')[0][0]
         if stage_index == 0:
+            all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
+        if stage_index == 1:
             all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
 
     views_pooled_stage = aggregators[stage_index](all_view_stage)
