@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import numpy as np
 import torch
@@ -115,6 +117,17 @@ def IR_MV_50(input_size, embedding_size):
 
     return model
 
+# def benchmark_section(name, start_time):
+#     elapsed_time = time.time() - start_time
+#     print(f"[BENCHMARK] {name}: {elapsed_time:.6f} seconds")
+#
+# def precompute_grids(h, w, device):
+#     start_time = time.time()
+#     grid_x, grid_y = np.meshgrid(np.arange(w), np.arange(h))
+#     grid_x = torch.tensor(grid_x, dtype=torch.float32, device=device) / (w - 1) * 2 - 1
+#     grid_y = torch.tensor(grid_y, dtype=torch.float32, device=device) / (h - 1) * 2 - 1
+#     benchmark_section("Precomputing Grids", start_time)
+#     return grid_x, grid_y
 
 def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
     """
@@ -145,7 +158,6 @@ def align_featuremap(featuremap, source_landmarks, target_landmarks, grid_x, gri
     warped_y = torch.tensor(warped_y, dtype=torch.float32) / (h - 1) * 2 - 1
     grid = torch.stack((warped_x, warped_y), dim=-1).to("cuda").unsqueeze(0)  # Shape: (1, H, W, 2)
 
-    # Convert feature map to PyTorch tensor and warp
     featuremap_tensor = featuremap.unsqueeze(0)  # Shape: (1, C, H, W)
     warped_featuremap = F.grid_sample(featuremap_tensor, grid, mode='bilinear', align_corners=True)
 
@@ -216,7 +228,7 @@ def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
 
 def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr):
 
-    if face_corr.shape[1] > 0:
+    if False:#face_corr.shape[1] > 0:
         zero_position = np.where(np.array(perspectives)[:,0] == '0_0')[0][0]
         if stage_index == 0:
             all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
@@ -224,9 +236,6 @@ def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr
             all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
 
     views_pooled_stage = aggregators[stage_index](all_view_stage)
-
-    # ========== Average ==========
-    #views_pooled_stage = all_view_stage.mean(dim=1)
 
     # ========== Max ==========
     # views_pooled_stage = all_view_stage.max(dim=1)[0]
@@ -258,16 +267,15 @@ def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_featur
     x_3 = None
     x_4 = None
     for stage_index, stage_features in enumerate(all_views_stage_features):
-
         # Stack features from all views
         all_view_stage = torch.stack(stage_features, dim=0)  # [view, batch, c, w, h]
         all_view_stage = all_view_stage.permute(1, 0, 2, 3, 4)  # [batch, view, c, w, h]
 
         if all_view_stage.shape[-1] == 56:
             all_view_stage = torch.cat((all_view_stage, x_1.unsqueeze(1)), dim=1)
-        if all_view_stage.shape[-1] == 28:
+        elif all_view_stage.shape[-1] == 28:
             all_view_stage = torch.cat((all_view_stage, x_2.unsqueeze(1)), dim=1)
-        if all_view_stage.shape[-1] == 14:
+        elif all_view_stage.shape[-1] == 14:
             all_view_stage = torch.cat((all_view_stage, x_3.unsqueeze(1)), dim=1)
         elif all_view_stage.shape[-1] == 7:
             all_view_stage = torch.cat((all_view_stage, x_4.unsqueeze(1)), dim=1)

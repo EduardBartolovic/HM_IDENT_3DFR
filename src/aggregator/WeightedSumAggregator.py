@@ -1,9 +1,6 @@
 import torch
 from torch import nn
 
-from src.backbone.model_multiview_irse import aggregator
-
-
 class WeightedSumAggregator(nn.Module):
     def __init__(self, num_views):
         """

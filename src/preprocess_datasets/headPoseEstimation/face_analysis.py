@@ -13,7 +13,7 @@ import mediapipe as mp
 
 def process_landmarks(multi_face_landmarks, dst, r_pred_deg, image):
     for face_landmarks in multi_face_landmarks:
-        # Get image dimensions
+
         h, w, _ = image.shape
         x_coords = [int(landmark.x * w) for landmark in face_landmarks.landmark]
         y_coords = [int(landmark.y * h) for landmark in face_landmarks.landmark]
