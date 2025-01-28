@@ -117,73 +117,22 @@ def IR_MV_50(input_size, embedding_size):
 
     return model
 
-# def benchmark_section(name, start_time):
-#     elapsed_time = time.time() - start_time
-#     print(f"[BENCHMARK] {name}: {elapsed_time:.6f} seconds")
-#
-# def precompute_grids(h, w, device):
-#     start_time = time.time()
-#     grid_x, grid_y = np.meshgrid(np.arange(w), np.arange(h))
-#     grid_x = torch.tensor(grid_x, dtype=torch.float32, device=device) / (w - 1) * 2 - 1
-#     grid_y = torch.tensor(grid_y, dtype=torch.float32, device=device) / (h - 1) * 2 - 1
-#     benchmark_section("Precomputing Grids", start_time)
-#     return grid_x, grid_y
 
-def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
+def align_featuremap(featuremap, grid):
     """
-    Perform Thin-Plate Spline Transformation
+    Align a single feature map using transformation grid
     """
-    rbf_x = Rbf(source_points[:, 0], source_points[:, 1], target_points[:, 0], function='thin_plate', smooth=smooth)
-    rbf_y = Rbf(source_points[:, 0], source_points[:, 1], target_points[:, 1], function='thin_plate', smooth=smooth)
+    grid = grid.to("cuda")
 
-    warped_x = rbf_x(grid_x, grid_y)
-    warped_y = rbf_y(grid_x, grid_y)
-    return warped_x, warped_y
+    if grid.shape[:2] != featuremap.shape[1:]:
+        _, target_height, target_width = featuremap.shape
+        grid = grid.permute(2, 0, 1)  # [2, H, W]
+        grid = F.interpolate(grid.unsqueeze(0), size=(target_height, target_width), mode='bilinear', align_corners=True)
+        grid = grid.squeeze(0).permute(1, 2, 0)  # [H, W, 2]
 
-def align_featuremap(featuremap, source_landmarks, target_landmarks, grid_x, grid_y):
-    """
-    Align a single feature map using TPS transformation
-    """
-    c, h, w = featuremap.shape
-
-    # Scale landmarks to feature map dimensions
-    source_points = np.array(source_landmarks) * [w, h]
-    target_points = np.array(target_landmarks) * [w, h]
-
-    # Compute TPS transformation
-    warped_x, warped_y = tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.5)
-
-    # Normalize grid for PyTorch
-    warped_x = torch.tensor(warped_x, dtype=torch.float32) / (w - 1) * 2 - 1
-    warped_y = torch.tensor(warped_y, dtype=torch.float32) / (h - 1) * 2 - 1
-    grid = torch.stack((warped_x, warped_y), dim=-1).to("cuda").unsqueeze(0)  # Shape: (1, H, W, 2)
-
-    featuremap_tensor = featuremap.unsqueeze(0)  # Shape: (1, C, H, W)
-    warped_featuremap = F.grid_sample(featuremap_tensor, grid, mode='bilinear', align_corners=True)
+    warped_featuremap = F.grid_sample(featuremap.unsqueeze(0), grid.unsqueeze(0), mode='bilinear', align_corners=True)
 
     return warped_featuremap.squeeze(0)
-
-def align_featuremap_cpu(featuremap, source_landmarks, target_landmarks, grid_x, grid_y):
-    """
-    Align a single feature map using TPS transformation.
-    """
-    c, h, w = featuremap.shape
-
-    # Scale landmarks to feature map dimensions
-    source_points = np.array(source_landmarks) * [w, h]
-    target_points = np.array(target_landmarks) * [w, h]
-
-    # Compute TPS transformation
-    warped_x, warped_y = tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.5)
-    map_x = np.clip(warped_x, 0, w - 1).astype(np.float32)
-    map_y = np.clip(warped_y, 0, h - 1).astype(np.float32)
-
-    # Warp each channel of the feature map
-    warped_featuremap = np.zeros_like(featuremap)
-    for channel in range(c):  # Iterate over channels
-        warped_featuremap[channel] = cv2.remap(featuremap[channel], map_x, map_y, interpolation=cv2.INTER_LINEAR)
-
-    return warped_featuremap
 
 
 def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
@@ -192,7 +141,7 @@ def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
 
     Args:
         featuremaps: torch.Tensor of shape [B, V, C, H, W]
-        face_corr: torch.Tensor of shape [B, V, P, 2]
+        face_corr: torch.Tensor of shape [B, V, H, W, 2]
         zero_position: position in array of the zero position
         device: device: Target device for the output tensor, e.g., 'cuda' or 'cpu'.
 
@@ -201,26 +150,18 @@ def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
     """
     batch_size, num_views, num_channels, h, w = featuremaps.shape
 
-    # Precompute grid for warping
-    grid_x, grid_y = np.meshgrid(np.arange(w), np.arange(h))
-
     # Pre-allocate array for aligned feature maps
     aligned_batched_featuremaps = torch.empty((batch_size, num_views, num_channels, h, w), dtype=featuremaps.dtype, device=device)
     for b in tqdm(range(batch_size), desc="Aligning feature maps"):
         view_featuremaps = featuremaps[b]  # Shape: [V, C, H, W]
-        view_landmarks = face_corr[b]  # Shape: [V, P, 2]
-        target_landmarks = view_landmarks[zero_position] # reference is the zero face position
-        # Align all views to the zero view
+        view_grid = face_corr[b]  # Shape: [V, H, W, 2]
         for v in range(num_views):
-            if v == zero_position or v >= view_landmarks.shape[0]: # Skip alignment if zero pose or merged features
+            if v == zero_position or v >= view_grid.shape[0]: # Skip alignment if zero pose or merged features
                 aligned_batched_featuremaps[b, v] = view_featuremaps[v]
             else:
                 aligned_batched_featuremaps[b, v] = align_featuremap(
                     view_featuremaps[v],
-                    view_landmarks[v],
-                    target_landmarks,
-                    grid_x,
-                    grid_y
+                    view_grid[v]
                 )
 
     return aligned_batched_featuremaps
@@ -228,7 +169,7 @@ def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
 
 def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr):
 
-    if False:#face_corr.shape[1] > 0:
+    if face_corr.shape[1] > 0:
         zero_position = np.where(np.array(perspectives)[:,0] == '0_0')[0][0]
         if stage_index == 0:
             all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)

@@ -2,19 +2,17 @@ import time
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
-from src.backbone.model_multiview_irse import IR_MV_50, execute_model, aggregator
+from src.backbone.model_multiview_irse import IR_MV_50, execute_model
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mvs
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
-from util.eval_model import evaluate_and_log
 from util.visualize_feature_maps import visualize_feature_maps
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
     separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
@@ -212,7 +210,7 @@ if __name__ == '__main__':
 
             #  ======= perform validation =======
             #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE*4)
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(150, 150), BATCH_SIZE*4)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(150, 150), BATCH_SIZE*4)
             #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(150, 150), BATCH_SIZE * 4)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch,(150, 150), BATCH_SIZE*4)
             print("=" * 60)

@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import \
-    calculate_face_correspondences_dataset
+    calculate_face_landmarks_dataset, calculate_face_correspondences, calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.face_analysis import filter_wrong_faces
 from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_model, headpose_estimation
@@ -51,14 +51,14 @@ if __name__ == '__main__':
     print("##################################")
     find_matches(folder_root, permutations)
 
+    #######################
+
     print("##################################")
     print("###########GEN DATASET############")
     print("##################################")
     generate_voxceleb_dataset(folder_root, "frames_cropped", dataset_output_folder)
-
-    print("##################################")
     print("######face_correspondences########")
-    print("##################################")
+    calculate_face_landmarks_dataset(dataset_output_folder)
     calculate_face_correspondences_dataset(dataset_output_folder)
 
     print("##################################")
@@ -66,9 +66,8 @@ if __name__ == '__main__':
     print("for:", dataset_output_folder, "to:", output_test_dataset)
     print("##################################")
     create_train_test_split(dataset_output_folder, output_test_dataset)
-
-    print("##################################")
     print("######face_correspondences########")
-    print("##################################")
-    calculate_face_correspondences_dataset(os.path.join(output_test_dataset,"train"))
-    calculate_face_correspondences_dataset(os.path.join(output_test_dataset,"validation"))
+    calculate_face_landmarks_dataset(os.path.join(output_test_dataset, "train"))
+    calculate_face_landmarks_dataset(os.path.join(output_test_dataset, "validation"))
+    calculate_face_correspondences_dataset(os.path.join(output_test_dataset, "train"))
+    calculate_face_correspondences_dataset(os.path.join(output_test_dataset, "validation"))

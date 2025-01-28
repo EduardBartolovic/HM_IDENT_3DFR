@@ -76,8 +76,9 @@ class MultiviewDataset(Dataset):
         # Load all images in the set
         images = [Image.open(img_path).convert("RGB") for img_path in img_paths]
 
+        # Load all face correspondences
         if self.face_cor_exist:
-            facial_corr = torch.Tensor(np.array([np.load(img_path.replace(".jpg", ".npz"))['landmarks'] for img_path in img_paths]))
+            facial_corr = torch.Tensor(np.array([np.load(img_path.replace("_image.jpg", "_corr.npz"))['corr'] for img_path in img_paths]))
         else:
             facial_corr = torch.Tensor([])
 
