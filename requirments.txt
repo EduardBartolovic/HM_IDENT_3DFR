@@ -11,3 +11,4 @@ pycm
 openTSNE
 seaborn
 numba
+scikit-image
