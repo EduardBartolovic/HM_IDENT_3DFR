@@ -140,10 +140,11 @@ if __name__ == "__main__":
         print('*********************************************************')
         print('Identity {}/{}: {} videos for {} identity'.format(i, len(ids_path), len(videos_path), id_index))
 
-        if i < 785:
+        if i < 1317:
             print(f"skipped {i}")
             continue
 
+        error_counter = 0
         for j, video_path in enumerate(videos_path):
 
             print('{}/{} videos'.format(j, len(videos_path)))
@@ -160,11 +161,12 @@ if __name__ == "__main__":
             mp4_path = os.path.join(output_path_video, '{}.mp4'.format(video_id))
             print("mp4_path", mp4_path)
             if not os.path.exists(mp4_path):
-                success = False  # download_video(video_id, mp4_path, id_index, fail_video_ids = fail_video_ids)
+                success = download_video(video_id, mp4_path, id_index, fail_video_ids = fail_video_ids)
             else:
                 success = True
 
             if success:
+                error_counter = 0
                 # Split in small videos using the metadata
                 output_path_chunk_videos = os.path.join(output_path, id_index, video_id, 'chunk_videos')
                 make_path(output_path_chunk_videos)
@@ -191,8 +193,12 @@ if __name__ == "__main__":
                     if delete_or_frames and len(image_files) > 0:  # Delete original frames
                         command_delete = 'rm -rf {}'.format(extracted_frames_path)
                         os.system(command_delete)
+
             else:
                 print('Error downloading video {}/{}. Deleting folder {}'.format(id_index, video_id, output_path_video))
                 command_delete = 'rm -rf {}'.format(output_path_video)
                 os.system(command_delete)
-                #time.sleep(10)
+                error_counter+=1
+                time.sleep(10)
+                if error_counter > 50:
+                    raise Exception("error_counter reached 50")
