@@ -1,12 +1,7 @@
-import time
-
-import cv2
 import numpy as np
 import torch
-from scipy.interpolate import Rbf
 from torch import nn
 from torch.nn import Module, Sequential, Conv2d, BatchNorm2d, PReLU, Dropout, Linear, BatchNorm1d
-from tqdm import tqdm
 import torch.nn.functional as F
 
 from src.backbone.model_irse import Bottleneck, bottleneck_IR, Flatten
