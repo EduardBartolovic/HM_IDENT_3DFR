@@ -16,13 +16,23 @@ sudo docker build -t 3dfr .
 docker run -it --gpus all -v $(pwd)/mlruns:/app/log -v ~/dataset:/app/data 3dfr 
 
 poetry run python src/train.py --config configs/config_expX_1.yaml
+
+poetry run python src/train_multiview.py --config configs/config_expX_1.yaml
+
 ```
 
 
-
-## Headpose extraction
+## Face correspondences
 
 ```bash
+export PYTHONPATH=.
+python src/preprocess_datasets/face_correspondences/CalculateFaceCorrespondences.py
+```
+
+## Preprocessing VoxCeleb
+
+```bash
+export PYTHONPATH=.
 python src/preprocess_datasets/headPoseEstimation/main.py
 ```
 Or

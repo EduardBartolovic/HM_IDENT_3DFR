@@ -1,5 +1,4 @@
 import os
-from collections import defaultdict
 
 import cv2
 import mediapipe as mp
@@ -124,16 +123,6 @@ def calculate_face_correspondences_prototype(face_mesh, image1, image2, draw_cor
     else:
         raise ValueError("Face landmarks not detected in one or both images.")
 
-def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
-    """
-    Perform Thin-Plate Spline Transformation
-    """
-    rbf_x = Rbf(source_points[:, 0], source_points[:, 1], target_points[:, 0], function='thin_plate', smooth=smooth)
-    rbf_y = Rbf(source_points[:, 0], source_points[:, 1], target_points[:, 1], function='thin_plate', smooth=smooth)
-
-    warped_x = rbf_x(grid_x, grid_y)
-    warped_y = rbf_y(grid_x, grid_y)
-    return warped_x, warped_y
 
 def calculate_face_correspondences_between_two_faces(source_landmarks, target_landmarks):
     w, h = 112,112
@@ -197,8 +186,6 @@ def calculate_face_correspondences_dataset(dataset_folder, draw=False):
             else:
                 grid = calculate_face_correspondences_between_two_faces(npzs[zero_position], npzs[v])
                 np.savez_compressed(file_paths[v].replace("_image.npz", "_corr.npz"), corr=grid)
-                if "f03463d2c721f7f05304c9826ef170c99b8a788525" in file_paths[v]:
-                    print("vvvvvvvvvvvvvvvvvv")
                 if draw:
                     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
                     axes[0].imshow(grid[:, :, 0], cmap='viridis')

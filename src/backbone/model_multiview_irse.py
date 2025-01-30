@@ -152,7 +152,7 @@ def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
 
     # Pre-allocate array for aligned feature maps
     aligned_batched_featuremaps = torch.empty((batch_size, num_views, num_channels, h, w), dtype=featuremaps.dtype, device=device)
-    for b in tqdm(range(batch_size), desc="Aligning feature maps"):
+    for b in range(batch_size):
         view_featuremaps = featuremaps[b]  # Shape: [V, C, H, W]
         view_grid = face_corr[b]  # Shape: [V, H, W, 2]
         for v in range(num_views):

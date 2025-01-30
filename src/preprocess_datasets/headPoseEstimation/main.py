@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import \
-    calculate_face_landmarks_dataset, calculate_face_correspondences, calculate_face_correspondences_dataset
+    calculate_face_landmarks_dataset, calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.face_analysis import filter_wrong_faces
 from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_model, headpose_estimation
