@@ -218,7 +218,6 @@ def calculate_face_landmarks_dataset(dataset_folder):
                 h, w, _ = image.shape
                 if results.multi_face_landmarks:
                     landmarks = results.multi_face_landmarks[0].landmark
-                    #points = np.array([[lm.x * w, lm.y * h] for lm in landmarks])
                     points = np.array([[lm.x, lm.y] for lm in landmarks])
                 else:
                     points = np.load(os.path.join(os.path.join(os.path.dirname(__file__)), "default_landmarks.npz"))['landmarks']        # TODO: Temporary solution for bad dataset

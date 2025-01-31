@@ -156,7 +156,7 @@ def filter_wrong_faces(input_folder, output_folder, backbone_save_path, device, 
                             shutil.copy(src, dst)
                             updated_data.append(data[idx])
                         else:
-                            print(f"Filtered outlier: {image_paths[idx]} with distance {avg_distances[idx]} with avg distances {np.mean(avg_distances)}")
+                            print(f"Filtered outlier: {image_paths[idx]} with distance {round(avg_distances[idx],4)} with avg distances {round(np.mean(avg_distances),4)}")
 
                     with open(file_path.replace(".txt", "_filtered.txt"), 'w') as f:
                         for line in updated_data:
