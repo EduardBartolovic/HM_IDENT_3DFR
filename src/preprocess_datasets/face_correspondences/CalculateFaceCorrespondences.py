@@ -10,17 +10,7 @@ from scipy.spatial import KDTree
 from tqdm import tqdm
 
 
-# Thin-Plate Spline Transformation
-def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
-    """
-    Perform Thin-Plate Spline Transformation
-    """
-    rbf_x = Rbf(source_points[:, 0], source_points[:, 1], target_points[:, 0], function='thin_plate', smooth=smooth)
-    rbf_y = Rbf(source_points[:, 0], source_points[:, 1], target_points[:, 1], function='thin_plate', smooth=smooth)
 
-    warped_x = rbf_x(grid_x, grid_y)
-    warped_y = rbf_y(grid_x, grid_y)
-    return warped_x, warped_y
 
 
 # Create a grid of points over the image
@@ -123,6 +113,17 @@ def calculate_face_correspondences_prototype(face_mesh, image1, image2, draw_cor
     else:
         raise ValueError("Face landmarks not detected in one or both images.")
 
+# Thin-Plate Spline Transformation
+def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
+    """
+    Perform Thin-Plate Spline Transformation
+    """
+    rbf_x = Rbf(source_points[:, 0], source_points[:, 1], target_points[:, 0], function='thin_plate', smooth=smooth)
+    rbf_y = Rbf(source_points[:, 0], source_points[:, 1], target_points[:, 1], function='thin_plate', smooth=smooth)
+
+    warped_x = rbf_x(grid_x, grid_y)
+    warped_y = rbf_y(grid_x, grid_y)
+    return warped_x, warped_y
 
 def calculate_face_correspondences_between_two_faces(source_landmarks, target_landmarks):
     w, h = 112,112
@@ -234,7 +235,7 @@ if __name__ == '__main__':
 
     dataset = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\validation"
     #calculate_face_landmarks_dataset(dataset)
-    calculate_face_correspondences_dataset(dataset)
+    #calculate_face_correspondences_dataset(dataset)
     dataset = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\train"
     #calculate_face_landmarks_dataset(dataset)
     #calculate_face_correspondences_dataset(dataset)
@@ -305,49 +306,50 @@ if __name__ == '__main__':
     # plt.show()
     # raise Exception()
 
+    from torchvision.transforms import transforms
+    import torch.nn.functional as F
 
+    image1_ori = cv2.imread("C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\validation\\id10270\\f03463d2c721f7f05304c9826ef170c99b8a78850_0_image.jpg")
+    image1_ori = cv2.cvtColor(image1_ori, cv2.COLOR_BGR2RGB)
+    image2_ori = cv2.imread("C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\validation\\id10270\\f03463d2c721f7f05304c9826ef170c99b8a788525_-25_image.jpg")
+    image2_ori = cv2.cvtColor(image2_ori, cv2.COLOR_BGR2RGB)
+    image2 = transforms.ToTensor()(image2_ori)
+    image2 = transforms.Resize((112,112))(image2)
 
-    # image1_ori = cv2.imread("C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\validation\\id10270\\f03463d2c721f7f05304c9826ef170c99b8a78850_0_image.jpg")
-    # image1_ori = cv2.cvtColor(image1_ori, cv2.COLOR_BGR2RGB)
-    # image2_ori = cv2.imread("C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\validation\\id10270\\f03463d2c721f7f05304c9826ef170c99b8a788525_-25_image.jpg")
-    # image2_ori = cv2.cvtColor(image2_ori, cv2.COLOR_BGR2RGB)
-    # image2 = transforms.ToTensor()(image2_ori)
-    # image2 = transforms.Resize((112,112))(image2)
-    #
-    # ori_grid = np.load("C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\validation\\id10270\\f03463d2c721f7f05304c9826ef170c99b8a788525_-25_corr.npz")["corr"]
-    # grid = torch.Tensor(ori_grid)
-    # print(grid.shape[:2], image2.shape[1:])
-    # if grid.shape[:2] != image2.shape[1:]:
-    #     print("RESIZE")
-    #     _, target_height, target_width = image2.shape
-    #     # Reshape grid for interpolation
-    #     grid = grid.permute(2, 0, 1)  # [1, 2, H, W]
-    #     # Resize using bilinear interpolation
-    #     grid = F.interpolate(grid, size=(target_height, target_width), mode='bilinear', align_corners=True)
-    #     # Reshape back to grid format [1, target_height, target_width, 2]
-    #     grid = grid.permute(1, 2, 0)
-    #
-    # grid = grid.unsqueeze(0)
-    #
-    # image2 = transforms.ToTensor()(image2_ori)
-    # image2 = transforms.Resize((112,112))(image2)
-    # image2 = image2.unsqueeze(0)  # Add batch dimension
-    # warped_image = F.grid_sample(image2, grid, mode='bilinear', align_corners=True).squeeze(0)
-    # warped_image = np.transpose(warped_image.numpy(), (1, 2, 0))
-    #
-    # fig, axes = plt.subplots(1, 5, figsize=(10, 5))
-    # axes[0].imshow(ori_grid[:, :, 0], cmap='viridis')
-    # axes[0].set_title("Slice 1")
-    # axes[0].axis('off')
-    # axes[1].imshow(ori_grid[:, :, 1], cmap='viridis')
-    # axes[1].set_title("Slice 2")
-    # axes[1].axis('off')
-    # axes[2].imshow(warped_image)
-    # axes[2].set_title("Slice 2")
-    # axes[2].axis('off')
-    # axes[3].imshow(image2_ori)
-    # axes[3].axis('off')
-    # axes[4].imshow(image1_ori)
-    # axes[4].axis('off')
-    # plt.tight_layout()
-    # plt.show()
+    ori_grid = np.load("C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\validation\\id10270\\f03463d2c721f7f05304c9826ef170c99b8a788525_-25_corr.npz")["corr"]
+    grid = torch.Tensor(ori_grid)
+    print(grid.shape[:2], image2.shape[1:])
+    if grid.shape[:2] != image2.shape[1:]:
+        print("RESIZE")
+        _, target_height, target_width = image2.shape
+        # Reshape grid for interpolation
+        grid = grid.permute(2, 0, 1)  # [1, 2, H, W]
+        # Resize using bilinear interpolation
+        grid = F.interpolate(grid, size=(target_height, target_width), mode='bilinear', align_corners=True)
+        # Reshape back to grid format [1, target_height, target_width, 2]
+        grid = grid.permute(1, 2, 0)
+
+    grid = grid.unsqueeze(0)
+
+    image2 = transforms.ToTensor()(image2_ori)
+    image2 = transforms.Resize((112,112))(image2)
+    image2 = image2.unsqueeze(0)  # Add batch dimension
+    warped_image = F.grid_sample(image2, grid, mode='bilinear', align_corners=True).squeeze(0)
+    warped_image = np.transpose(warped_image.numpy(), (1, 2, 0))
+
+    fig, axes = plt.subplots(1, 5, figsize=(10, 5))
+    axes[0].imshow(ori_grid[:, :, 0], cmap='viridis')
+    axes[0].set_title("Slice 1")
+    axes[0].axis('off')
+    axes[1].imshow(ori_grid[:, :, 1], cmap='viridis')
+    axes[1].set_title("Slice 2")
+    axes[1].axis('off')
+    axes[2].imshow(warped_image)
+    axes[2].set_title("Slice 2")
+    axes[2].axis('off')
+    axes[3].imshow(image2_ori)
+    axes[3].axis('off')
+    axes[4].imshow(image1_ori)
+    axes[4].axis('off')
+    plt.tight_layout()
+    plt.show()

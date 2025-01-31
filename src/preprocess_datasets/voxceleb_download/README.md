@@ -20,7 +20,7 @@ pip install -r requirements.txt
 
 ### Install  youtube-dl:
 ```
-pip install --upgrade youtube_dl
+pip install --upgrade yt_dlp
 ```
 
 ### Install ffmpeg
@@ -30,9 +30,9 @@ sudo apt-get install ffmpeg
 
 ### Download auxilliary models and save them under `./pretrained_models`
 
-| Path | Description
-| :--- | :----------
-|[FaceDetector](https://drive.google.com/file/d/1IWqJUTAZCelAZrUzfU38zK_ZM25fK32S/view?usp=sharing)  | SFD face detector for [face-alignment](https://github.com/1adrianb/face-alignment).
+| Path                                                                                               | Description                                                                         |
+|:---------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------|
+| [FaceDetector](https://drive.google.com/file/d/1IWqJUTAZCelAZrUzfU38zK_ZM25fK32S/view?usp=sharing) | SFD face detector for [face-alignment](https://github.com/1adrianb/face-alignment). |
 
 ## Overview
 
@@ -64,33 +64,37 @@ sudo apt-get install ffmpeg
 
 1. Download metadata from [VoxCeleb1](https://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox1.html) and [VoxCeleb2](https://www.robots.ox.ac.uk/~vgg/data/voxceleb/vox2.html)
 
-```
-wget www.robots.ox.ac.uk/~vgg/data/voxceleb/data/vox1_test_txt.zip
-unzip vox1_test_txt.zip
-mv ./txt ./vox1_txt_test
-
-wget www.robots.ox.ac.uk/~vgg/data/voxceleb/data/vox1_dev_txt.zip
-unzip vox1_dev_txt.zip
-mv ./txt ./vox1_txt_train
-
-```
-
-```
-wget www.robots.ox.ac.uk/~vgg/data/voxceleb/data/vox2_test_txt.zip
-unzip vox2_test_txt.zip
-mv ./txt ./vox2_txt_test
-
-wget www.robots.ox.ac.uk/~vgg/data/voxceleb/data/vox2_dev_txt.zip
-unzip vox2_dev_txt.zip
-mv ./txt ./vox2_txt_train
-
-```
+    ```
+    wget www.robots.ox.ac.uk/~vgg/data/voxceleb/data/vox1_test_txt.zip
+    unzip vox1_test_txt.zip
+    mv ./txt ./vox1_txt_test
+    
+    wget www.robots.ox.ac.uk/~vgg/data/voxceleb/data/vox1_dev_txt.zip
+    unzip vox1_dev_txt.zip
+    mv ./txt ./vox1_txt_train
+    
+    ```
+    
+    ```
+    wget www.robots.ox.ac.uk/~vgg/data/voxceleb/data/vox2_test_txt.zip
+    unzip vox2_test_txt.zip
+    mv ./txt ./vox2_txt_test
+    
+    wget www.robots.ox.ac.uk/~vgg/data/voxceleb/data/vox2_dev_txt.zip
+    unzip vox2_dev_txt.zip
+    mv ./txt ./vox2_txt_train
+    
+    ```
 
 2. Run this script to download videos from youtube. Note that the original videos will be removed. Optionally extract and preprocess frames.
 
-```
-python download_voxCeleb.py --dataset vox1 --output_path ./VoxCeleb1_test --metadata_path ./vox1_txt_test --delete_mp4
-```
+    ```
+    python download_voxCeleb.py --dataset vox1 --output_path ./VoxCeleb1_test --metadata_path ./vox1_txt_test --delete_mp4
+    ```
+   
+    ```
+    python download_voxCeleb.py --dataset vox2 --output_path ./VoxCeleb2_train --metadata_path ./vox2_txt_train --delete_mp4 --preprocessing -extract_frames
+    ```
 
 ## Preprocessing of video frames
 
