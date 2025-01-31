@@ -162,26 +162,18 @@ def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
     return aligned_batched_featuremaps
 
 
-def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr):
+def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr, use_face_corr):
 
-    if face_corr.shape[1] > 0:
+    if use_face_corr:
         zero_position = np.where(np.array(perspectives)[:,0] == '0_0')[0][0]
         if stage_index == 0:
             all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
         if stage_index == 1:
             all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
+        if stage_index == 2:
+            all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
 
     views_pooled_stage = aggregators[stage_index](all_view_stage)
-
-    # ========== Max ==========
-    # views_pooled_stage = all_view_stage.max(dim=1)[0]
-
-    # ========== Sum ==========
-    # views_pooled_stage = all_view_stage.sum(dim=1)
-
-    # ========== Weighted Average Pooling ==========
-    # weights = torch.softmax(torch.randn(all_view_stage.size(1), device=all_view_stage.device), dim=0)  # Create weights for each view (shape: [view])
-    # views_pooled_stage = torch.einsum('bvchw,v->bchw', all_view_stage, weights)  # Apply weights to views
 
     # ========== Global Context Pooling ==========
     # global_descriptor = all_view_stage.mean(dim=(1, 3, 4), keepdim=True)  # [batch, view, c, 1, 1]
@@ -196,7 +188,7 @@ def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr
     return views_pooled_stage
 
 
-def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr):
+def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr):
 
     x_1 = None
     x_2 = None
@@ -217,7 +209,7 @@ def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_featur
             all_view_stage = torch.cat((all_view_stage, x_4.unsqueeze(1)), dim=1)
 
         # Perform pooling across views
-        views_pooled_stage = aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr)  # [batch, c, w, h]
+        views_pooled_stage = aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr, use_face_corr)  # [batch, c, w, h]
 
         if views_pooled_stage.shape[-1] == 112:
             x_1 = backbone_agg(views_pooled_stage, execute_stage={1})
@@ -234,7 +226,7 @@ def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_featur
     raise ValueError("Illegal State")
 
 
-def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr):
+def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr):
     # Initialize a dictionary to hold stage features for all views
     stage_to_index = {
         "input_stage": 0,
@@ -252,7 +244,6 @@ def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, persp
                 all_views_stage_features[index].append(features_stages[stage])
 
     # visualize_feature_maps(all_views_stage_features, "E:\\Download", batch_idx=0)
-
-    embeddings = perform_aggregation_branch( backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr)
+    embeddings = perform_aggregation_branch( backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr)
 
     return embeddings

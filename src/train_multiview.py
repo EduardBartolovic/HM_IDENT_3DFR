@@ -77,10 +77,12 @@ if __name__ == '__main__':
 
     # ===== Test set naming ============
     test_bellus = 'test_rgb_bellus'
+    test_bellus_fc = 'test_rgb_bellus_fc'
     test_facescape = 'test_rgb_facescape'
     test_faceverse = 'test_rgb_faceverse'
     test_texas = 'test_rgb_texas'
     test_bff = 'test_rgb_bff'
+    test_bff_fc = 'test_rgb_bff_fc'
     test_vox1 = 'VoxCeleb1_test_dataset_TEST'
     test_vox2 = 'VoxCeleb2_test_dataset_TEST'
 
@@ -209,10 +211,14 @@ if __name__ == '__main__':
                 schedule_lr(OPTIMIZER)
 
             #  ======= perform validation =======
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE*4)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE*4)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus_fc, epoch, (150, 150), BATCH_SIZE * 4)
+
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(150, 150), BATCH_SIZE*4)
             #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(150, 150), BATCH_SIZE * 4)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch,(150, 150), BATCH_SIZE*4)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch,
+                                 (150, 150), BATCH_SIZE * 4)
             print("=" * 60)
 
             BACKBONE_reg.eval()
@@ -223,14 +229,19 @@ if __name__ == '__main__':
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
+            use_face_corr = False
             for inputs, labels, perspectives, face_corrs in tqdm(iter(train_loader)):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (
                         batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
                     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
 
+                if not use_face_corr and face_corrs.shape[1] > 0:
+                    print("Using Feature Alignment")
+                    use_face_corr = True
+
                 labels = labels.to(DEVICE).long()
-                embeddings = execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs, perspectives, face_corrs)
+                embeddings = execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs, perspectives, face_corrs, use_face_corr)
                 outputs = HEAD(embeddings, labels)
                 loss = LOSS(outputs, labels)
 

@@ -54,8 +54,14 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
     enrolled_embeddings = []
     enrolled_labels = []
     enrolled_perspectives= []
+    use_face_corr = False
     for inputs, labels, perspectives, face_corr in tqdm(iter(enrolled_loader), desc="Generate Enrolled Embeddings"):
-        embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr).cpu().numpy()
+
+        if not use_face_corr and face_corr.shape[1] > 0:
+            print("Using Feature Alignment")
+            use_face_corr = True
+
+        embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr).cpu().numpy()
         enrolled_embeddings.extend(embeddings)
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         enrolled_perspectives.append(np.array(perspectives).T)
