@@ -70,7 +70,7 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
     query_labels = []
     query_perspectives= []
     for inputs, labels, perspectives, face_corr in tqdm(iter(query_loader), desc="Generate Query Embeddings"):
-        embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr).cpu().numpy()
+        embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr).cpu().numpy()
         query_embeddings.extend(embeddings)
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         query_perspectives.append(np.array(perspectives).T)
