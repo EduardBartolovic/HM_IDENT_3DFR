@@ -215,7 +215,7 @@ if __name__ == '__main__':
             #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus_fc, epoch, (150, 150), BATCH_SIZE * 4)
 
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(150, 150), BATCH_SIZE*4)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(150, 150), BATCH_SIZE * 4)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(150, 150), BATCH_SIZE * 4)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch,(150, 150), BATCH_SIZE*4)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch,(150, 150), BATCH_SIZE * 4)
             print("=" * 60)

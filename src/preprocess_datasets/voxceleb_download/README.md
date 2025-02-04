@@ -102,7 +102,7 @@ sudo apt-get install ffmpeg
 1. If videos have already been downloaded, run this script to extract and preprocess frames.
 
 ```
-python preprocess_voxCeleb.py --dataset vox1 --root_path ./VoxCeleb1_test --metadata_path ./vox1_txt_test
+python preprocess_voxCeleb.py --dataset vox1 --root_path ./VoxCeleb1_test --metadata_path ./vox1_txt_test 
 ```
 ## Acknowledgments
 

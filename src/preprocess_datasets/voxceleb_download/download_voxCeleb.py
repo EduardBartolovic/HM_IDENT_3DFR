@@ -140,9 +140,9 @@ if __name__ == "__main__":
         print('*********************************************************')
         print('Identity {}/{}: {} videos for {} identity'.format(i, len(ids_path), len(videos_path), id_index))
 
-        if i < 1317:
-            print(f"skipped {i}")
-            continue
+        #if i < 1317:
+        #    print(f"skipped {i}")
+        #    continue
 
         error_counter = 0
         for j, video_path in enumerate(videos_path):
