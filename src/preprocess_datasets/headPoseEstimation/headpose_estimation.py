@@ -62,7 +62,7 @@ def headpose_estimation(input_folder, output_folder, head_pose_model, device, fi
             imgs = []
             frame_infos = []
             for img_file_name in files:
-                if ".png" in img_file_name:
+                if ".jpg" in img_file_name or ".png" in img_file_name:
                     img_path = os.path.join(root, img_file_name)
                     img = cv2.imread(img_path, cv2.IMREAD_COLOR)
                     if img is not None:

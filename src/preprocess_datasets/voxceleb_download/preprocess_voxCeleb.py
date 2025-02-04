@@ -55,7 +55,7 @@ def get_frames(video_path, frames_path, video_index, fps):
         if not ret:
             break
         if counter % frame_skip == 0:
-            cv2.imwrite(os.path.join(frames_path, '{:02d}_{:06d}.png'.format(video_index, counter)), frame)
+            cv2.imwrite(os.path.join(frames_path, '{:02d}_{:06d}.jpg'.format(video_index, counter)), frame)
         counter += 1
 
     cap.release()
