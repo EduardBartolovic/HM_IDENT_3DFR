@@ -2,6 +2,7 @@ import shutil
 
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
 from sklearn.metrics.pairwise import cosine_distances
 from torchvision.transforms import transforms
 
@@ -10,6 +11,7 @@ from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import read_file
 import os
 import cv2
 import mediapipe as mp
+import umap
 
 def process_landmarks(multi_face_landmarks, dst, r_pred_deg, image):
     for face_landmarks in multi_face_landmarks:
@@ -89,7 +91,6 @@ def face_analysis(input_folder, output_folder, device):
 
 
 
-
 def filter_wrong_faces(input_folder, output_folder, backbone_save_path, device, distance_threshold=0.6):
 
     train_transform = transforms.Compose([
@@ -104,64 +105,71 @@ def filter_wrong_faces(input_folder, output_folder, backbone_save_path, device, 
     backbone = backbone.to("cuda")
     backbone.eval()
 
-    for root, _, files in os.walk(input_folder):
-        if "hpe" in root:
-            for txt_file in files:
-                if txt_file.endswith('hpe.txt'):
-                    file_path = os.path.join(root, txt_file)
-                    data = read_file(file_path, remove_header=False)
+    for id_name in os.listdir(input_folder):
+        id_path = os.path.join(input_folder, id_name)
+        if not os.path.isdir(id_path):
+            continue
 
-                    folder_image_path = os.path.join(root, "..", "frames_cropped")
-                    folder_image_output_path = os.path.join(root, "..", output_folder)
+        folder_image_output_path = os.path.join(id_path, output_folder)
+        os.makedirs(folder_image_output_path, exist_ok=True)
 
-                    embeddings = []
-                    image_paths = []
-                    for info in data:
-                        src = os.path.join(folder_image_path, info[3])
-                        image = cv2.imread(src)
-                        if image is None:
-                            print(f"Failed to read image: {src}")
-                            continue
+        embeddings = []
+        image_paths = []
 
-                        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                        pil_image = transforms.ToPILImage()(rgb_image)
-                        processed_image = train_transform(pil_image).unsqueeze(0).to(device)
+        for video_name in os.listdir(id_path):
+            video_path = os.path.join(id_path, video_name, "frames_cropped")
+            if not os.path.isdir(video_path):
+                continue
 
-                        # Generate the embedding
-                        with torch.no_grad():
-                            embedding = backbone(processed_image).cpu().numpy().flatten()
-                        embeddings.append(embedding)
-                        image_paths.append(src)
+            for img_file in os.listdir(video_path):
+                if not img_file.lower().endswith((".jpg", ".jpeg", ".png")):
+                    continue
 
-                    embeddings = np.array(embeddings)
+                img_path = os.path.join(video_path, img_file)
+                image = cv2.imread(img_path)
+                if image is None:
+                    print(f"Failed to read image: {img_path}")
+                    continue
 
-                    # Perform outlier detection
-                    distances = cosine_distances(embeddings)
+                rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                pil_image = transforms.ToPILImage()(rgb_image)
+                processed_image = train_transform(pil_image).unsqueeze(0).to(device)
 
-                    # Calculate the average distance for each embedding
-                    avg_distances = distances.mean(axis=1)
+                with torch.no_grad():
+                    embedding = backbone(processed_image).cpu().numpy().flatten()
+                embeddings.append(embedding)
+                image_paths.append(img_path)
 
-                    inliers = avg_distances < distance_threshold
+        if len(embeddings) == 0:
+            continue
 
-                    if not np.any(inliers):
-                        continue
+        embeddings = np.array(embeddings)
+        distances = cosine_distances(embeddings)
+        avg_distances = distances.mean(axis=1)
+        inliers = avg_distances < distance_threshold
 
-                    os.makedirs(folder_image_output_path, exist_ok=True)
+        if True:
+            reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, metric='cosine')
+            embeddings_2d = reducer.fit_transform(embeddings)
+            plt.figure(figsize=(10, 8))
+            plt.scatter(embeddings_2d[:, 0], embeddings_2d[:, 1], c=inliers, cmap='coolwarm', s=50, alpha=0.7)
+            plt.title(f"Embeddings Visualization for ID: {id_name}")
+            plt.colorbar(label='Inliers (True = 1, False = 0)')
+            plt.xlabel('UMAP 1')
+            plt.ylabel('UMAP 2')
+            plt.show()
 
-                    updated_data = []
-                    for idx, is_inlier in enumerate(inliers):
-                        if is_inlier:
-                            src = image_paths[idx]
-                            dst = os.path.join(folder_image_output_path, os.path.basename(src))
-                            shutil.copy(src, dst)
-                            updated_data.append(data[idx])
-                        else:
-                            print(f"Filtered outlier: {image_paths[idx]} with distance {round(avg_distances[idx],4)} with avg distances {round(np.mean(avg_distances),4)}")
 
-                    with open(file_path.replace(".txt", "_filtered.txt"), 'w') as f:
-                        for line in updated_data:
-                            f.write(','.join(map(str, line)) + '\n')
+        if not np.any(inliers):
+            continue
 
+        for idx, is_inlier in enumerate(inliers):
+            if is_inlier:
+                src = image_paths[idx]
+                dst = os.path.join(folder_image_output_path, os.path.basename(src))
+                shutil.copy(src, dst)
+            else:
+                print(f"Filtered outlier: {image_paths[idx]} with distance {round(avg_distances[idx], 4)}")
 
 
 if __name__ == '__main__':
