@@ -130,6 +130,113 @@ def headpose_estimation(input_folder, output_folder, head_pose_model, device, fi
 
     print(f"HPE for {counter} frames")
 
+
+def get_frames(video_path, frame_skip=1):
+    cap = cv2.VideoCapture(video_path)
+    counter = 0
+    frame_list = []
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        if counter % frame_skip == 0:
+            frame_list.append(frame)
+        counter += 1
+
+    cap.release()
+    cv2.destroyAllWindows()
+    return frame_list
+
+
+def headpose_estimation_from_video(input_folder, output_folder, head_pose_model, device, fix_rotation=False, draw=True, make_vid=False,):
+
+    counter = 0
+    for root, _, files in os.walk(input_folder):
+
+        frame_infos = []
+        output_hpe_folder = os.path.join(root, output_folder)
+        output_video_path = os.path.join(output_hpe_folder, "hpe.mp4")
+        output_txt_path = os.path.join(output_hpe_folder, "hpe.txt")
+
+        # Skip video if hpe.txt already exists
+        if os.path.exists(output_txt_path):
+            print(f"Skipping already processed folder: {output_hpe_folder}")
+            continue
+
+        for video in files:
+
+            if ".mp4" in video:
+
+                os.makedirs(output_hpe_folder, exist_ok=True)
+                imgs = get_frames(os.path.join(root, video))
+
+                for counter, img in enumerate(imgs):
+                    if img is not None:
+                        info = process(img, device, head_pose_model)
+                        info.append(video+"#"+str(counter))
+                        frame_infos.append(info)
+
+                #assert len(frame_infos) == len(imgs)
+                assert len(frame_infos) > 0
+
+                fps = 3
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for mp4 videos
+                out = None
+
+                frames_written = 0
+                for frame, info in zip(imgs, frame_infos):
+                    y_pred_deg, p_pred_deg, r_pred_deg, _ = info
+                    w, h, c = frame.shape
+
+                    if make_vid:
+                        if fix_rotation:
+
+                            bbox_center_x = w // 2
+                            bbox_center_y = h // 2
+                            rotation_matrix = cv2.getRotationMatrix2D((bbox_center_x, bbox_center_y), r_pred_deg, 1.0)
+
+                            # Apply rotation to the full frame
+                            frame = cv2.warpAffine(
+                                frame,
+                                rotation_matrix,
+                                (frame.shape[1], frame.shape[0]),
+                                flags=cv2.INTER_LINEAR,
+                                borderMode=cv2.BORDER_CONSTANT,
+                                borderValue=(0, 0, 0)
+                            )
+                            r_pred_deg = 0
+
+                        if draw:
+                            draw_axis(
+                                frame,
+                                y_pred_deg,
+                                p_pred_deg,
+                                r_pred_deg,
+                                bbox=[0, 0, w, h],
+                                size_ratio=0.5
+                            )
+
+                        if out is None:
+                            out = cv2.VideoWriter(output_video_path, fourcc, fps, (w, h))
+                        out.write(frame)
+                        frames_written += 1
+
+                    if make_vid:
+                        out.write(frame)
+                        out.release()
+                        print(f"Processed and saved cropped video: {output_video_path} frames_written: {frames_written}")
+
+        if len(frame_infos) > 0:
+            with open(output_txt_path, 'w') as txt_file:
+                for i in frame_infos:
+                    txt_file.write(','.join(map(str, i)) + '\n')
+                    counter += 1
+
+            print(f"Processed: {output_txt_path}")
+
+    print(f"HPE for {counter} frames")
+
+
 if __name__ == '__main__':
     input_folder = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files
     output_folder = "hpe"  # Folder to save cropped videos

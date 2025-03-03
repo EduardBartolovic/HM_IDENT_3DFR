@@ -23,12 +23,12 @@ def match_hope_angles_to_references(data, references, ignore_roll=False):
     return closest_rows
 
 
-def find_matches(input_folder, references):
+def find_matches(input_folder, references, txt_name="hpe_filtered.txt"):
     counter = 0
     for root, _, files in os.walk(input_folder):
         if "hpe" in root:
             for txt_file in files:
-                if txt_file.endswith('hpe_filtered.txt'):
+                if txt_file.endswith(txt_name):
                     counter += 1
                     file_path = os.path.join(root, txt_file)
                     with open(file_path) as file:
@@ -53,6 +53,7 @@ def find_matches(input_folder, references):
                             other_values = row[2:]  # Remaining values
                             writer.writerow(array1 + array2 + list(other_values))
     print("Found matches for", counter, "files")
+
 
 if __name__ == '__main__':
 
