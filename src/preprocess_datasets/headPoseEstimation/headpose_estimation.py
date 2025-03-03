@@ -47,12 +47,23 @@ def process(cropped_face, device, head_pose):
     return [int(eulers_deg[1]), int(eulers_deg[0]), int(eulers_deg[2])]
 
 
-def headpose_estimation(input_folder, output_folder, head_pose_model, device, fix_rotation=False, draw=True, make_vid=False,):
+def headpose_estimation(input_folder, image_folder, output_folder, model_path_hpe, device, fix_rotation=False, draw=True, make_vid=False,):
+
+    try:
+        head_pose = get_model("resnet50", num_classes=6)
+        state_dict = torch.load(model_path_hpe, map_location=device, weights_only=True)
+        head_pose.load_state_dict(state_dict)
+        head_pose.to(device)
+        head_pose.eval()
+        logging.info("Head Pose Estimation model weights loaded.")
+    except Exception as e:
+        logging.info(f"Exception occured while loading weights of head pose estimation model: {e}")
+        raise Exception()
 
     counter = 0
     for root, _, files in os.walk(input_folder):  # Recursively walk through directories
 
-        if "frames_cropped" in root and "hpe" not in root:
+        if image_folder in root and "hpe" not in root:
 
             output_video_folder = os.path.join(os.path.dirname(root), output_folder)
             output_video_path = os.path.join(output_video_folder, "hpe.mp4")
@@ -62,7 +73,7 @@ def headpose_estimation(input_folder, output_folder, head_pose_model, device, fi
             imgs = []
             frame_infos = []
             for img_file_name in files:
-                if ".png" in img_file_name:
+                if ".jpg" in img_file_name or ".png" in img_file_name:
                     img_path = os.path.join(root, img_file_name)
                     img = cv2.imread(img_path, cv2.IMREAD_COLOR)
                     if img is not None:

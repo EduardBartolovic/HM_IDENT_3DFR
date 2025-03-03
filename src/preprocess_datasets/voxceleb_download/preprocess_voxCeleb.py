@@ -55,7 +55,7 @@ def get_frames(video_path, frames_path, video_index, fps):
         if not ret:
             break
         if counter % frame_skip == 0:
-            cv2.imwrite(os.path.join(frames_path, '{:02d}_{:06d}.png'.format(video_index, counter)), frame)
+            cv2.imwrite(os.path.join(frames_path, '{:02d}_{:06d}.jpg'.format(video_index, counter)), frame)
         counter += 1
 
     cap.release()
@@ -204,24 +204,22 @@ if __name__ == "__main__":
                 ############################################################
                 ###                   Preprocessing 					 ###
                 ############################################################
-                image_files = glob.glob(os.path.join(extracted_frames_path, '*.png'))
+                image_files = glob.glob(os.path.join(extracted_frames_path, '*.jpg'))
                 image_files.sort()
                 if len(image_files) > 0:
                     frames_folder_name = os.path.join(output_path_video, 'frames_cropped')
                     make_path(frames_folder_name)
-                    preprocess_frames(dataset, image_files, frames_folder_name,
-                                      txt_metadata, landmark_est)
+                    preprocess_frames(dataset, image_files, frames_folder_name, txt_metadata, landmark_est)
                 else:
                     print('No frames in {}'.format(extracted_frames_path))
 
-                # Delete all chunk videos
                 if delete_videos:
                     command_delete = 'rm -rf {}'.format(os.path.join(output_path_video, '*.mp4'))
                     os.system(command_delete)
-                # Delete original frames
+
                 if delete_or_frames:
                     command_delete = 'rm -rf {}'.format(os.path.join(output_path_video, frames_folder_name))
                     os.system(command_delete)
-            ################################################
+
             count += 1
         print('*********************************************************')

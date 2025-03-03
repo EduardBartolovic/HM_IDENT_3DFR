@@ -20,27 +20,17 @@ if __name__ == '__main__':
     output_test_dataset = "C:\\Users\\Eduard\\Desktop\\Face\\test_VoxCeleb2_train_dataset"
     backbone_face_model = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth"
 
-    device = torch.device("cuda")
-    try:
-        head_pose = get_model("resnet50", num_classes=6)
-        state_dict = torch.load(model_path_hpe, map_location=device, weights_only=True)
-        head_pose.load_state_dict(state_dict)
-        head_pose.to(device)
-        head_pose.eval()
-        logging.info("Head Pose Estimation model weights loaded.")
-    except Exception as e:
-        logging.info(f"Exception occured while loading weights of head pose estimation model: {e}")
-        raise Exception()
-
-    print("##################################")
-    print("#############HPE##################")
-    print("##################################")
-    headpose_estimation(folder_root, "hpe", head_pose, device, fix_rotation=True, draw=True)
-
     print("##################################")
     print("##########Filter wrong faces###########")
     print("##################################")
     filter_wrong_faces(folder_root, "frames_filtered", backbone_face_model, "cuda")
+    exit()
+
+    device = torch.device("cuda")
+    print("##################################")
+    print("#############HPE##################")
+    print("##################################")
+    headpose_estimation(folder_root, "frames_filtered", "hpe", model_path_hpe, device, fix_rotation=True, draw=True)
 
     ref_angles = [-25, -10, 0, 10, 25]
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
@@ -51,7 +41,6 @@ if __name__ == '__main__':
     print("##################################")
     find_matches(folder_root, permutations)
 
-    #######################
 
     print("##################################")
     print("###########GEN DATASET############")

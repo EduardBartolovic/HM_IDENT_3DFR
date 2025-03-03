@@ -89,11 +89,11 @@ sudo apt-get install ffmpeg
 2. Run this script to download videos from youtube. Note that the original videos will be removed. Optionally extract and preprocess frames.
 
     ```
-    python download_voxCeleb.py --dataset vox1 --output_path ./VoxCeleb1_test --metadata_path ./vox1_txt_test --delete_mp4
+    python download_voxCeleb.py --dataset vox1 --output_path ./VoxCeleb1_test --metadata_path ./vox1_txt_test
     ```
    
     ```
-    python download_voxCeleb.py --dataset vox2 --output_path ./VoxCeleb2_train --metadata_path ./vox2_txt_train --delete_mp4 --preprocessing -extract_frames
+    python download_voxCeleb.py --dataset vox2 --output_path ./VoxCeleb2_train --metadata_path ./vox2_txt_train --preprocessing -extract_frames
     ```
 
 ## Preprocessing of video frames
@@ -102,7 +102,7 @@ sudo apt-get install ffmpeg
 1. If videos have already been downloaded, run this script to extract and preprocess frames.
 
 ```
-python preprocess_voxCeleb.py --dataset vox1 --root_path ./VoxCeleb1_test --metadata_path ./vox1_txt_test
+python preprocess_voxCeleb.py --dataset vox1 --root_path ./VoxCeleb1_test --metadata_path ./vox1_txt_test 
 ```
 ## Acknowledgments
 

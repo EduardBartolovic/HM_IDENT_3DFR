@@ -140,9 +140,9 @@ if __name__ == "__main__":
         print('*********************************************************')
         print('Identity {}/{}: {} videos for {} identity'.format(i, len(ids_path), len(videos_path), id_index))
 
-        if i < 1317:
-            print(f"skipped {i}")
-            continue
+        #if i < 1317:
+        #    print(f"skipped {i}")
+        #    continue
 
         error_counter = 0
         for j, video_path in enumerate(videos_path):
@@ -178,10 +178,11 @@ if __name__ == "__main__":
                 extracted_frames_path = os.path.join(output_path_video, 'frames')
                 if extract_frames:
                     # Run frame extraction
-                    extract_frames_opencv(chunk_videos, REF_FPS, extracted_frames_path)
+                    frame_rate_extraction = 1# REF_FPS
+                    extract_frames_opencv(chunk_videos, frame_rate_extraction, extracted_frames_path)
                 if preprocessing:
                     # Run preprocessing
-                    image_files = glob.glob(os.path.join(extracted_frames_path, '*.png'))
+                    image_files = glob.glob(os.path.join(extracted_frames_path, '*.jpg'))
                     image_files.sort()
                     if len(image_files) > 0:
                         save_dir = os.path.join(output_path_video, 'frames_cropped')
