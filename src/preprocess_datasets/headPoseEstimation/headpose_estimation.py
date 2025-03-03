@@ -47,7 +47,7 @@ def process(cropped_face, device, head_pose):
     return [int(eulers_deg[1]), int(eulers_deg[0]), int(eulers_deg[2])]
 
 
-def headpose_estimation(input_folder, image_folder, output_folder, model_path_hpe, device, fix_rotation=False, draw=True, make_vid=False,):
+def headpose_estimation(input_folder, image_folder, output_folder, model_path_hpe, device, fix_rotation=False, draw=True, make_vid=False):
 
     try:
         head_pose = get_model("resnet50", num_classes=6)
@@ -159,7 +159,18 @@ def get_frames(video_path, frame_skip=1):
     return frame_list
 
 
-def headpose_estimation_from_video(input_folder, output_folder, head_pose_model, device, fix_rotation=False, draw=True, make_vid=False,):
+def headpose_estimation_from_video(input_folder, image_folder, output_folder, model_path_hpe, device, fix_rotation=False, draw=True, make_vid=False):
+
+    try:
+        head_pose = get_model("resnet50", num_classes=6)
+        state_dict = torch.load(model_path_hpe, map_location=device, weights_only=True)
+        head_pose.load_state_dict(state_dict)
+        head_pose.to(device)
+        head_pose.eval()
+        logging.info("Head Pose Estimation model weights loaded.")
+    except Exception as e:
+        logging.info(f"Exception occured while loading weights of head pose estimation model: {e}")
+        raise Exception()
 
     counter = 0
     for root, _, files in os.walk(input_folder):
