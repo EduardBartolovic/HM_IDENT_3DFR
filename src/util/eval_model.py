@@ -131,8 +131,8 @@ def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metri
     if 'Rank-1 Rate' in metrics_knn_voting.keys():
         mlflow.log_metric(f"{neutral_dataset}_KNNVoting_RR1", metrics_knn_voting['Rank-1 Rate'], step=epoch + 1)
     if 'Rank-1 Rate' in metric_concat.keys():
-        mlflow.log_metric(f"{neutral_dataset}_RR1", metric_concat['Rank-1 Rate'], step=epoch + 1)
-        mlflow.log_metric(f'{neutral_dataset}_RR5', metric_concat['Rank-5 Rate'], step=epoch + 1)
+        mlflow.log_metric(f"{neutral_dataset}_Concat_RR1", metric_concat['Rank-1 Rate'], step=epoch + 1)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_RR5', metric_concat['Rank-5 Rate'], step=epoch + 1)
 
     #if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
