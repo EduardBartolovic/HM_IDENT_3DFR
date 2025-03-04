@@ -50,7 +50,7 @@ if __name__ == '__main__':
     print("##################################")
     generate_voxceleb_dataset_from_video(folder_root, "frames_cropped", dataset_output_folder)
     print("######face_correspondences########")
-    exit()
+
     calculate_face_landmarks_dataset(dataset_output_folder)
     calculate_face_correspondences_dataset(dataset_output_folder)
 

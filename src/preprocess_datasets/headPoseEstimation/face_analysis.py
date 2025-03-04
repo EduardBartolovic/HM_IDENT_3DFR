@@ -13,6 +13,7 @@ import cv2
 import mediapipe as mp
 import umap
 
+
 def process_landmarks(multi_face_landmarks, dst, r_pred_deg, image):
     for face_landmarks in multi_face_landmarks:
 
