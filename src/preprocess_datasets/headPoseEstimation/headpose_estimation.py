@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import torch
 from torchvision import transforms
+from tqdm import tqdm
 
 from src.preprocess_datasets.headPoseEstimation.models.resnet import resnet50
 from src.preprocess_datasets.headPoseEstimation.utils.general import draw_axis, \
@@ -173,7 +174,8 @@ def headpose_estimation_from_video(input_folder, image_folder, output_folder, mo
         raise Exception()
 
     counter = 0
-    for root, _, files in os.walk(input_folder):
+    folders = list(os.walk(input_folder))
+    for root, _, files in tqdm(folders, desc="Processing folders"):
 
         frame_infos = []
         output_hpe_folder = os.path.join(root, output_folder)
@@ -199,7 +201,8 @@ def headpose_estimation_from_video(input_folder, image_folder, output_folder, mo
                         frame_infos.append(info)
 
                 #assert len(frame_infos) == len(imgs)
-                assert len(frame_infos) > 0
+                if len(frame_infos) == 0:
+                    print("Error for ", os.path.join(root, output_folder))
 
                 fps = 3
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for mp4 videos
