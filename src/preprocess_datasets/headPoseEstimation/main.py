@@ -17,11 +17,11 @@ from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference im
 
 if __name__ == '__main__':
     #folder_root = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb2_train"
-    folder_root = "E:\\Download\\vox2_mp4_6\\dev\\mp4"
-    model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
+    folder_root = "C:\\Users\\Eduard\\Downloads\\vox2_test_mp4\\mp4"
+    model_path_hpe = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     dataset_output_folder = "E:\\Download\\vox2"
-    output_test_dataset = "C:\\Users\\Eduard\\Desktop\\Face\\test_VoxCeleb2_train_dataset"
-    backbone_face_model = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth"
+    output_test_dataset = "C:\\Users\\Eduard\\Downloads\\test_VoxCeleb2_train_dataset"
+    #backbone_face_model = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth"
 
     #print("##################################")
     #print("##########Filter wrong faces###########")
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     print("#############HPE##################")
     print("##################################")
     #headpose_estimation(folder_root, "frames_filtered", "hpe", model_path_hpe, device, fix_rotation=True, draw=True)
-    headpose_estimation_from_video(folder_root, "frames_filtered", "hpe", model_path_hpe, device, fix_rotation=True, draw=True)
+    headpose_estimation_from_video(folder_root, "hpe", model_path_hpe, device, batch_size = 64)
 
     ref_angles = [-25, -10, 0, 10, 25]
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
@@ -42,7 +42,8 @@ if __name__ == '__main__':
     print("##################################")
     print("###########FINDMATCHES############")
     print("##################################")
-    #find_matches(folder_root, permutations, txt_name="hpe.txt")
+    find_matches(folder_root, permutations, txt_name="hpe.txt")
+    exit()
 
 
     print("##################################")
