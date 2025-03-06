@@ -48,6 +48,19 @@ def process(cropped_face, device, head_pose):
     return [int(eulers_deg[1]), int(eulers_deg[0]), int(eulers_deg[2])]
 
 
+def process_batch(cropped_faces, device, head_pose):
+    """Process a batch of frames."""
+
+    processed_faces = [pre_process(face) for face in cropped_faces]
+    batched_images = torch.stack(processed_faces).to(device)
+    rotation_matrices = head_pose(batched_images)
+
+    eulers = compute_euler_angles_from_rotation_matrices(rotation_matrices).detach().cpu().numpy()
+    eulers_deg = np.degrees(eulers)
+
+    return [[int(deg[1]), int(deg[0]), int(deg[2])] for deg in eulers_deg]
+
+
 def headpose_estimation(input_folder, image_folder, output_folder, model_path_hpe, device, fix_rotation=False, draw=True, make_vid=False):
 
     try:
@@ -160,8 +173,7 @@ def get_frames(video_path, frame_skip=1):
     return frame_list
 
 
-def headpose_estimation_from_video(input_folder, image_folder, output_folder, model_path_hpe, device, fix_rotation=False, draw=True, make_vid=False):
-
+def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, device, batch_size = 64):
     try:
         head_pose_model = get_model("resnet50", num_classes=6)
         state_dict = torch.load(model_path_hpe, map_location=device, weights_only=True)
@@ -170,7 +182,7 @@ def headpose_estimation_from_video(input_folder, image_folder, output_folder, mo
         head_pose_model.eval()
         logging.info("Head Pose Estimation model weights loaded.")
     except Exception as e:
-        logging.info(f"Exception occured while loading weights of head pose estimation model: {e}")
+        logging.info(f"Exception occurred while loading weights of head pose estimation model: {e}")
         raise Exception()
 
     counter = 0
@@ -179,7 +191,6 @@ def headpose_estimation_from_video(input_folder, image_folder, output_folder, mo
 
         frame_infos = []
         output_hpe_folder = os.path.join(root, output_folder)
-        output_video_path = os.path.join(output_hpe_folder, "hpe.mp4")
         output_txt_path = os.path.join(output_hpe_folder, "hpe.txt")
 
         # Skip video if hpe.txt already exists
@@ -187,74 +198,42 @@ def headpose_estimation_from_video(input_folder, image_folder, output_folder, mo
             print(f"Skipping already processed folder: {output_hpe_folder}")
             continue
 
+        video_frames = []
+        video_names = []
+
         for video in files:
-
             if ".mp4" in video:
-
                 os.makedirs(output_hpe_folder, exist_ok=True)
                 imgs = get_frames(os.path.join(root, video))
 
                 for counter, img in enumerate(imgs):
                     if img is not None:
-                        info = process(img, device, head_pose_model)
-                        info.append(video+"#"+str(counter))
-                        frame_infos.append(info)
+                        video_frames.append(img)
+                        video_names.append(video + "#" + str(counter))
 
-                #assert len(frame_infos) == len(imgs)
-                if len(frame_infos) == 0:
-                    print("Error for ", os.path.join(root, output_folder))
+                if not video_frames:
+                    print("Error for", os.path.join(root, output_folder))
 
-                fps = 3
-                fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for mp4 videos
-                out = None
+        if not video_frames:
+            continue
 
-                frames_written = 0
-                for frame, info in zip(imgs, frame_infos):
-                    y_pred_deg, p_pred_deg, r_pred_deg, _ = info
-                    w, h, c = frame.shape
 
-                    if make_vid:
-                        if fix_rotation:
+        for i in range(0, len(video_frames), batch_size):
+            batch = [img for img in imgs[i:i + batch_size] if img is not None]
+            if batch:
+                batch_infos = process_batch(batch, device, head_pose_model)
+                for idx, info in enumerate(batch_infos):
+                    info.append(video + "#" + str(i + idx))
+                    frame_infos.append(info)
 
-                            bbox_center_x = w // 2
-                            bbox_center_y = h // 2
-                            rotation_matrix = cv2.getRotationMatrix2D((bbox_center_x, bbox_center_y), r_pred_deg, 1.0)
+            for info, name in zip(batch_infos, video_names[i:i + batch_size]):
+                info.append(name)
+                frame_infos.append(info)
 
-                            # Apply rotation to the full frame
-                            frame = cv2.warpAffine(
-                                frame,
-                                rotation_matrix,
-                                (frame.shape[1], frame.shape[0]),
-                                flags=cv2.INTER_LINEAR,
-                                borderMode=cv2.BORDER_CONSTANT,
-                                borderValue=(0, 0, 0)
-                            )
-                            r_pred_deg = 0
-
-                        if draw:
-                            draw_axis(
-                                frame,
-                                y_pred_deg,
-                                p_pred_deg,
-                                r_pred_deg,
-                                bbox=[0, 0, w, h],
-                                size_ratio=0.5
-                            )
-
-                        if out is None:
-                            out = cv2.VideoWriter(output_video_path, fourcc, fps, (w, h))
-                        out.write(frame)
-                        frames_written += 1
-
-                    if make_vid:
-                        out.write(frame)
-                        out.release()
-                        print(f"Processed and saved cropped video: {output_video_path} frames_written: {frames_written}")
-
-        if len(frame_infos) > 0:
+        if frame_infos:
             with open(output_txt_path, 'w') as txt_file:
-                for i in frame_infos:
-                    txt_file.write(','.join(map(str, i)) + '\n')
+                for info in frame_infos:
+                    txt_file.write(','.join(map(str, info)) + '\n')
                     counter += 1
 
             print(f"Processed: {output_txt_path}")
