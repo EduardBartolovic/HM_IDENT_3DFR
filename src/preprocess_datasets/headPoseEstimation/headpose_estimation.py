@@ -194,9 +194,9 @@ def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, 
         output_txt_path = os.path.join(output_hpe_folder, "hpe.txt")
 
         # Skip video if hpe.txt already exists
-        if os.path.exists(output_txt_path):
-            print(f"Skipping already processed folder: {output_hpe_folder}")
-            continue
+        #if os.path.exists(output_txt_path):
+        #    print(f"Skipping already processed folder: {output_hpe_folder}")
+        #    continue
 
         video_frames = []
         video_names = []
@@ -217,22 +217,22 @@ def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, 
         if not video_frames:
             continue
 
-
-        for i in range(0, len(video_frames), batch_size):
+        for i in range(0, len(imgs), batch_size):
             batch = [img for img in imgs[i:i + batch_size] if img is not None]
             if batch:
                 batch_infos = process_batch(batch, device, head_pose_model)
-                for idx, info in enumerate(batch_infos):
-                    info.append(video + "#" + str(i + idx))
+                for j, info in enumerate(batch_infos):
+                    info.append(video + "#" + str(i + j))
                     frame_infos.append(info)
 
-            for info, name in zip(batch_infos, video_names[i:i + batch_size]):
-                info.append(name)
-                frame_infos.append(info)
+            if len(frame_infos) == 0:
+                print("Error for ", os.path.join(root, output_folder))
 
         if frame_infos:
             with open(output_txt_path, 'w') as txt_file:
                 for info in frame_infos:
+                    if len(','.join(map(str, info))) > 40:
+                        print("SSSSSSSS")
                     txt_file.write(','.join(map(str, info)) + '\n')
                     counter += 1
 

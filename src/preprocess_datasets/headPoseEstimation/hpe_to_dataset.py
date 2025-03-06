@@ -52,7 +52,7 @@ def generate_voxceleb_dataset(folder_root, input_folder, dataset_output_folder):
     print("Copied", counter, "files")
 
 
-def generate_voxceleb_dataset_from_video(folder_root, input_folder, dataset_output_folder):
+def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder):
     counter = 0
     for root, _, files in os.walk(os.path.join(folder_root)):
         if "hpe" in root:

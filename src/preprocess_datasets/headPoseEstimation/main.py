@@ -45,11 +45,10 @@ if __name__ == '__main__':
     find_matches(folder_root, permutations, txt_name="hpe.txt")
     exit()
 
-
     print("##################################")
     print("###########GEN DATASET############")
     print("##################################")
-    generate_voxceleb_dataset_from_video(folder_root, "frames_cropped", dataset_output_folder)
+    generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder)
     print("######face_correspondences########")
 
     calculate_face_landmarks_dataset(dataset_output_folder)
