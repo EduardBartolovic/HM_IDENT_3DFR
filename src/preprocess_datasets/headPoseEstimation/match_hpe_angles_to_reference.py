@@ -37,7 +37,10 @@ def find_matches(input_folder, references, txt_name="hpe_filtered.txt"):
                         lines = []
                         for line in file:
                             parts = line.strip().split(',')
-                            integers = list(map(int, parts[:-1]))  # Convert all but the last part to integers
+                            try:
+                                integers = list(map(int, parts[:-1]))  # Convert all but the last part to integers
+                            except:
+                                raise Exception("Error in Conversion! at:", file_path)
                             last_part = parts[-1]  # Keep the last part as a string
                             lines.append(integers + [last_part])  # Combine integers with the string part
                     data = np.array(lines, dtype=object)
