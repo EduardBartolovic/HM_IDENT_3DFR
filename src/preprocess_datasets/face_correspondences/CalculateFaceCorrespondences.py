@@ -206,7 +206,8 @@ def calculate_face_landmarks_dataset(dataset_folder):
     face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True)
 
     # Iterate over class subfolders
-    for class_name in os.listdir(dataset_folder):
+    folder = list(os.listdir(dataset_folder))
+    for class_name in tqdm(folder, desc="Processing folders"):
         class_path = os.path.join(dataset_folder, class_name)
         if not os.path.isdir(class_path):
             continue

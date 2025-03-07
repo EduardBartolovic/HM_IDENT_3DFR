@@ -6,7 +6,7 @@ import time
 import numpy as np
 
 
-def match_hope_angles_to_references(data, references, ignore_roll=False):
+def match_hpe_angles_to_references(data, references, ignore_roll=False):
     closest_rows = []
     for reference in references:
         if ignore_roll:
@@ -24,7 +24,7 @@ def match_hope_angles_to_references(data, references, ignore_roll=False):
     return closest_rows
 
 
-def find_matches(input_folder, references, txt_name="hpe_filtered.txt"):
+def find_matches(input_folder, references, txt_name="hpe.txt"):
     start_time = time.time()
     counter = 0
     for root, _, files in os.walk(input_folder):
@@ -44,7 +44,7 @@ def find_matches(input_folder, references, txt_name="hpe_filtered.txt"):
                             last_part = parts[-1]  # Keep the last part as a string
                             lines.append(integers + [last_part])  # Combine integers with the string part
                     data = np.array(lines, dtype=object)
-                    infos = match_hope_angles_to_references(data, references)
+                    infos = match_hpe_angles_to_references(data, references)
 
                     assert len(infos) == len(references)
 
@@ -64,9 +64,9 @@ def find_matches(input_folder, references, txt_name="hpe_filtered.txt"):
 
 if __name__ == '__main__':
 
-    input_folder = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files
+    input_dir = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files
     ref_angles = [-25, -10, 0, 10, 25]
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
     print(len(permutations))
     print(permutations)
-    find_matches(input_folder, permutations)
+    find_matches(input_dir, permutations)
