@@ -1,4 +1,5 @@
 import os
+import time
 
 import cv2
 import mediapipe as mp
@@ -199,9 +200,8 @@ def calculate_face_correspondences_dataset(dataset_folder, draw=False):
                     plt.show()
 
 
-
 def calculate_face_landmarks_dataset(dataset_folder):
-
+    start_time = time.time()
     counter = 0
     face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True)
 
@@ -227,10 +227,11 @@ def calculate_face_landmarks_dataset(dataset_folder):
                 np.savez_compressed(os.path.join(class_path, (filename[:-4]+'.npz')), landmarks=points)
                 counter += 1
 
-    print(f"Created landmarks in {dataset_folder} for {counter} images")
+    elapsed_time = time.time() - start_time
+    print(f"Created landmarks in {dataset_folder} for {counter} images in", round(elapsed_time/60, 2), "minutes")
+
 
 if __name__ == '__main__':
-
 
     dataset = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\validation"
     #calculate_face_landmarks_dataset(dataset)

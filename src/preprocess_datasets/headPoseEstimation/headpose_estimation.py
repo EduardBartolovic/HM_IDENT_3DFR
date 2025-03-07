@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 import cv2
 import numpy as np
@@ -34,13 +35,13 @@ def get_model(arch, num_classes=6, pretrained=True):
     return model
 
 
-def process(cropped_face, device, head_pose):
+def process(cropped_face, device, head_pose_model):
     """Process a frame."""
 
     processed_face = pre_process(cropped_face)
 
     batched_images = processed_face.to(device).unsqueeze(0)
-    rotation_matrices = head_pose(batched_images)
+    rotation_matrices = head_pose_model(batched_images)
 
     eulers = compute_euler_angles_from_rotation_matrices(rotation_matrices).detach().cpu().numpy()[0]
     eulers_deg = np.degrees(eulers)
@@ -48,12 +49,12 @@ def process(cropped_face, device, head_pose):
     return [int(eulers_deg[1]), int(eulers_deg[0]), int(eulers_deg[2])]
 
 
-def process_batch(cropped_faces, device, head_pose):
+def process_batch(cropped_faces, device, head_pose_model):
     """Process a batch of frames."""
 
     processed_faces = [pre_process(face) for face in cropped_faces]
     batched_images = torch.stack(processed_faces).to(device)
-    rotation_matrices = head_pose(batched_images)
+    rotation_matrices = head_pose_model(batched_images)
 
     eulers = compute_euler_angles_from_rotation_matrices(rotation_matrices).detach().cpu().numpy()
     eulers_deg = np.degrees(eulers)
@@ -173,7 +174,8 @@ def get_frames(video_path, frame_skip=1):
     return frame_list
 
 
-def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, device, batch_size = 64):
+def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, device, batch_size=64):
+    start_time = time.time()
     try:
         head_pose_model = get_model("resnet50", num_classes=6)
         state_dict = torch.load(model_path_hpe, map_location=device, weights_only=True)
@@ -185,8 +187,8 @@ def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, 
         logging.info(f"Exception occurred while loading weights of head pose estimation model: {e}")
         raise Exception()
 
-    counter = 0
     folders = list(os.walk(input_folder))
+    num_folders = len(folders)
     for root, _, files in tqdm(folders, desc="Processing folders"):
 
         frame_infos = []
@@ -194,13 +196,12 @@ def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, 
         output_txt_path = os.path.join(output_hpe_folder, "hpe.txt")
 
         # Skip video if hpe.txt already exists
-        #if os.path.exists(output_txt_path):
-        #    print(f"Skipping already processed folder: {output_hpe_folder}")
-        #    continue
+        if os.path.exists(output_txt_path):
+            print(f"Skipping already processed folder: {output_hpe_folder}")
+            continue
 
         video_frames = []
         video_names = []
-
         for video in files:
             if ".mp4" in video:
                 os.makedirs(output_hpe_folder, exist_ok=True)
@@ -231,14 +232,12 @@ def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, 
         if frame_infos:
             with open(output_txt_path, 'w') as txt_file:
                 for info in frame_infos:
-                    if len(','.join(map(str, info))) > 40:
-                        print("SSSSSSSS")
                     txt_file.write(','.join(map(str, info)) + '\n')
-                    counter += 1
 
             print(f"Processed: {output_txt_path}")
 
-    print(f"HPE for {counter} frames")
+    elapsed_time = time.time() - start_time
+    print("HPE for ", num_folders, " in", round(elapsed_time/60, 2), "minutes")
 
 
 if __name__ == '__main__':

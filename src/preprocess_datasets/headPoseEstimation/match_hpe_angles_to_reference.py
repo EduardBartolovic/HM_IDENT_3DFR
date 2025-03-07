@@ -1,6 +1,7 @@
 import csv
 import itertools
 import os
+import time
 
 import numpy as np
 
@@ -24,6 +25,7 @@ def match_hope_angles_to_references(data, references, ignore_roll=False):
 
 
 def find_matches(input_folder, references, txt_name="hpe_filtered.txt"):
+    start_time = time.time()
     counter = 0
     for root, _, files in os.walk(input_folder):
         if "hpe" in root:
@@ -52,7 +54,9 @@ def find_matches(input_folder, references, txt_name="hpe_filtered.txt"):
                             array2 = row[1].tolist()  # Convert second array to a list
                             other_values = row[2:]  # Remaining values
                             writer.writerow(array1 + array2 + list(other_values))
-    print("Found matches for", counter, "files")
+
+    elapsed_time = time.time() - start_time
+    print("Found matches for", counter, "files in", round(elapsed_time, 2), "seconds")
 
 
 if __name__ == '__main__':

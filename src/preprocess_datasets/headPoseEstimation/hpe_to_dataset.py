@@ -2,6 +2,7 @@ import csv
 import hashlib
 import os
 import shutil
+import time
 
 import cv2
 import numpy as np
@@ -53,6 +54,8 @@ def generate_voxceleb_dataset(folder_root, input_folder, dataset_output_folder):
 
 
 def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder):
+
+    start_time = time.time()
     counter = 0
     for root, _, files in os.walk(os.path.join(folder_root)):
         if "hpe" in root:
@@ -88,7 +91,9 @@ def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder):
 
                         cap.release()
 
-    print("Copied", counter, "files")
+    elapsed_time = time.time() - start_time
+    print("Copied", counter, "files in", round(elapsed_time, 2), "seconds")
+
 
 if __name__ == '__main__':
     input_folder = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files
