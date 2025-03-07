@@ -6,6 +6,7 @@ import time
 
 import cv2
 import numpy as np
+from tqdm import tqdm
 
 
 def read_file(file_path, remove_header=True):
@@ -57,7 +58,8 @@ def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder):
 
     start_time = time.time()
     counter = 0
-    for root, _, files in os.walk(os.path.join(folder_root)):
+    folders = list(os.walk(os.path.join(folder_root)))
+    for root, _, files in tqdm(folders, desc="Processing folders"):
         if "hpe" in root:
             for txt_file in files:
                 if txt_file.endswith('matched_angles.txt'):

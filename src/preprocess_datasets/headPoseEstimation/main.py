@@ -16,7 +16,7 @@ from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_v
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
 
 if __name__ == '__main__':
-    #folder_root = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb2_train"
+
     folder_root = "E:\\Download\\vox2_mp4_6\\dev\\mp42"
     model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     dataset_output_folder = "E:\\Download\\vox2"
