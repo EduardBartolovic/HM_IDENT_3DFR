@@ -94,7 +94,7 @@ def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder):
                         cap.release()
 
     elapsed_time = time.time() - start_time
-    print("Copied", counter, "files in", round(elapsed_time, 2), "seconds")
+    print("Copied", counter, "files in", round(elapsed_time/60, 2), "min")
 
 
 if __name__ == '__main__':

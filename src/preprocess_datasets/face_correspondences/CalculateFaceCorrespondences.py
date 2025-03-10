@@ -155,7 +155,8 @@ def calculate_face_correspondences_between_two_faces(source_landmarks, target_la
     return grid
 
 
-def calculate_face_correspondences_dataset(dataset_folder, draw=False):
+def calculate_face_correspondences_dataset(dataset_folder, draw=False, keep=True):
+    start_time = time.time()
     data = []
     for class_name in os.listdir(dataset_folder):
         class_path = os.path.join(dataset_folder, class_name)
@@ -164,7 +165,7 @@ def calculate_face_correspondences_dataset(dataset_folder, draw=False):
             for filename in os.listdir(class_path):
                 if filename.endswith("_image.npz"):
                     corr_path = os.path.join(class_path, filename.replace("_image.npz", "_corr.npz"))
-                    if os.path.exists(corr_path):
+                    if keep and os.path.exists(corr_path):
                         continue  # Skip if correspondence already exists
                     file_path = os.path.join(class_path, filename)
                     if os.path.isfile(file_path):
@@ -202,14 +203,18 @@ def calculate_face_correspondences_dataset(dataset_folder, draw=False):
                     plt.tight_layout()
                     plt.show()
 
+    elapsed_time = time.time() - start_time
+    print(f"Created Face Correspondences in {dataset_folder} in", round(elapsed_time / 60, 2), "minutes")
 
-def calculate_face_landmarks_dataset(dataset_folder):
+
+def calculate_face_landmarks_dataset(dataset_folder, keep=True):
     start_time = time.time()
     counter = 0
     face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True)
 
-    # Iterate over class subfolders
-    for class_name in os.listdir(dataset_folder):
+    class_names = os.listdir(dataset_folder)
+    failed_landmark_counter = 0
+    for class_name in tqdm(class_names, desc="Processing Classes"):
         class_path = os.path.join(dataset_folder, class_name)
         if not os.path.isdir(class_path):
             continue
@@ -217,7 +222,7 @@ def calculate_face_landmarks_dataset(dataset_folder):
         for filename in os.listdir(class_path):
             if filename.endswith((".jpg", ".png", ".jpeg")):
                 npz_path = os.path.join(class_path, (filename[:-4] + '.npz'))
-                if os.path.exists(npz_path):
+                if keep and os.path.exists(npz_path):
                     continue  # Skip if landmarks already exist
                 image = cv2.imread(os.path.join(class_path, filename))
                 results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
@@ -227,6 +232,7 @@ def calculate_face_landmarks_dataset(dataset_folder):
                     points = np.array([[lm.x, lm.y] for lm in landmarks])
                 else:
                     points = np.load(os.path.join(os.path.join(os.path.dirname(__file__)), "default_landmarks.npz"))['landmarks']        # TODO: Temporary solution for bad dataset
+                    failed_landmark_counter+= 1
                     print(f"No landmarks found for: {os.path.join(class_path, filename)} using default landmarks")
                     #raise Exception(f"No landmarks found for: {os.path.join(class_path, filename)}")
 
@@ -234,7 +240,7 @@ def calculate_face_landmarks_dataset(dataset_folder):
                 counter += 1
 
     elapsed_time = time.time() - start_time
-    print(f"Created landmarks in {dataset_folder} for {counter} images in", round(elapsed_time/60, 2), "minutes")
+    print(f"Created landmarks in {dataset_folder} for {counter} images, {failed_landmark_counter} failed,  in", round(elapsed_time/60, 2), "minutes")
 
 
 if __name__ == '__main__':
