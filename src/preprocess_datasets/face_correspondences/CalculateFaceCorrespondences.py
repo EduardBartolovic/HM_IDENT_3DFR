@@ -163,6 +163,9 @@ def calculate_face_correspondences_dataset(dataset_folder, draw=False):
             sha_groups = {}
             for filename in os.listdir(class_path):
                 if filename.endswith("_image.npz"):
+                    corr_path = os.path.join(class_path, filename.replace("_image.npz", "_corr.npz"))
+                    if os.path.exists(corr_path):
+                        continue  # Skip if correspondence already exists
                     file_path = os.path.join(class_path, filename)
                     if os.path.isfile(file_path):
                         sha_hash = filename[:40]  # Extract SHA hash from filename
@@ -213,6 +216,9 @@ def calculate_face_landmarks_dataset(dataset_folder):
 
         for filename in os.listdir(class_path):
             if filename.endswith((".jpg", ".png", ".jpeg")):
+                npz_path = os.path.join(class_path, (filename[:-4] + '.npz'))
+                if os.path.exists(npz_path):
+                    continue  # Skip if landmarks already exist
                 image = cv2.imread(os.path.join(class_path, filename))
                 results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
                 h, w, _ = image.shape
