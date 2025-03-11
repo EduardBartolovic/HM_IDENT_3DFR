@@ -114,7 +114,7 @@ def calculate_face_correspondences_prototype(face_mesh, image1, image2, draw_cor
     else:
         raise ValueError("Face landmarks not detected in one or both images.")
 
-# Thin-Plate Spline Transformation
+
 def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
     """
     Perform Thin-Plate Spline Transformation
@@ -126,8 +126,9 @@ def tps_transform(source_points, target_points, grid_x, grid_y, smooth=0.0):
     warped_y = rbf_y(grid_x, grid_y)
     return warped_x, warped_y
 
+
 def calculate_face_correspondences_between_two_faces(source_landmarks, target_landmarks):
-    w, h = 112,112
+    w, h = 112, 112
 
     source_landmarks = np.array([[x * w, y * h] for x, y in source_landmarks])
     target_landmarks = np.array([[x * w, y * h] for x, y in target_landmarks])

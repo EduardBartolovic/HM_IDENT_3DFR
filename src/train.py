@@ -83,7 +83,6 @@ if __name__ == '__main__':
     # ===== ML FLOW SET up ============
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
     mlflow.set_experiment(RUN_NAME)
-
     client = mlflow.tracking.MlflowClient()
     experiment = client.get_experiment_by_name(RUN_NAME)
     if experiment:
@@ -110,6 +109,25 @@ if __name__ == '__main__':
             dataset_train = ImageFolder4Channel(os.path.join(DATA_ROOT, TRAIN_SET), train_transform)
         else:
             dataset_train = datasets.ImageFolder(os.path.join(DATA_ROOT, TRAIN_SET), train_transform)
+
+        if 'rgbd' in TRAIN_SET:
+            test_bellus = 'test_rgbd_bellus'
+            test_facescape = 'test_rgbd_facescape'
+            test_faceverse = 'test_rgbd_faceverse'
+            test_texas = 'test_rgbd_texas'
+            test_bff = 'test_rgbd_bff'
+        elif 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
+            test_bellus = 'test_rgb_bellus'
+            test_facescape = 'test_rgb_facescape'
+            test_faceverse = 'test_rgb_faceverse'
+            test_texas = 'test_rgb_texas'
+            test_bff = 'test_rgb_bff'
+        elif 'depth' in TRAIN_SET:
+            test_bellus = 'test_depth_bellus'
+            test_facescape = 'test_depth_facescape'
+            test_faceverse = 'test_depth_faceverse'
+            test_texas = 'test_depth_texas'
+            test_bff = 'test_depth_bff'
 
         # create a weighted random sampler to process imbalanced data
         weights = make_weights_for_balanced_classes(dataset_train.imgs, len(dataset_train.classes))
@@ -227,6 +245,25 @@ if __name__ == '__main__':
         counter = 0  # Counter for epochs without improvement
 
         for epoch in range(NUM_EPOCH):  # start training process
+
+            #  ======= perform validation =======
+            if 'rgbd' not in TRAIN_SET:
+                #    evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                #    #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
+                #    print(colorstr('blue', "=" * 60))
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', epoch, DISTANCE_METRIC, (200, 150), BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+            if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+                # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+                # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
+                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+
+            print("=" * 60)
+
             # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
             if epoch == STAGES[0]:
                 schedule_lr(OPTIMIZER)
@@ -235,13 +272,12 @@ if __name__ == '__main__':
             if epoch == STAGES[2]:
                 schedule_lr(OPTIMIZER)
 
-            BACKBONE.train()  # set to training mode
+            BACKBONE.train()
             HEAD.train()
 
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
-
             for inputs, labels in tqdm(iter(train_loader)):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (
@@ -278,7 +314,7 @@ if __name__ == '__main__':
 
                 batch += 1  # batch index
 
-            # training statistics per epoch (buffer for visualization)
+            # training statistics per epoch
             epoch_loss = losses.avg
             epoch_acc = top1.avg
             mlflow.log_metric('train_loss', epoch_loss, step=epoch + 1)
@@ -289,43 +325,6 @@ if __name__ == '__main__':
                                            f'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                                            f'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'))
             print("#" * 60)
-
-            #  ======= perform validation =======
-            if 'rgbd' in TRAIN_SET:
-                test_bellus = 'test_rgbd_bellus'
-                test_facescape = 'test_rgbd_facescape'
-                test_faceverse = 'test_rgbd_faceverse'
-                test_texas = 'test_rgbd_texas'
-                test_bff = 'test_rgbd_bff'
-            elif 'rgb' in TRAIN_SET or 'photo' in TRAIN_SET:
-                test_bellus = 'test_rgb_bellus'
-                test_facescape = 'test_rgb_facescape'
-                test_faceverse = 'test_rgb_faceverse'
-                test_texas = 'test_rgb_texas'
-                test_bff = 'test_rgb_bff'
-            elif 'depth' in TRAIN_SET:
-                test_bellus = 'test_depth_bellus'
-                test_facescape = 'test_depth_facescape'
-                test_faceverse = 'test_depth_faceverse'
-                test_texas = 'test_depth_texas'
-                test_bff = 'test_depth_bff'
-
-            if 'rgbd' not in TRAIN_SET:
-                #    evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                #    #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                #    print(colorstr('blue', "=" * 60))
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', epoch, DISTANCE_METRIC, (200, 150), BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-            if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-                # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-                # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-
-            print("=" * 60)
 
             # Early stopping check
             if epoch_acc > best_acc:
