@@ -1,4 +1,5 @@
 import os
+import time
 from collections import defaultdict
 import shutil
 
@@ -12,6 +13,7 @@ def create_train_test_split(input_folder, output_folder):
         input_folder (str): Path to the folder containing the class subfolders with images.
         output_folder (str): Path to the output folder where train and test folders will be created.
     """
+    start_time = time.time()
     counter = 0
     os.makedirs(output_folder, exist_ok=True)
     train_folder = os.path.join(output_folder, "train")
@@ -50,7 +52,8 @@ def create_train_test_split(input_folder, output_folder):
                 shutil.copy(file_path, class_dest_folder)
                 counter += 1
 
-    print(f"Train-test split created in {output_folder} for {counter} files")
+    elapsed_time = time.time() - start_time
+    print(f"Train-test split created in {output_folder} for {counter} files in", round(elapsed_time, 2), "seconds")
 
 
 if __name__ == '__main__':
