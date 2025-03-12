@@ -78,13 +78,13 @@ def calculate_embedding_similarity_progress(
     m = image_data.shape[0]
     similarity_matrix = np.empty((n, m))
 
-    with tqdm(total=n, disable=not show_progress, desc="Calculating Embedding Similarity") as pbar:
-        for start_row in range(0, n, chunk_size):
-            end_row = min(start_row + chunk_size, n)
-            process_chunk_embedding_similarity(
-                tabular_data, image_data, start_row, end_row, similarity_matrix
-            )
-            pbar.update(end_row - start_row)
+    # with tqdm(total=n, disable=not show_progress, desc="Calculating Embedding Similarity") as pbar:
+    for start_row in range(0, n, chunk_size):
+        end_row = min(start_row + chunk_size, n)
+        process_chunk_embedding_similarity(
+            tabular_data, image_data, start_row, end_row, similarity_matrix
+        )
+    # pbar.update(end_row - start_row)
 
     return similarity_matrix
 

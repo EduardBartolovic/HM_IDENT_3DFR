@@ -16,7 +16,6 @@ from src.backbone.model_irse_rgbd import IR_152_rgbd, IR_101_rgbd, IR_50_rgbd, I
     IR_SE_152_rgbd
 from src.backbone.model_resnet_rgbd import ResNet_50_rgbd, ResNet_101_rgbd, ResNet_152_rgbd
 from src.backbone.model_resnet_torch import resnet_50_torch
-from src.backbone.mvpnet import mvpnet_tiny
 from src.util.datapipeline.ImageFolder4Channel import ImageFolder4Channel
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
@@ -122,6 +121,7 @@ if __name__ == '__main__':
             test_faceverse = 'test_rgb_faceverse'
             test_texas = 'test_rgb_texas'
             test_bff = 'test_rgb_bff'
+            test_voxceleb2test = "test_voxceleb2test"
         elif 'depth' in TRAIN_SET:
             test_bellus = 'test_depth_bellus'
             test_facescape = 'test_depth_facescape'
@@ -168,8 +168,8 @@ if __name__ == '__main__':
                          'IR_SE_152': IR_SE_152(INPUT_SIZE, EMBEDDING_SIZE),
                          'IR_SE_50_RGBD': IR_SE_50_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
                          'IR_SE_101_RGBD': IR_SE_101_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
-                         'IR_SE_152_RGBD': IR_SE_152_rgbd(INPUT_SIZE, EMBEDDING_SIZE),
-                         'MVP_Net': mvpnet_tiny()}
+                         'IR_SE_152_RGBD': IR_SE_152_rgbd(INPUT_SIZE, EMBEDDING_SIZE)
+                         }
         if 'rgbd' in TRAIN_SET:
             BACKBONE_NAME = BACKBONE_NAME + '_RGBD'
             channel = 4
@@ -247,20 +247,13 @@ if __name__ == '__main__':
         for epoch in range(NUM_EPOCH):  # start training process
 
             #  ======= perform validation =======
-            if 'rgbd' not in TRAIN_SET:
-                #    evaluate_verification_lfw(DEVICE, BACKBONE, DATA_ROOT, 'test_lfw_deepfunneled', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                #    #evaluate_verification_colorferet(DEVICE, BACKBONE, DATA_ROOT, 'test_colorferet', writer, epoch, NUM_EPOCH, DISTANCE_METRIC, test_transform, BATCH_SIZE)
-                #    print(colorstr('blue', "=" * 60))
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_bellus', epoch, DISTANCE_METRIC, (200, 150), BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, 'test_photo_colorferet1_n', epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-            if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
-                # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-                # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
-                evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
+            #if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_voxceleb2test, epoch, DISTANCE_METRIC, (170, 170), BATCH_SIZE)
+            # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+            # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
 
             print("=" * 60)
 
