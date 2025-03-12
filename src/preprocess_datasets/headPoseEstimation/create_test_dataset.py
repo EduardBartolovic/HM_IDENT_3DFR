@@ -2,6 +2,7 @@ import os
 from collections import defaultdict
 import shutil
 
+
 def create_train_test_split(input_folder, output_folder):
     """
     Splits images into train and test sets, always using the first group in each class for training
@@ -27,7 +28,7 @@ def create_train_test_split(input_folder, output_folder):
         # Collect groups by hash prefix
         groups = defaultdict(list)
         for filename in os.listdir(class_path):
-            if filename.endswith((".jpg", ".png", ".jpeg")):  # Adjust extensions as needed
+            if filename.endswith((".jpg", ".png", ".jpeg", '.npz')):  # Adjust extensions as needed
                 hash_prefix = filename[:40]
                 groups[hash_prefix].append(os.path.join(class_path, filename))
 
@@ -51,7 +52,8 @@ def create_train_test_split(input_folder, output_folder):
 
     print(f"Train-test split created in {output_folder} for {counter} files")
 
+
 if __name__ == '__main__':
-    input_folder = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset"  # Replace with your input folder path
-    output_folder = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST"  # Replace with your output folder path
+    input_folder = "E:\\Download\\test_out"  # Replace with your input folder path
+    output_folder = "E:\\Download\\test_out_TEST"  # Replace with your output folder path
     create_train_test_split(input_folder, output_folder)

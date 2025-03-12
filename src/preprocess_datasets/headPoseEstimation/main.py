@@ -57,7 +57,6 @@ if __name__ == '__main__':
     print("##################################")
     calculate_face_landmarks_dataset(dataset_output_folder)
     calculate_face_correspondences_dataset(dataset_output_folder)
-    exit()
 
     print("##################################")
     print("###########GEN TEST DATASET############")
@@ -65,7 +64,3 @@ if __name__ == '__main__':
     print("##################################")
     create_train_test_split(dataset_output_folder, output_test_dataset)
     print("######face_correspondences########")
-    calculate_face_landmarks_dataset(os.path.join(output_test_dataset, "train"))
-    calculate_face_landmarks_dataset(os.path.join(output_test_dataset, "validation"))
-    calculate_face_correspondences_dataset(os.path.join(output_test_dataset, "train"))
-    calculate_face_correspondences_dataset(os.path.join(output_test_dataset, "validation"))
