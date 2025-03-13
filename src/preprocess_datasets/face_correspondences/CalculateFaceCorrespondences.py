@@ -181,7 +181,7 @@ def process_file_paths(file_paths, draw=False):
                 plt.show()
     return 0
 
-def calculate_face_correspondences_dataset(dataset_folder, keep=True):
+def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=8):
     start_time = time.time()
     data = []
     for class_name in os.listdir(dataset_folder):
@@ -206,7 +206,7 @@ def calculate_face_correspondences_dataset(dataset_folder, keep=True):
                     data.append(file_paths)
 
     #process_map(partial(process_file_paths), data, max_workers=4)
-    with Pool(processes=4) as p, tqdm(total=len(data), desc="Creating Face Correspondences") as pbar:
+    with Pool(processes=processes) as p, tqdm(total=len(data), desc="Creating Face Correspondences") as pbar:
         for _ in p.imap(process_file_paths, data):
             pbar.update()
             pbar.refresh()
