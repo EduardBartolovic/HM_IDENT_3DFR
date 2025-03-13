@@ -54,7 +54,7 @@ def generate_voxceleb_dataset(folder_root, input_folder, dataset_output_folder):
     print("Copied", counter, "files")
 
 
-def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder):
+def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, keep=True):
 
     start_time = time.time()
     counter = 0
@@ -74,6 +74,9 @@ def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder):
                     id_name = os.path.basename(id_name)
 
                     destination = os.path.join(dataset_output_folder, id_name)
+
+                    if keep and os.path.exists(destination):
+                        continue  # Skip if file already exists
 
                     os.makedirs(destination, exist_ok=True)
 

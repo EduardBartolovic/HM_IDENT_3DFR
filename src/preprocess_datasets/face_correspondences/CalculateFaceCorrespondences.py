@@ -1,5 +1,6 @@
 import os
 import time
+from functools import partial
 
 import cv2
 import mediapipe as mp
@@ -9,9 +10,9 @@ import torch
 from scipy.interpolate import Rbf
 from scipy.spatial import KDTree
 from tqdm import tqdm
+from multiprocessing import Pool
 
-
-
+from tqdm.contrib.concurrent import process_map
 
 
 # Create a grid of points over the image
@@ -155,8 +156,32 @@ def calculate_face_correspondences_between_two_faces(source_landmarks, target_la
 
     return grid
 
+def process_file_paths(file_paths, draw=False):
+    perspectives = [os.path.basename(file_path)[40:-10] for file_path in file_paths]
+    npzs = [np.load(file_path.replace(".jpg", ".npz").replace(".png", ".npz"))["landmarks"] for file_path in file_paths]
 
-def calculate_face_correspondences_dataset(dataset_folder, draw=False, keep=True):
+    zero_position = np.where(np.array(perspectives) == '0_0')[0][0]
+
+    for v in range(25):
+        if v == zero_position:  # Skip alignment if zero pose or merged features
+            grid = calculate_face_correspondences_between_two_faces(npzs[v], npzs[v])
+            np.savez_compressed(file_paths[v].replace("_image.npz", "_corr.npz"), corr=grid)
+        else:
+            grid = calculate_face_correspondences_between_two_faces(npzs[zero_position], npzs[v])
+            np.savez_compressed(file_paths[v].replace("_image.npz", "_corr.npz"), corr=grid)
+            if draw:
+                fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+                axes[0].imshow(grid[:, :, 0], cmap='viridis')
+                axes[0].set_title("Slice 1")
+                axes[0].axis('off')
+                axes[1].imshow(grid[:, :, 1], cmap='viridis')
+                axes[1].set_title("Slice 2")
+                axes[1].axis('off')
+                plt.tight_layout()
+                plt.show()
+    return 0
+
+def calculate_face_correspondences_dataset(dataset_folder, keep=True):
     start_time = time.time()
     data = []
     for class_name in os.listdir(dataset_folder):
@@ -180,29 +205,11 @@ def calculate_face_correspondences_dataset(dataset_folder, draw=False, keep=True
                 if len(file_paths) == 25:
                     data.append(file_paths)
 
-    for file_paths in tqdm(data, desc="Generate Face Correspondences"):
-        perspectives = [os.path.basename(file_path)[40:-10] for file_path in file_paths]
-        npzs = [np.load(file_path.replace(".jpg", ".npz").replace(".png", ".npz"))["landmarks"] for file_path in file_paths]
-
-        zero_position = np.where(np.array(perspectives) == '0_0')[0][0]
-
-        for v in range(25):
-            if v == zero_position: # Skip alignment if zero pose or merged features
-                grid = calculate_face_correspondences_between_two_faces(npzs[v], npzs[v])
-                np.savez_compressed(file_paths[v].replace("_image.npz", "_corr.npz"), corr=grid)
-            else:
-                grid = calculate_face_correspondences_between_two_faces(npzs[zero_position], npzs[v])
-                np.savez_compressed(file_paths[v].replace("_image.npz", "_corr.npz"), corr=grid)
-                if draw:
-                    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-                    axes[0].imshow(grid[:, :, 0], cmap='viridis')
-                    axes[0].set_title("Slice 1")
-                    axes[0].axis('off')
-                    axes[1].imshow(grid[:, :, 1], cmap='viridis')
-                    axes[1].set_title("Slice 2")
-                    axes[1].axis('off')
-                    plt.tight_layout()
-                    plt.show()
+    #process_map(partial(process_file_paths), data, max_workers=4)
+    with Pool(processes=4) as p, tqdm(total=len(data), desc="Creating Face Correspondences") as pbar:
+        for _ in p.imap(process_file_paths, data):
+            pbar.update()
+            pbar.refresh()
 
     elapsed_time = time.time() - start_time
     print(f"Created Face Correspondences in {dataset_folder} in", round(elapsed_time / 60, 2), "minutes")

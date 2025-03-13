@@ -12,10 +12,10 @@ from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference im
 
 if __name__ == '__main__':
 
-    folder_root = "E:\\Download\\vox2_mp4_6\\dev\\mp42"
-    model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
-    dataset_output_folder = "E:\\Download\\vox2"
-    output_test_dataset = "C:\\Users\\Eduard\\Downloads\\test_VoxCeleb2_train_dataset"
+    folder_root = "C:\\Users\\Eduard\\Downloads\\vox2_test_mp4\\mp4"
+    model_path_hpe = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
+    dataset_output_folder = "C:\\Users\\Eduard\\Downloads\\vox2_test_mp4\\out"
+    output_test_dataset = "C:\\Users\\Eduard\\Downloads\\test_VoxCeleb2_test_dataset"
     #backbone_face_model = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth"
     batch_size = 128
     device = torch.device("cuda")
@@ -44,13 +44,13 @@ if __name__ == '__main__':
     print("##################################")
     print("###########GEN DATASET############")
     print("##################################")
-    generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder)
+    generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, keep=True)
 
     print("##################################")
     print("######face_correspondences########")
     print("##################################")
     calculate_face_landmarks_dataset(dataset_output_folder)
-    calculate_face_correspondences_dataset(dataset_output_folder)
+    calculate_face_correspondences_dataset(dataset_output_folder, keep=True)
 
     print("##################################")
     print("###########GEN TEST DATASET############")
