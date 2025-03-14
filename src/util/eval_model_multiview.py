@@ -53,7 +53,7 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
 
     enrolled_embeddings = []
     enrolled_labels = []
-    enrolled_perspectives= []
+    enrolled_perspectives = []
     use_face_corr = False
     for inputs, labels, perspectives, face_corr in tqdm(iter(enrolled_loader), desc="Generate Enrolled Embeddings"):
 

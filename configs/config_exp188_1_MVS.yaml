@@ -1,14 +1,15 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP186-MVS-enc_512-ArcFace-FocalLoss-112_112-batchsize_128-epochs10-IR_50_PRE_MS1M63'  # experiment_name
-DATA_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings'  # the parent root
+RUN_NAME: 'EXP188-MVS-enc_512-ArcFace-FocalLoss-112_112-batchsize_128-epochs10-IR_50_PRE_MS1M63'  # experiment_name
+DATA_ROOT: 'F:\\Face\\data\\datasets8'  # the parent root
 TRAIN_SET: 'rgb_bellus'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
 BACKBONE_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
-BACKBONE_NAME: 'AttentionCombiner'#'LinearViewCombiner'
+BACKBONE_NAME: 'IR_MV_50'
+AGG_NAME: 'WeightedSumAggregator'
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 DISTANCE_METRIC: 'cosine'  # support: ['euclidean', 'cosine']
@@ -25,6 +26,7 @@ PATIENCE: 50  # patience for early stopping
 WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
 MOMENTUM: 0.3
 STAGES: [50, 75, 95]  # epoch stages to decay learning rate
+TRAIN_ALL: false
 
 MULTI_GPU: true
 # flag to use multiple GPUs; if you choose to train with single GPU, you should first run "export CUDA_VISILE_DEVICES=device_id" to specify the GPU card you want to use

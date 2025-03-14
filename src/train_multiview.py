@@ -83,8 +83,7 @@ if __name__ == '__main__':
     test_texas = 'test_rgb_texas'
     test_bff = 'test_rgb_bff'
     test_bff_fc = 'test_rgb_bff_fc'
-    test_vox1 = 'test_VoxCeleb1_test_dataset'
-    test_vox2 = 'test_VoxCeleb2_test_dataset'
+    test_voxceleb2test = 'test_voxceleb2test'
 
     # ===== ML FLOW Set up ============
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
@@ -213,10 +212,10 @@ if __name__ == '__main__':
             #  ======= perform validation =======
             #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE*4)
             #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus_fc, epoch, (150, 150), BATCH_SIZE * 4)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox1, epoch,(150, 150), BATCH_SIZE*4)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_voxceleb2test, epoch, (170, 170), BATCH_SIZE*4)
             #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(150, 150), BATCH_SIZE * 4)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch,(150, 150), BATCH_SIZE*4)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch,(150, 150), BATCH_SIZE * 4)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch, (150, 150), BATCH_SIZE*4)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE * 4)
             print("=" * 60)
 
             BACKBONE_reg.eval()
