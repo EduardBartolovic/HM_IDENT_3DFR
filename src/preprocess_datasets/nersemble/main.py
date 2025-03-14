@@ -1,7 +1,8 @@
-import itertools
-import numpy as np
 import torch
 
+from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_landmarks_dataset, \
+    calculate_face_correspondences_dataset
+from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.nersemble.collect_frames import extract_and_group_frames
 
 if __name__ == '__main__':
@@ -14,27 +15,9 @@ if __name__ == '__main__':
     device = torch.device("cuda")
 
     print("##################################")
-    print("#############Extract Frames##################")
+    print("#######Extract Frames#############")
     print("##################################")
     extract_and_group_frames(folder_root, dataset_output_folder)
-
-    exit()
-    headpose_estimation_from_video(folder_root, "hpe", model_path_hpe, device, batch_size=batch_size)
-
-    ref_angles = [-25, -10, 0, 10, 25]
-    permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
-    print(len(permutations))
-    print(permutations)
-    print("##################################")
-    print("###########FINDMATCHES############")
-    print("##################################")
-    find_matches(folder_root, permutations, txt_name="hpe.txt")
-    evaluate_gaze_coverage(folder_root)
-
-    print("##################################")
-    print("###########GEN DATASET############")
-    print("##################################")
-    generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, keep=True)
 
     print("##################################")
     print("######face_correspondences########")
