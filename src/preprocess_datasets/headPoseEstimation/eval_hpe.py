@@ -72,7 +72,7 @@ def print_gaze_coverage(coverage_counts, counter, title):
     for areas, count in sorted(coverage_counts.items(), reverse=True):
         percentage = (count / counter * 100) if counter > 0 else 0
         bar_length = count * 40 // max_count if max_count > 0 else 0
-        print(f"Areas Covered: {areas:2} | Videos: {count:3} | {percentage:6.2f}% | {'█' * bar_length}")
+        print(f"Areas Covered: {areas:2} | Videos: {count:5} | {percentage:6.2f}% | {'█' * bar_length}")
     print("\n")
 
 
