@@ -95,15 +95,15 @@ def evaluate_gaze_coverage(input_folder, txt_name="hpe.txt"):
         coverage_counts = {i: 0 for i in range(num_areas)}
         area_counts = Counter()
         total_triggers = 0
+        top_files = []
 
         for root, _, files in os.walk(input_folder):
             if "hpe" in root:
                 for txt_file in files:
                     if txt_file.endswith(txt_name):
-                        counter += 1
                         file_path = os.path.join(root, txt_file)
+                        covered_areas = set()
                         with open(file_path) as file:
-                            covered_areas = set()
                             for line in file:
                                 parts = line.strip().split(',')
                                 integers = list(map(int, parts[:-1]))  # Convert all but last part to int
@@ -113,14 +113,22 @@ def evaluate_gaze_coverage(input_folder, txt_name="hpe.txt"):
                                 area_counts[area] += 1
                                 total_triggers += 1
 
-                            coverage_counts[len(covered_areas)] += 1
+                        coverage_counts[len(covered_areas)] += 1
+                        top_files.append((len(covered_areas), root[:-4]))
 
+        top_files.sort(reverse=True, key=lambda x: x[0])
         elapsed_time = time.time() - start_time
         print("Evaluated", counter, "files in", round(elapsed_time, 2), "seconds")
 
         print_gaze_coverage(coverage_counts, counter, f"Gaze Coverage Distribution ({num_areas} Areas)")
         print_most_triggered_areas(area_counts, f"{num_areas} Areas", total_triggers)
         print_gaze_grid(area_counts, total_triggers, num_areas)
+
+        print("\nTop 10 Files Covering Most Areas")
+        print("================================")
+        for i, (areas, filename) in enumerate(top_files[:10]):
+            print(f"{i + 1:2}. {filename} - Covered {areas} areas")
+        print("\n")
 
 
 if __name__ == '__main__':
