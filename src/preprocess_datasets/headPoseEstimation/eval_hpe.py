@@ -2,7 +2,7 @@ import os
 import time
 
 
-def classify_gaze(x, y):
+def classify_gaze_9(x, y):
     if y > 10:  # Looking up
         if x < -10:
             return 'top_left'
@@ -33,63 +33,43 @@ def classify_gaze_25(x, y):
     return f"x{angles[x_index]}_y{angles[y_index]}"
 
 
+def print_gaze_coverage(coverage_counts, title):
+    print(f"\n{title}")
+    print("=" * len(title))
+    for areas, count in sorted(coverage_counts.items(), reverse=True):
+        print(
+            f"Areas Covered: {areas} | Videos: {count} {'█' * (count // max(1, max(coverage_counts.values()) // 40))}")
+    print("\n")
+
+
 def evaluate_gaze_coverage(input_folder, txt_name="hpe.txt"):
+    for num_areas, classify_func in [(10, classify_gaze_9), (25, classify_gaze_25)]:
+        print(f"#################{num_areas}########################")
+        start_time = time.time()
+        counter = 0
+        coverage_counts = {i: 0 for i in range(num_areas)}
 
-    print("#################9########################")
+        for root, _, files in os.walk(input_folder):
+            if "hpe" in root:
+                for txt_file in files:
+                    if txt_file.endswith(txt_name):
+                        counter += 1
+                        file_path = os.path.join(root, txt_file)
+                        with open(file_path) as file:
+                            covered_areas = set()
+                            for line in file:
+                                parts = line.strip().split(',')
+                                integers = list(map(int, parts[:-1]))  # Convert all but last part to int
+                                x, y, _ = integers[:3]  # Assuming head pose angles
+                                area = classify_func(x, y)
+                                covered_areas.add(area)
 
-    start_time = time.time()
-    counter = 0
-    coverage_counts = {i: 0 for i in range(10)}  # Tracks counts for 0 to 9 areas covered
-    for root, _, files in os.walk(input_folder):
-        if "hpe" in root:
-            for txt_file in files:
-                if txt_file.endswith(txt_name):
-                    counter += 1
-                    file_path = os.path.join(root, txt_file)
-                    with open(file_path) as file:
-                        covered_areas = set()
-                        for line in file:
-                            parts = line.strip().split(',')
-                            integers = list(map(int, parts[:-1]))  # Convert all but the last part to integers
-                            x, y, z = integers[:3]  # Assuming these are head pose angles
-                            area = classify_gaze(x, y)
-                            covered_areas.add(area)
+                            coverage_counts[len(covered_areas)] += 1
 
-                        coverage_counts[len(covered_areas)] += 1
+        elapsed_time = time.time() - start_time
+        print("Evaluated", counter, "files in", round(elapsed_time, 2), "seconds")
 
-    elapsed_time = time.time() - start_time
-    print("Evaluated", counter, "files in", round(elapsed_time, 2), "seconds")
-    for areas, count in sorted(coverage_counts.items(), reverse=True):
-        percentage = (count / counter * 100) if counter > 0 else 0
-        print(f"{count} videos cover {areas} gaze areas ({percentage:.2f}%)")
-
-    print("#################25########################")
-
-    start_time = time.time()
-    counter = 0
-    coverage_counts = {i: 0 for i in range(26)}  # Tracks counts for 0 to 25 areas covered
-    for root, _, files in os.walk(input_folder):
-        if "hpe" in root:
-            for txt_file in files:
-                if txt_file.endswith(txt_name):
-                    counter += 1
-                    file_path = os.path.join(root, txt_file)
-                    with open(file_path) as file:
-                        covered_areas = set()
-                        for line in file:
-                            parts = line.strip().split(',')
-                            integers = list(map(int, parts[:-1]))  # Convert all but the last part to integers
-                            x, y, z = integers[:3]  # Assuming these are head pose angles
-                            area = classify_gaze_25(x, y)
-                            covered_areas.add(area)
-
-                        coverage_counts[len(covered_areas)] += 1
-
-    elapsed_time = time.time() - start_time
-    print("Evaluated", counter, "files in", round(elapsed_time, 2), "seconds")
-    for areas, count in sorted(coverage_counts.items(), reverse=True):
-        percentage = (count / counter * 100) if counter > 0 else 0
-        print(f"{count} videos cover {areas} gaze areas ({percentage:.2f}%)")
+        print_gaze_coverage(coverage_counts, f"Gaze Coverage Distribution ({num_areas} Areas)")
 
 
 if __name__ == '__main__':
