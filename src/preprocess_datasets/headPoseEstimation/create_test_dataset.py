@@ -3,6 +3,8 @@ import time
 from collections import defaultdict
 import shutil
 
+from tqdm import tqdm
+
 
 def create_train_test_split(input_folder, output_folder, filter_strings=None):
     """
@@ -26,7 +28,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None):
     os.makedirs(test_folder, exist_ok=True)
 
     # Iterate over class subfolders
-    for class_name in os.listdir(input_folder):
+    for class_name in tqdm(os.listdir(input_folder), desc="Copy files"):
         class_path = os.path.join(input_folder, class_name)
         if not os.path.isdir(class_path):
             continue
@@ -61,7 +63,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None):
 
 
 if __name__ == '__main__':
-    input = "E:\\Download\\test_out"  # input folder path
-    output = "E:\\Download\\test_out_TEST"  # output folder path
-    filter = ["-25_0", "-15_0", "0_0", "15_0" "25_0"]  # which angles should be included
-    create_train_test_split(input, output, filter)
+    input_dir = "E:\\Download\\test_out"  # input folder path
+    output_dir = "E:\\Download\\test_out_TEST"  # output folder path
+    filter_angles = ["-25_0", "-15_0", "0_0", "15_0" "25_0"]  # which angles should be included
+    create_train_test_split(input_dir, output_dir, filter_angles)
