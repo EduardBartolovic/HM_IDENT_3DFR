@@ -4,15 +4,19 @@ from collections import defaultdict
 import shutil
 
 
-def create_train_test_split(input_folder, output_folder):
+def create_train_test_split(input_folder, output_folder, filter_strings=None):
     """
     Splits images into train and test sets, always using the first group in each class for training
-    and the remaining groups for testing.
+    and the remaining groups for testing. Only files containing a specific string from filter_strings
+    in their name are included.
 
     Args:
         input_folder (str): Path to the folder containing the class subfolders with images.
         output_folder (str): Path to the output folder where train and test folders will be created.
+        filter_strings (list): List of strings; only files containing one of these strings in their name are included.
     """
+    if filter_strings is None:
+        filter_strings = []
     start_time = time.time()
     counter = 0
     os.makedirs(output_folder, exist_ok=True)
@@ -30,7 +34,7 @@ def create_train_test_split(input_folder, output_folder):
         # Collect groups by hash prefix
         groups = defaultdict(list)
         for filename in os.listdir(class_path):
-            if filename.endswith((".jpg", ".png", ".jpeg", '.npz')):  # Adjust extensions as needed
+            if (not filter_strings or any(fstr in filename for fstr in filter_strings)) and filename.endswith((".jpg", ".png", ".jpeg", ".npz")):
                 hash_prefix = filename[:40]
                 groups[hash_prefix].append(os.path.join(class_path, filename))
 
@@ -57,6 +61,7 @@ def create_train_test_split(input_folder, output_folder):
 
 
 if __name__ == '__main__':
-    input_folder = "E:\\Download\\test_out"  # Replace with your input folder path
-    output_folder = "E:\\Download\\test_out_TEST"  # Replace with your output folder path
-    create_train_test_split(input_folder, output_folder)
+    input = "E:\\Download\\test_out"  # input folder path
+    output = "E:\\Download\\test_out_TEST"  # output folder path
+    filter = ["-25_0", "-15_0", "0_0", "15_0" "25_0"]  # which angles should be included
+    create_train_test_split(input, output, filter)
