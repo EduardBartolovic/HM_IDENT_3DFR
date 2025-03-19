@@ -36,7 +36,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None):
         # Collect groups by hash prefix
         groups = defaultdict(list)
         for filename in os.listdir(class_path):
-            if (not filter_strings or any(fstr in filename for fstr in filter_strings)) and filename.endswith((".jpg", ".png", ".jpeg", ".npz")):
+            if (not filter_strings or any(fstr in filename for fstr in filter_strings)) and filename.endswith((".jpg", "corr.npz", ".png", ".jpeg")):
                 hash_prefix = filename[:40]
                 groups[hash_prefix].append(os.path.join(class_path, filename))
 
