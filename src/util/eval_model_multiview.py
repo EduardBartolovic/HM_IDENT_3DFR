@@ -154,9 +154,9 @@ def evaluate_and_log_multiview(device, backbone, data_root, dataset, epoch, dist
 
 
 # MVS for reg and agg
-def load_data_mvs(data_dir, max_batch_size: int, test_transform) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
+def load_data_mvs(data_dir, max_batch_size: int, test_transform, use_face_corr: bool) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
 
-    dataset = MultiviewDataset(data_dir, num_views=25, transform=test_transform)
+    dataset = MultiviewDataset(data_dir, num_views=25, transform=test_transform, use_face_corr=use_face_corr)
 
     dataset_size = len(dataset)
     # Ensure the last batch is always larger than 1
@@ -168,13 +168,13 @@ def load_data_mvs(data_dir, max_batch_size: int, test_transform) -> (torchvision
     return dataset, data_loader
 
 
-def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size):
+def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, use_face_corr: bool):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
     dataset_enrolled_path = os.path.join(test_path, 'train')
     dataset_query_path = os.path.join(test_path, 'validation')
-    dataset_enrolled, enrolled_loader = load_data_mvs(dataset_enrolled_path, batch_size, test_transform)
+    dataset_enrolled, enrolled_loader = load_data_mvs(dataset_enrolled_path, batch_size, test_transform, use_face_corr)
     _, query_loader = load_data_mvs(dataset_query_path, batch_size, test_transform)
 
     time.sleep(0.1)
@@ -203,7 +203,7 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
     return result_metrics, embedding_library
 
 
-def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size):
+def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, use_face_corr: bool):
 
     test_transform = transforms.Compose([
         transforms.Resize(test_transform_sizes),
@@ -213,7 +213,7 @@ def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_r
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {test_transform_sizes}"))
-    metrics, embedding_library = evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size)
+    metrics, embedding_library = evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, use_face_corr)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 

@@ -165,7 +165,7 @@ def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
 def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr, use_face_corr):
 
     if use_face_corr:
-        zero_position = np.where(np.array(perspectives)[:,0] == '0_0')[0][0]
+        zero_position = np.where(np.array(perspectives)[:, 0] == '0_0')[0][0]
         if stage_index == 0:
             all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
         if stage_index == 1:

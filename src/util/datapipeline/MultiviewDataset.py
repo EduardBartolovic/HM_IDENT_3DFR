@@ -7,7 +7,7 @@ from PIL import Image
 
 
 class MultiviewDataset(Dataset):
-    def __init__(self, root_dir, num_views, transform=None):
+    def __init__(self, root_dir, num_views, transform=None, use_face_corr=True):
         """
         Args:
             root_dir (string): Path to the root directory of the dataset.
@@ -17,6 +17,7 @@ class MultiviewDataset(Dataset):
         self.transform = transform
         self.num_views = num_views
         self.face_cor_exist = False
+        self.use_face_corr = use_face_corr
         self.class_to_idx = self._get_class_to_idx()
         self.data = self._load_data()
         self.classes = self._find_classes()
@@ -64,6 +65,9 @@ class MultiviewDataset(Dataset):
                         data.append((file_paths, class_idx))
                     else:
                         raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}: to many views")
+
+        if not self.use_face_corr:  # If use_face_corr is False don't use face_corr
+            self.face_cor_exist = False
 
         return data
 

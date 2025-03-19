@@ -55,6 +55,7 @@ if __name__ == '__main__':
     INPUT_SIZE = cfg['INPUT_SIZE']
     RGB_MEAN = cfg['RGB_MEAN']  # for normalize inputs
     RGB_STD = cfg['RGB_STD']
+    use_face_corr = cfg['USE_FACE_CORR']
     EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']  # feature dimension
     BATCH_SIZE = cfg['BATCH_SIZE']
     DROP_LAST = cfg['DROP_LAST']  # whether drop the last batch to ensure consistent batch_norm statistics
@@ -211,13 +212,13 @@ if __name__ == '__main__':
                 schedule_lr(OPTIMIZER)
 
             #  ======= perform validation =======
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE*4)
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus_fc, epoch, (150, 150), BATCH_SIZE * 4)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2test, epoch, (170, 170), BATCH_SIZE*4)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2train, epoch,(170, 170), BATCH_SIZE * 4)
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(150, 150), BATCH_SIZE * 4)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch, (150, 150), BATCH_SIZE*4)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE * 4)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE*4, use_face_corr)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus_fc, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2test, epoch, (170, 170), BATCH_SIZE * 4, use_face_corr)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2train, epoch,(170, 170), BATCH_SIZE * 4, use_face_corr)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(150, 150), BATCH_SIZE * 4, use_face_corr)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr)
             print("=" * 60)
 
             BACKBONE_reg.eval()
@@ -228,7 +229,6 @@ if __name__ == '__main__':
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
-            use_face_corr = False
             for inputs, labels, perspectives, face_corrs in tqdm(iter(train_loader)):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (
