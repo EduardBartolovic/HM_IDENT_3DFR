@@ -101,6 +101,7 @@ def evaluate_gaze_coverage(input_folder, txt_name="hpe.txt"):
             if "hpe" in root:
                 for txt_file in files:
                     if txt_file.endswith(txt_name):
+                        counter += 1
                         file_path = os.path.join(root, txt_file)
                         covered_areas = set()
                         with open(file_path) as file:
