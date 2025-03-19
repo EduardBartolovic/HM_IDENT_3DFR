@@ -59,7 +59,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None):
                 counter += 1
 
     elapsed_time = time.time() - start_time
-    print(f"Train-test split created in {output_folder} for {counter} files in", round(elapsed_time, 2), "seconds")
+    print(f"Train-test split created in {output_folder} for {counter} files in", round(elapsed_time/60, 2), "minutes")
 
 
 if __name__ == '__main__':

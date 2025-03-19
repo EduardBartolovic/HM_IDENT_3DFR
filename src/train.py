@@ -121,7 +121,8 @@ if __name__ == '__main__':
             test_faceverse = 'test_rgb_faceverse'
             test_texas = 'test_rgb_texas'
             test_bff = 'test_rgb_bff'
-            test_voxceleb2test = "test_voxceleb2test"
+            test_vox2test = "test_vox2test"
+            test_vox2train = "test_vox2train"
         elif 'depth' in TRAIN_SET:
             test_bellus = 'test_depth_bellus'
             test_facescape = 'test_depth_facescape'
@@ -249,7 +250,8 @@ if __name__ == '__main__':
             #  ======= perform validation =======
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE)
             #if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_voxceleb2test, epoch, DISTANCE_METRIC, (170, 170), BATCH_SIZE)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_vox2test, epoch, DISTANCE_METRIC, (170, 170), BATCH_SIZE)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_vox2train, epoch, DISTANCE_METRIC, (170, 170), BATCH_SIZE)
             # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
             # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE)
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE)
