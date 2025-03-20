@@ -88,16 +88,23 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     print_memory_usage("Before GC1")
     gc.collect()
     print_memory_usage("After GC1")
-    y_pred = np.argsort(distances, axis=1)
+    #y_pred = np.argsort(distances, axis=1)
+    # Use np.argpartition to find the top-k closest neighbors
+    k = 5  # Adjust k to the number of neighbors you need
+    y_pred_topk = np.argpartition(distances, k, axis=1)[:, :k]
+    # Sort the results for each query to get the correct order of distances
+    sorted_indices = np.argsort(distances[np.arange(distances.shape[0])[:, None], y_pred_topk], axis=1)
+    y_pred_topk = y_pred_topk[np.arange(y_pred_topk.shape[0])[:, None], sorted_indices]
+
     print_memory_usage("Before GC2")
     gc.collect()
     print_memory_usage("After GC2")
-    embedding_metrics = calc_embedding_analysis(embedding_library, distance_metric)
+    embedding_metrics = calc_embedding_analysis(embedding_library, enrolled_embeddings_mean, distance_metric)
     print_memory_usage("Before GC3")
     gc.collect()
     print_memory_usage("After GC3")
-    y_pred_top1 = y_pred[:, 0]
-    y_pred_top5 = y_pred[:, :5]
+    y_pred_top1 = y_pred_topk[:, 0]# y_pred[:, 0]
+    y_pred_top5 = y_pred_topk[:, :5]# y_pred[:, :5]
     metrics = calc_metrics(embedding_library.query_labels, y_pred_top1, y_pred_top5)
     print_memory_usage("Before GC4")
     gc.collect()
