@@ -49,12 +49,32 @@ def load_data(data_dir, transform, max_batch_size: int) -> (
                                               drop_last=False)  # Todo: Check why Shuffle False makes everything worse
     return dataset, data_loader
 
+
 def print_memory_usage(message=""):
     # TODO Check if required
     process = psutil.Process(os.getpid())
     mem_usage = process.memory_info().rss / 1024 ** 2  # Convert to MB
     print(f"{message} Memory usage: {mem_usage:.2f} MB")
 
+
+def topk_indices(distances, k=5, batch_size=1000):
+    """Compute top-k indices in batches to reduce memory usage."""
+    num_queries = distances.shape[0]
+    y_pred_top5 = np.zeros((num_queries, k), dtype=np.int32)
+
+    for start in range(0, num_queries, batch_size):
+        end = min(start + batch_size, num_queries)
+        batch_distances = distances[start:end]
+
+        # Get the indices of the k smallest elements in each row
+        batch_topk = np.argpartition(batch_distances, k, axis=1)[:, :k]
+
+        # Store results in the output array
+        y_pred_top5[start:end] = batch_topk
+
+    # Extract the top-1 directly from top-5
+    y_pred_top1 = y_pred_top5[:, 0]
+    return y_pred_top1, y_pred_top5
 
 def evaluate(device, batch_size, backbone, test_path, distance_metric, test_transform):
     """
@@ -84,9 +104,11 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     print_memory_usage("Before GC1")
     gc.collect()
     print_memory_usage("After GC1")
-    y_pred_top5 = np.argpartition(distances, 5, axis=1)[:, :5]
+    #y_pred_top5 = np.argpartition(distances, 5, axis=1)[:, :5]
+    y_pred_top1, y_pred_top5 = topk_indices(distances, k=5, batch_size=batch_size)
     print("y_pred_top5 array:", y_pred_top5.dtype, y_pred_top5.nbytes)
-    y_pred_top1 = y_pred_top5[:, 0]
+    print("y_pred_top1 array:", y_pred_top1.dtype, y_pred_top1.nbytes)
+    #y_pred_top1 = y_pred_top5[:, 0]
 
     print_memory_usage("Before GC2")
     gc.collect()
