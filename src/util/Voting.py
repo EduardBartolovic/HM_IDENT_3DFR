@@ -83,7 +83,7 @@ def calculate_embedding_similarity_progress(
             process_chunk_embedding_similarity(
                 tabular_data, image_data, start_row, end_row, similarity_matrix
             )
-        pbar.update(end_row - start_row)
+            pbar.update(end_row - start_row)
 
     return similarity_matrix
 
