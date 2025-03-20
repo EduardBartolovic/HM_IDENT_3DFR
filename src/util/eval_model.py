@@ -75,12 +75,15 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     for i, label in enumerate(unique_labels):
         enrolled_embeddings_mean[i] = embedding_library.enrolled_embeddings[indices == i].mean(axis=0)
 
+    print("enrolled_embeddings_mean array:", enrolled_embeddings_mean.dtype, enrolled_embeddings_mean.nbytes)
     print_memory_usage("Before GC0")
     gc.collect()
     print_memory_usage("After GC0")
 
     # Calculate distances between embeddings of query and library data
     distances = batched_distances_gpu(device, embedding_library.query_embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric)
+    # Print the type of the array elements
+    print("distances array:", distances.dtype, distances.nbytes)
     # Sort indices/classes of the closest vectors for each query embedding
     print_memory_usage("Before GC1")
     gc.collect()
