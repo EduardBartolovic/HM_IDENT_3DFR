@@ -9,6 +9,7 @@ import torch
 import torchvision
 import psutil
 from torchvision import transforms
+from tqdm import tqdm
 
 from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_gpu
 from src.util.datapipeline.ImageFolderRGBDWithScanID import ImageFolderRGBDWithScanID
@@ -62,7 +63,7 @@ def topk_indices(distances, k=5, batch_size=1000):
     num_queries = distances.shape[0]
     y_pred_top5 = np.zeros((num_queries, k), dtype=np.int32)
 
-    for start in range(0, num_queries, batch_size):
+    for start in tqdm(range(0, num_queries, batch_size), desc="argpartition"):
         end = min(start + batch_size, num_queries)
         batch_distances = distances[start:end]
 
@@ -75,6 +76,7 @@ def topk_indices(distances, k=5, batch_size=1000):
     # Extract the top-1 directly from top-5
     y_pred_top1 = y_pred_top5[:, 0]
     return y_pred_top1, y_pred_top5
+
 
 def evaluate(device, batch_size, backbone, test_path, distance_metric, test_transform):
     """
