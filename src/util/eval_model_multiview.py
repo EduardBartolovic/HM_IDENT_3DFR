@@ -175,7 +175,7 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
     dataset_enrolled_path = os.path.join(test_path, 'train')
     dataset_query_path = os.path.join(test_path, 'validation')
     dataset_enrolled, enrolled_loader = load_data_mvs(dataset_enrolled_path, batch_size, test_transform, use_face_corr)
-    _, query_loader = load_data_mvs(dataset_query_path, batch_size, test_transform)
+    _, query_loader = load_data_mvs(dataset_query_path, batch_size, test_transform, use_face_corr)
 
     time.sleep(0.1)
 
