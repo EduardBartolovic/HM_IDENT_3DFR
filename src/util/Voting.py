@@ -1,3 +1,5 @@
+import gc
+import os
 from collections import defaultdict
 
 import numpy as np
@@ -5,6 +7,8 @@ from sklearn import neighbors
 import numba
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
+
+from src.util.eval_model import print_memory_usage
 
 
 def compute_ranking_matrices(similarity_matrix):
@@ -28,7 +32,7 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
     }
 
 
-@numba.njit(parallel=True)
+@numba.njit(parallel=True) #TODO fastmath=True, nogil=True)
 def process_chunk_embedding_similarity(tabular_data, image_data, start_row, end_row, similarity_matrix):
     for i in numba.prange(start_row, end_row):
         similarity_matrix[i, :] = np.dot(tabular_data[i], image_data.T)
@@ -37,9 +41,7 @@ def process_chunk_embedding_similarity(tabular_data, image_data, start_row, end_
 def calculate_embedding_similarity(tabular_embeddings, image_embeddings, chunk_size=100, show_progress=True):
     tabular_data = tabular_embeddings / np.linalg.norm(tabular_embeddings, axis=1, keepdims=True)
     image_data = image_embeddings / np.linalg.norm(image_embeddings, axis=1, keepdims=True)
-
     similarity_matrix = np.empty((tabular_data.shape[0], image_data.shape[0]), dtype=np.float32)
-
     with tqdm(total=tabular_data.shape[0], disable=not show_progress, desc="Calculating Embedding Similarity") as pbar:
         for start_row in range(0, tabular_data.shape[0], chunk_size):
             end_row = min(start_row + chunk_size, tabular_data.shape[0])
@@ -50,6 +52,9 @@ def calculate_embedding_similarity(tabular_embeddings, image_embeddings, chunk_s
 
 
 def concat(embedding_library):
+
+    os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
     def process_embeddings(scan_ids, embeddings, labels, perspectives):
         scan_to_data = {}
         for scan_id, embedding, label, perspective in zip(scan_ids, embeddings, labels, perspectives):
@@ -70,16 +75,38 @@ def concat(embedding_library):
 
         return np.array(concatenated_embeddings, dtype=np.float32), np.array(concatenated_labels)
 
+    print_memory_usage("Before GCC1")
+    gc.collect()
+    print_memory_usage("After GCC1")
+
     enrolled_embedding_database, enrolled_label_database = process_embeddings(
         embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
         embedding_library.enrolled_labels, embedding_library.enrolled_perspectives)
+
+    print_memory_usage("Before GCC2")
+    gc.collect()
+    print_memory_usage("After GCC2")
 
     query_embedding_database, query_label_database = process_embeddings(
         embedding_library.query_scan_ids, embedding_library.query_embeddings,
         embedding_library.query_labels, embedding_library.query_perspectives)
 
+    print_memory_usage("Before GCC3")
+    gc.collect()
+    print_memory_usage("After GCC3")
+
     similarity_matrix = calculate_embedding_similarity(query_embedding_database, enrolled_embedding_database)
+
+    print_memory_usage("Before GCC4")
+    gc.collect()
+    print_memory_usage("After GCC4")
+
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
+
+    print_memory_usage("Before GCC5")
+    gc.collect()
+    print_memory_usage("After GCC5")
+
     return analyze_result(similarity_matrix, top_indices, enrolled_label_database, query_label_database, top_k_acc_k=5)
 
 
