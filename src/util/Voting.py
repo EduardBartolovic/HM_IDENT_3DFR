@@ -273,7 +273,7 @@ def accuracy_front_perspective(embedding_library, distance_metric=None):
     query_embeddings = embedding_library.query_embeddings[mask]
     query_labels = embedding_library.query_labels[mask]
 
-    similarity_matrix = calculate_embedding_similarity_progress(query_embeddings, enrolled_embeddings)
+    similarity_matrix = calculate_embedding_similarity(query_embeddings, enrolled_embeddings)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
     return result_metrics
