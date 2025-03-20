@@ -78,7 +78,7 @@ def batched_distances_gpu_cosine(device, embeddings_query: np.array, embeddings_
     embeddings_enrolled = torch.tensor(embeddings_enrolled, device=device, dtype=torch.float32)
     enrolled_norm = torch.nn.functional.normalize(embeddings_enrolled, p=2, dim=1)
 
-    distances = np.empty((num_samples, len(embeddings_enrolled)), dtype=np.float16)  # TODO: CHECK if this helps with memory usage, dtype=np.float32)
+    distances = np.empty((num_samples, len(embeddings_enrolled)), dtype=np.float32)
     for start_idx in tqdm(range(0, num_samples, batch_size), desc="Calculate Distances"):
         end_idx = min(start_idx + batch_size, num_samples)
         query_batch = embeddings_query[start_idx:end_idx]
