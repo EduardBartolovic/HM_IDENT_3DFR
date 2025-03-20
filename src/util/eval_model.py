@@ -81,25 +81,23 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     print("distances array:", distances.dtype, distances.nbytes)
     # Sort indices/classes of the closest vectors for each query embedding
     #y_pred = np.argsort(distances, axis=1)
-    k = 5  # Adjust k to the number of neighbors you need
-    y_pred_topk = np.argpartition(distances, k, axis=1)[:, :k]
-    # Sort the results for each query to get the correct order of distances
-    sorted_indices = np.argsort(distances[np.arange(distances.shape[0])[:, None], y_pred_topk], axis=1)
-    y_pred_topk = y_pred_topk[np.arange(y_pred_topk.shape[0])[:, None], sorted_indices]
+    print_memory_usage("Before GC1")
+    gc.collect()
+    print_memory_usage("After GC1")
+    y_pred_top5 = np.argpartition(distances, 5, axis=1)[:, :5]
+    print("y_pred_top5 array:", y_pred_top5.dtype, y_pred_top5.nbytes)
+    y_pred_top1 = y_pred_top5[:, 0]
 
     print_memory_usage("Before GC2")
     gc.collect()
     print_memory_usage("After GC2")
-    embedding_metrics = calc_embedding_analysis(embedding_library, enrolled_embeddings_mean, distance_metric)
+    embedding_metrics = {}  # calc_embedding_analysis(embedding_library, enrolled_embeddings_mean, distance_metric)
+    #y_pred_top1 = y_pred[:, 0]
+    #y_pred_top5 = y_pred[:, :5]
+    metrics = calc_metrics(embedding_library.query_labels, y_pred_top1, y_pred_top5)
     print_memory_usage("Before GC3")
     gc.collect()
     print_memory_usage("After GC3")
-    y_pred_top1 = y_pred_topk[:, 0]# y_pred[:, 0]
-    y_pred_top5 = y_pred_topk[:, :5]# y_pred[:, :5]
-    metrics = calc_metrics(embedding_library.query_labels, y_pred_top1, y_pred_top5)
-    print_memory_usage("Before GC4")
-    gc.collect()
-    print_memory_usage("After GC4")
     plot_confusion_matrix(embedding_library.query_labels, y_pred_top1, dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(embedding_library.query_labels, y_pred_top1, os.path.basename(test_path))
 
@@ -165,7 +163,7 @@ def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metri
     #if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
 
-    if 'texas' not in dataset:
+    if embedding_metrics:
         mlflow.log_metric(f"{neutral_dataset}_intra_enrolled_avg_distance", embedding_metrics['intra_enrolled_avg_distance'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_intra_query_avg_distance", embedding_metrics['intra_query_avg_distance'], step=epoch + 1)
         mlflow.log_metric(f"{neutral_dataset}_intra_scan_avg_distance", embedding_metrics['intra_scan_avg_distance'], step=epoch + 1)
