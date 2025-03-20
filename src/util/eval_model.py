@@ -119,13 +119,13 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
         metrics_front = accuracy_front_perspective(embedding_library, distance_metric)
 
     # VotingV1 Single Encoding
-    if 'texas' in test_path:
-        metrics_voting = {}
-    else:
-        y_true_voting, y_pred_voting = voting(y_pred_topk, embedding_library.query_scan_ids, embedding_library.query_labels)
-        y_pred_voting_top1 = y_pred_voting[:, 0]
-        y_pred_voting_top5 = y_pred_voting[:, :5]
-        metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
+    #if 'texas' in test_path:
+    metrics_voting = {}
+    #else:
+    #    y_true_voting, y_pred_voting = voting(y_pred, embedding_library.query_scan_ids, embedding_library.query_labels)
+    #    y_pred_voting_top1 = y_pred_voting[:, 0]
+    #    y_pred_voting_top5 = y_pred_voting[:, :5]
+    #    metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
 
     # VotingV2 KNN
     if 'texas' in test_path:
