@@ -48,7 +48,7 @@ if __name__ == '__main__':
     AGG_NAME = cfg['AGG_NAME']
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
-    TRAIN_ALL = cfg['TRAIN_ALL'] # Train whole Network
+    TRAIN_ALL = cfg['TRAIN_ALL']  # Train whole Network
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
     DISTANCE_METRIC = cfg['DISTANCE_METRIC']  # support: ['euclidian', 'cosine']
 
@@ -113,7 +113,7 @@ if __name__ == '__main__':
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
         ])
 
-        dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=25, transform=train_transform)
+        dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=25, transform=train_transform, use_face_corr=use_face_corr)
 
         # create a weighted random sampler to process imbalanced data
         weights = make_weights_for_balanced_classes(dataset_train.data, len(dataset_train.classes))
