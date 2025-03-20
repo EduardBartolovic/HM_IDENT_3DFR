@@ -1,3 +1,4 @@
+import gc
 import os
 from collections import namedtuple
 
@@ -6,6 +7,7 @@ import numpy as np
 import time
 import torch
 import torchvision
+import psutil
 from torchvision import transforms
 
 from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_gpu
@@ -47,6 +49,12 @@ def load_data(data_dir, transform, max_batch_size: int) -> (
                                               drop_last=False)  # Todo: Check why Shuffle False makes everything worse
     return dataset, data_loader
 
+def print_memory_usage(message=""):
+    # TODO Check if required
+    process = psutil.Process(os.getpid())
+    mem_usage = process.memory_info().rss / 1024 ** 2  # Convert to MB
+    print(f"{message} Memory usage: {mem_usage:.2f} MB")
+
 
 def evaluate(device, batch_size, backbone, test_path, distance_metric, test_transform):
     """
@@ -61,9 +69,16 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
 
     embedding_library = get_embeddings(device, backbone, enrolled_loader, query_loader)
 
-    unique_labels = np.unique(embedding_library.enrolled_labels)  # Compute mean embeddings for each label
-    enrolled_embeddings_mean = np.array(
-        [embedding_library.enrolled_embeddings[embedding_library.enrolled_labels == label].mean(axis=0) for label in unique_labels])
+    # Compute mean embeddings for each label
+    unique_labels, indices = np.unique(embedding_library.enrolled_labels, return_inverse=True)
+    enrolled_embeddings_mean = np.zeros((len(unique_labels), embedding_library.enrolled_embeddings.shape[1]), dtype=np.float32)
+    for i, label in enumerate(unique_labels):
+        enrolled_embeddings_mean[i] = embedding_library.enrolled_embeddings[indices == i].mean(axis=0)
+
+    print_memory_usage("Before GC")
+    gc.collect()
+    print_memory_usage("After GC")
+
     # Calculate distances between embeddings of query and library data
     distances = batched_distances_gpu(device, embedding_library.query_embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric)
     # Sort indices/classes of the closest vectors for each query embedding
