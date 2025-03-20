@@ -9,6 +9,12 @@ import numba
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 
+# Set environment variables to avoid OpenBLAS conflicts
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["NUMBA_THREADING_LAYER"] = "tbb"
 
 def print_memory_usage(message=""):
     # TODO Check if required
@@ -58,8 +64,6 @@ def calculate_embedding_similarity(tabular_embeddings, image_embeddings, chunk_s
 
 
 def concat(embedding_library):
-
-    os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
     def process_embeddings(scan_ids, embeddings, labels, perspectives):
         scan_to_data = {}
