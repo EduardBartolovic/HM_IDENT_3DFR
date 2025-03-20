@@ -3,12 +3,18 @@ import os
 from collections import defaultdict
 
 import numpy as np
+import psutil
 from sklearn import neighbors
 import numba
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 
-from src.util.eval_model import print_memory_usage
+
+def print_memory_usage(message=""):
+    # TODO Check if required
+    process = psutil.Process(os.getpid())
+    mem_usage = process.memory_info().rss / 1024 ** 2  # Convert to MB
+    print(f"{message} Memory usage: {mem_usage:.2f} MB")
 
 
 def compute_ranking_matrices(similarity_matrix):
