@@ -75,18 +75,30 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     for i, label in enumerate(unique_labels):
         enrolled_embeddings_mean[i] = embedding_library.enrolled_embeddings[indices == i].mean(axis=0)
 
-    print_memory_usage("Before GC")
+    print_memory_usage("Before GC0")
     gc.collect()
-    print_memory_usage("After GC")
+    print_memory_usage("After GC0")
 
     # Calculate distances between embeddings of query and library data
     distances = batched_distances_gpu(device, embedding_library.query_embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric)
     # Sort indices/classes of the closest vectors for each query embedding
+    print_memory_usage("Before GC1")
+    gc.collect()
+    print_memory_usage("After GC1")
     y_pred = np.argsort(distances, axis=1)
+    print_memory_usage("Before GC2")
+    gc.collect()
+    print_memory_usage("After GC2")
     embedding_metrics = calc_embedding_analysis(embedding_library, distance_metric)
+    print_memory_usage("Before GC3")
+    gc.collect()
+    print_memory_usage("After GC3")
     y_pred_top1 = y_pred[:, 0]
     y_pred_top5 = y_pred[:, :5]
     metrics = calc_metrics(embedding_library.query_labels, y_pred_top1, y_pred_top5)
+    print_memory_usage("Before GC4")
+    gc.collect()
+    print_memory_usage("After GC4")
     plot_confusion_matrix(embedding_library.query_labels, y_pred_top1, dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(embedding_library.query_labels, y_pred_top1, os.path.basename(test_path))
 
