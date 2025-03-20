@@ -99,31 +99,24 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
 
     # Calculate distances between embeddings of query and library data
     distances = batched_distances_gpu(device, embedding_library.query_embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric)
-    # Print the type of the array elements
-    print("distances array:", distances.dtype, distances.nbytes)
-    # Sort indices/classes of the closest vectors for each query embedding
-    #y_pred = np.argsort(distances, axis=1)
-    print_memory_usage("Before GC1")
-    gc.collect()
-    print_memory_usage("After GC1")
-    #y_pred_top5 = np.argpartition(distances, 5, axis=1)[:, :5]
-    y_pred_top1, y_pred_top5 = topk_indices(distances, k=5, batch_size=batch_size)
-    print("y_pred_top5 array:", y_pred_top5.dtype, y_pred_top5.nbytes)
-    print("y_pred_top1 array:", y_pred_top1.dtype, y_pred_top1.nbytes)
-    #y_pred_top1 = y_pred_top5[:, 0]
 
-    print_memory_usage("Before GC2")
-    gc.collect()
-    print_memory_usage("After GC2")
+    #print("distances array:", distances.dtype, distances.nbytes)
+
+    # Sort indices/classes of the closest vectors for each query embedding
+    y_pred_top1, y_pred_top5 = topk_indices(distances, k=5, batch_size=batch_size)
+    #print("y_pred_top5 array:", y_pred_top5.dtype, y_pred_top5.nbytes)
+    #print("y_pred_top1 array:", y_pred_top1.dtype, y_pred_top1.nbytes)
+
     embedding_metrics = {}  # calc_embedding_analysis(embedding_library, enrolled_embeddings_mean, distance_metric)
-    #y_pred_top1 = y_pred[:, 0]
-    #y_pred_top5 = y_pred[:, :5]
+
     metrics = calc_metrics(embedding_library.query_labels, y_pred_top1, y_pred_top5)
-    print_memory_usage("Before GC3")
-    gc.collect()
-    print_memory_usage("After GC3")
+
     plot_confusion_matrix(embedding_library.query_labels, y_pred_top1, dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(embedding_library.query_labels, y_pred_top1, os.path.basename(test_path))
+
+    print_memory_usage("Before GC4")
+    gc.collect()
+    print_memory_usage("After GC4")
 
     # Eval only Front
     if 'texas' in test_path:
@@ -140,6 +133,10 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     #    y_pred_voting_top5 = y_pred_voting[:, :5]
     #    metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
 
+    print_memory_usage("Before GC5")
+    gc.collect()
+    print_memory_usage("After GC5")
+
     # VotingV2 KNN
     if 'texas' in test_path:
         metrics_knn_voting = {}
@@ -147,6 +144,10 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
         y_true_knn, y_pred_knn = knn_voting(embedding_library)
         metrics_knn_voting = calc_metrics(y_true_knn, y_pred_knn)
         plot_confusion_matrix(y_true_knn, y_pred_knn, dataset_enrolled, os.path.basename(test_path) + '_votingV2', matplotlib=False)
+
+    print_memory_usage("Before GC6")
+    gc.collect()
+    print_memory_usage("After GC6")
 
     # ConCat
     if 'texas' in test_path or 'colorferet' in test_path:
