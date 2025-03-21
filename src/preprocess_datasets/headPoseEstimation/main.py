@@ -18,7 +18,7 @@ if __name__ == '__main__':
     dataset_output_folder = "E:\\Download\\vox2test_out"
     dataset_output_folder_crop = "E:\\Download\\vox2test_out_crop"
     output_test_dataset = "E:\\Download\\test_vox2test"
-    face_detect_model = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\det_10g.onnx.pt"
+    face_detect_model_root = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
     batch_size = 128
     device = torch.device("cuda")
 

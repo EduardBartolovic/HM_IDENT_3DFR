@@ -102,12 +102,12 @@ def better_face_crop_old(input_folder, output_folder, model):
         break
 
 
-def better_face_crop(input_folder, output_folder, model):
+def better_face_crop(input_folder, output_folder, model_root):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     back_net = BlazeFace(back_model=True).to(device)
-    back_net.load_weights("blazefaceback.pth")
-    back_net.load_anchors("anchorsback.npy")
+    back_net.load_weights(os.path.join(model_root, "blazefaceback.pth"))
+    back_net.load_anchors(os.path.join(model_root, "anchorsback.npy"))
 
     # Optionally change the thresholds:
     back_net.min_score_thresh = 0.6
@@ -161,7 +161,6 @@ def better_face_crop(input_folder, output_folder, model):
                 face_crop_path = os.path.join(target_class_path, filename)
                 cv2.imwrite(str(face_crop_path), face_crop_resized)
     print(f"Done. total_faces: {total_faces}, missing_faces: {missing_faces}, more_faces: {more_faces}")
-
 
 
 if __name__ == '__main__':
