@@ -6,12 +6,11 @@ import torch
 from tqdm import tqdm
 
 from src.preprocess_datasets.detect_face import expand_bbox
-from src.preprocess_datasets.headPoseEstimation.models.scrfd import SCRFD
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-from blazeface import BlazeFace
+from src.preprocess_datasets.blazeface.blazeface import BlazeFace
 
 
 def plot_detections(img, detections, with_keypoints=True):
