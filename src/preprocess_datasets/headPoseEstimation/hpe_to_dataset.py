@@ -74,23 +74,23 @@ def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, kee
                     id_name = os.path.basename(id_name)
 
                     destination = os.path.join(dataset_output_folder, id_name)
-
-                    if keep and os.path.exists(destination):
-                        continue  # Skip if file already exists
-
                     os.makedirs(destination, exist_ok=True)
 
                     for info in data:
                         video_path = os.path.join(video_folder_path, info[6].split('#')[0])
                         frame_index = int(info[6].split('#')[1])
 
+                        hash_name = hashlib.sha1((id_name + sample_name).encode()).hexdigest()
+                        dst = os.path.join(destination, f'{hash_name}{info[0]}_{info[1]}_image.jpg')
+
+                        if keep and os.path.exists(dst):
+                            continue  # Skip if file already exists
+
                         cap = cv2.VideoCapture(video_path)
                         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
                         ret, frame = cap.read()
 
                         if ret:
-                            hash_name = hashlib.sha1((id_name + sample_name).encode()).hexdigest()
-                            dst = os.path.join(destination, f'{hash_name}{info[0]}_{info[1]}_image.jpg')
                             cv2.imwrite(dst, frame)
                             counter += 1
 
