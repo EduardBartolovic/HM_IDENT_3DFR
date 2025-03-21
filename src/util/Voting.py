@@ -44,7 +44,7 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
     }
 
 
-@numba.njit(parallel=True) #TODO fastmath=True, nogil=True)
+@numba.njit(parallel=True, fastmath=True, nogil=True)
 def process_chunk_embedding_similarity(tabular_data, image_data, start_row, end_row, similarity_matrix):
     for i in numba.prange(start_row, end_row):
         similarity_matrix[i, :] = np.dot(tabular_data[i], image_data.T)
@@ -85,37 +85,17 @@ def concat(embedding_library):
 
         return np.array(concatenated_embeddings, dtype=np.float32), np.array(concatenated_labels)
 
-    print_memory_usage("Before GCC1")
-    gc.collect()
-    print_memory_usage("After GCC1")
-
     enrolled_embedding_database, enrolled_label_database = process_embeddings(
         embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
         embedding_library.enrolled_labels, embedding_library.enrolled_perspectives)
-
-    print_memory_usage("Before GCC2")
-    gc.collect()
-    print_memory_usage("After GCC2")
 
     query_embedding_database, query_label_database = process_embeddings(
         embedding_library.query_scan_ids, embedding_library.query_embeddings,
         embedding_library.query_labels, embedding_library.query_perspectives)
 
-    print_memory_usage("Before GCC3")
-    gc.collect()
-    print_memory_usage("After GCC3")
-
     similarity_matrix = calculate_embedding_similarity(query_embedding_database, enrolled_embedding_database)
 
-    print_memory_usage("Before GCC4")
-    gc.collect()
-    print_memory_usage("After GCC4")
-
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
-
-    print_memory_usage("Before GCC5")
-    gc.collect()
-    print_memory_usage("After GCC5")
 
     return analyze_result(similarity_matrix, top_indices, enrolled_label_database, query_label_database, top_k_acc_k=5)
 
