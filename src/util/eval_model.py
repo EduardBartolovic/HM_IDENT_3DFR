@@ -104,6 +104,8 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
 
     # Sort indices/classes of the closest vectors for each query embedding
     y_pred_top1, y_pred_top5 = topk_indices(distances, k=5, batch_size=batch_size)
+    del distances
+
     #print("y_pred_top5 array:", y_pred_top5.dtype, y_pred_top5.nbytes)
     #print("y_pred_top1 array:", y_pred_top1.dtype, y_pred_top1.nbytes)
 
