@@ -45,7 +45,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##########Better Face Crop###########")
     print("##################################")
-    better_face_crop(dataset_output_folder, dataset_output_folder_crop, face_detect_model)
+    better_face_crop(dataset_output_folder, dataset_output_folder_crop, face_detect_model_root)
 
     print("##################################")
     print("######face_correspondences########")
