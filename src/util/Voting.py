@@ -1,9 +1,7 @@
-import gc
 import os
 from collections import defaultdict
 
 import numpy as np
-import psutil
 from sklearn import neighbors
 import numba
 from sklearn.metrics import accuracy_score
@@ -15,12 +13,6 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["NUMBA_THREADING_LAYER"] = "workqueue"
-
-def print_memory_usage(message=""):
-    # TODO Check if required
-    process = psutil.Process(os.getpid())
-    mem_usage = process.memory_info().rss / 1024 ** 2  # Convert to MB
-    print(f"{message} Memory usage: {mem_usage:.2f} MB")
 
 
 def compute_ranking_matrices(similarity_matrix):

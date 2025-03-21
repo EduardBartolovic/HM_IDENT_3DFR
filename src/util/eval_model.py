@@ -127,7 +127,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
         metrics_knn_voting = calc_metrics(y_true_knn, y_pred_knn)
         plot_confusion_matrix(y_true_knn, y_pred_knn, dataset_enrolled, os.path.basename(test_path) + '_votingV2', matplotlib=False)
 
-    # ConCat
+    # Concat
     if 'texas' in test_path or 'colorferet' in test_path:
         metric_concat = {}
     else:
