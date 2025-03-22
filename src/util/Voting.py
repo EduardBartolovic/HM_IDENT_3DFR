@@ -1,13 +1,13 @@
 import os
 import time
-from collections import defaultdict, Counter
+from collections import defaultdict
 
+import faiss
 import numpy as np
 from sklearn import neighbors
 import numba
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
-import faiss
 
 # Set environment variables to avoid OpenBLAS conflicts
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -206,6 +206,7 @@ def multidatabase_voting(embedding_library):
 
 def knn_voting(embedding_library, k=1, batch_size=100):
     start_time = time.time()
+
     k = 1
     d = "cosine"
 
@@ -221,20 +222,22 @@ def knn_voting(embedding_library, k=1, batch_size=100):
 
     vote_scan_id = {}
     label_scan_id = {}
-    for scan_id, y_pred, y_true in zip(embedding_library.query_scan_ids, y_preds, embedding_library.query_labels):
+    for idx, y_pred in enumerate(y_preds):
+        scan_id = embedding_library.query_scan_ids[idx]
         vote_scan_id.setdefault(scan_id, []).append(y_pred)
-        label_scan_id[scan_id] = y_true
+        label_scan_id[scan_id] = embedding_library.query_labels[idx]
 
-    # Fast majority voting using Counter
-    y_pred_scan = np.array([Counter(votes).most_common(1)[0][0] for votes in vote_scan_id.values()])
-    y_true_scan = np.array([label_scan_id[key] for key in vote_scan_id.keys()])
+    y_pred_scan = []
+    y_true_scan = []
+    for key, votes in vote_scan_id.items():
+        y_pred_scan.append(max(set(votes), key=votes.count))
+        y_true_scan.append(label_scan_id[key])
 
     print("KNN from sklearn", time.time() - start_time)
 
-    #faiss_knn_voting(embedding_library)
+    # faiss_knn_voting(embedding_library)
 
     return y_true_scan, y_pred_scan
-
 
 def faiss_knn_voting(embedding_library, k=1):
     start_time = time.time()
