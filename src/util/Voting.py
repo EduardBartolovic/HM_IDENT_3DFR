@@ -205,6 +205,9 @@ def multidatabase_voting(embedding_library):
 
 
 def knn_voting(embedding_library, k=1, batch_size=100):
+
+    return faiss_knn_voting(embedding_library)
+
     start_time = time.time()
 
     k = 1
@@ -235,7 +238,7 @@ def knn_voting(embedding_library, k=1, batch_size=100):
 
     print("KNN from sklearn", time.time() - start_time)
 
-    # faiss_knn_voting(embedding_library)
+
 
     return np.array(y_true_scan), np.array(y_pred_scan)
 
