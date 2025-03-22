@@ -1,4 +1,5 @@
 import os
+import time
 from collections import defaultdict, Counter
 
 import numpy as np
@@ -204,6 +205,7 @@ def multidatabase_voting(embedding_library):
 
 
 def knn_voting(embedding_library, k=1, batch_size=100):
+    start_time = time.time()
     k = 1
     d = "cosine"
 
@@ -227,10 +229,15 @@ def knn_voting(embedding_library, k=1, batch_size=100):
     y_pred_scan = np.array([Counter(votes).most_common(1)[0][0] for votes in vote_scan_id.values()])
     y_true_scan = np.array([label_scan_id[key] for key in vote_scan_id.keys()])
 
+    print("KNN from sklearn", time.time() - start_time)
+
+    #faiss_knn_voting(embedding_library)
+
     return y_true_scan, y_pred_scan
 
 
 def faiss_knn_voting(embedding_library, k=1):
+    start_time = time.time()
     index = faiss.IndexFlatIP(embedding_library.enrolled_embeddings.shape[1])  # Cosine similarity
     index.add(embedding_library.enrolled_embeddings)
 
@@ -246,6 +253,8 @@ def faiss_knn_voting(embedding_library, k=1):
 
     y_pred_scan = np.array([max(set(votes), key=votes.count) for votes in vote_scan_id.values()])
     y_true_scan = np.array([label_scan_id[key] for key in vote_scan_id.keys()])
+
+    print("KNN from FAISS", time.time() - start_time)
 
     return y_true_scan, y_pred_scan
 
