@@ -213,12 +213,7 @@ def knn_voting(embedding_library, k=1, batch_size=100):
     knn_model = neighbors.KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric=d)
     knn_model.fit(embedding_library.enrolled_embeddings, embedding_library.enrolled_labels)
 
-    num_queries = len(embedding_library.query_embeddings)
-    y_preds = []
-
-    for i in tqdm(range(0, num_queries, batch_size), desc="KNN-Inference"):
-        batch = embedding_library.query_embeddings[i:i + batch_size]
-        y_preds.extend(knn_model.predict(batch))
+    y_preds = knn_model.predict(embedding_library.query_embeddings)
 
     vote_scan_id = {}
     label_scan_id = {}
