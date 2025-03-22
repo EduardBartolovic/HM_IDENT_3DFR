@@ -123,7 +123,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     if 'texas' in test_path:
         metrics_knn_voting = {}
     else:
-        y_true_knn, y_pred_knn = knn_voting(embedding_library)
+        y_true_knn, y_pred_knn = knn_voting(embedding_library, batch_size=batch_size)
         metrics_knn_voting = calc_metrics(y_true_knn, y_pred_knn)
         plot_confusion_matrix(y_true_knn, y_pred_knn, dataset_enrolled, os.path.basename(test_path) + '_votingV2', matplotlib=False)
 

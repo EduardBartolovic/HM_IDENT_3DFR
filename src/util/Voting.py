@@ -202,36 +202,32 @@ def multidatabase_voting(embedding_library):
     return result_metrics
 
 
-def knn_voting(embedding_library, k=1):
+def knn_voting(embedding_library, k=1, batch_size=100):
     k = 1
     d = "cosine"
-    # for k in range(1, 7, 2):
-    #    for d in ["cosine", "euclidean"]:
 
     knn_model = neighbors.KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric=d)
     knn_model.fit(embedding_library.enrolled_embeddings, embedding_library.enrolled_labels)
 
-    y_preds = knn_model.predict(embedding_library.query_embeddings)
+    num_queries = len(embedding_library.query_embeddings)
+    y_preds = []
+
+    for i in tqdm(range(0, num_queries, batch_size), desc="Predicting in batches"):
+        batch = embedding_library.query_embeddings[i:i + batch_size]
+        y_preds.extend(knn_model.predict(batch))
 
     vote_scan_id = {}
     label_scan_id = {}
     for idx, y_pred in enumerate(y_preds):
-        if embedding_library.query_scan_ids[idx] in vote_scan_id.keys():
-            vote_scan_id[embedding_library.query_scan_ids[idx]].append(y_pred)
-        else:
-            vote_scan_id[embedding_library.query_scan_ids[idx]] = [y_pred]
-            label_scan_id[embedding_library.query_scan_ids[idx]] = embedding_library.query_labels[idx]
+        scan_id = embedding_library.query_scan_ids[idx]
+        vote_scan_id.setdefault(scan_id, []).append(y_pred)
+        label_scan_id[scan_id] = embedding_library.query_labels[idx]
 
     y_pred_scan = []
     y_true_scan = []
-    for key, value in vote_scan_id.items():
-        votes = vote_scan_id[key]
-        vote = max(set(votes), key=votes.count)
-        y_true = label_scan_id[key]
-        y_true_scan.append(y_true)
-        y_pred_scan.append(vote)
-
-    # print("K", k, "d", d, "KNN Voting Accuracy={}%".format(accuracy_score(y_true_scan, y_pred_scan) * 100))
+    for key, votes in vote_scan_id.items():
+        y_pred_scan.append(max(set(votes), key=votes.count))
+        y_true_scan.append(label_scan_id[key])
 
     return np.array(y_true_scan), np.array(y_pred_scan)
 
