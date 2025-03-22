@@ -204,14 +204,10 @@ def multidatabase_voting(embedding_library):
     return result_metrics
 
 
-def knn_voting(embedding_library, k=1, batch_size=100):
+def knn_voting(embedding_library, k=1, d="cosine", faiss_method=True):
 
-    return faiss_knn_voting(embedding_library)
-
-    start_time = time.time()
-
-    k = 1
-    d = "cosine"
+    if faiss_method:
+        return faiss_knn_voting(embedding_library)
 
     knn_model = neighbors.KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric=d)
     knn_model.fit(embedding_library.enrolled_embeddings, embedding_library.enrolled_labels)
@@ -236,10 +232,6 @@ def knn_voting(embedding_library, k=1, batch_size=100):
         y_true_scan.append(y_true)
         y_pred_scan.append(vote)
 
-    print("KNN from sklearn", time.time() - start_time)
-
-
-
     return np.array(y_true_scan), np.array(y_pred_scan)
 
 
@@ -248,17 +240,13 @@ def normalize_embeddings(embeddings):
 
 
 def faiss_knn_voting(embedding_library, k=1):
-    start_time = time.time()
 
-    # Normalize vectors
     enrolled_embeddings = normalize_embeddings(embedding_library.enrolled_embeddings)
     query_embeddings = normalize_embeddings(embedding_library.query_embeddings)
 
-    # Create FAISS index
     index = faiss.IndexFlatIP(enrolled_embeddings.shape[1])
     index.add(enrolled_embeddings)
 
-    # Perform search
     _, indices = index.search(query_embeddings, k)
     y_preds = embedding_library.enrolled_labels[indices.flatten()]
 
@@ -271,8 +259,6 @@ def faiss_knn_voting(embedding_library, k=1):
 
     y_pred_scan = np.array([max(set(votes), key=votes.count) for votes in vote_scan_id.values()])
     y_true_scan = np.array([label_scan_id[key] for key in vote_scan_id.keys()])
-
-    print("FAISS KNN Time:", time.time() - start_time)
 
     return y_true_scan, y_pred_scan
 
