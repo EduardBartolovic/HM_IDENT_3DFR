@@ -1,11 +1,12 @@
 import os
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 import numpy as np
 from sklearn import neighbors
 import numba
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
+import faiss
 
 # Set environment variables to avoid OpenBLAS conflicts
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -212,24 +213,41 @@ def knn_voting(embedding_library, k=1, batch_size=100):
     num_queries = len(embedding_library.query_embeddings)
     y_preds = []
 
-    for i in tqdm(range(0, num_queries, batch_size), desc="Predicting in batches"):
+    for i in tqdm(range(0, num_queries, batch_size), desc="KNN-Inference"):
         batch = embedding_library.query_embeddings[i:i + batch_size]
         y_preds.extend(knn_model.predict(batch))
 
     vote_scan_id = {}
     label_scan_id = {}
-    for idx, y_pred in enumerate(y_preds):
-        scan_id = embedding_library.query_scan_ids[idx]
+    for scan_id, y_pred, y_true in zip(embedding_library.query_scan_ids, y_preds, embedding_library.query_labels):
         vote_scan_id.setdefault(scan_id, []).append(y_pred)
-        label_scan_id[scan_id] = embedding_library.query_labels[idx]
+        label_scan_id[scan_id] = y_true
 
-    y_pred_scan = []
-    y_true_scan = []
-    for key, votes in vote_scan_id.items():
-        y_pred_scan.append(max(set(votes), key=votes.count))
-        y_true_scan.append(label_scan_id[key])
+    # Fast majority voting using Counter
+    y_pred_scan = np.array([Counter(votes).most_common(1)[0][0] for votes in vote_scan_id.values()])
+    y_true_scan = np.array([label_scan_id[key] for key in vote_scan_id.keys()])
 
-    return np.array(y_true_scan), np.array(y_pred_scan)
+    return y_true_scan, y_pred_scan
+
+
+def faiss_knn_voting(embedding_library, k=1):
+    index = faiss.IndexFlatIP(embedding_library.enrolled_embeddings.shape[1])  # Cosine similarity
+    index.add(embedding_library.enrolled_embeddings)
+
+    _, indices = index.search(embedding_library.query_embeddings, k)
+    y_preds = embedding_library.enrolled_labels[indices.flatten()]
+
+    # Majority voting
+    vote_scan_id = {}
+    label_scan_id = {}
+    for scan_id, y_pred, y_true in zip(embedding_library.query_scan_ids, y_preds, embedding_library.query_labels):
+        vote_scan_id.setdefault(scan_id, []).append(y_pred)
+        label_scan_id[scan_id] = y_true
+
+    y_pred_scan = np.array([max(set(votes), key=votes.count) for votes in vote_scan_id.values()])
+    y_true_scan = np.array([label_scan_id[key] for key in vote_scan_id.keys()])
+
+    return y_true_scan, y_pred_scan
 
 
 def voting(y_pred, scan_ids, query_labels):
