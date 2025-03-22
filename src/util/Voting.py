@@ -223,15 +223,20 @@ def knn_voting(embedding_library, k=1, batch_size=100):
     vote_scan_id = {}
     label_scan_id = {}
     for idx, y_pred in enumerate(y_preds):
-        scan_id = embedding_library.query_scan_ids[idx]
-        vote_scan_id.setdefault(scan_id, []).append(y_pred)
-        label_scan_id[scan_id] = embedding_library.query_labels[idx]
+        if embedding_library.query_scan_ids[idx] in vote_scan_id.keys():
+            vote_scan_id[embedding_library.query_scan_ids[idx]].append(y_pred)
+        else:
+            vote_scan_id[embedding_library.query_scan_ids[idx]] = [y_pred]
+            label_scan_id[embedding_library.query_scan_ids[idx]] = embedding_library.query_labels[idx]
 
     y_pred_scan = []
     y_true_scan = []
-    for key, votes in vote_scan_id.items():
-        y_pred_scan.append(max(set(votes), key=votes.count))
-        y_true_scan.append(label_scan_id[key])
+    for key, value in vote_scan_id.items():
+        votes = vote_scan_id[key]
+        vote = max(set(votes), key=votes.count)
+        y_true = label_scan_id[key]
+        y_true_scan.append(y_true)
+        y_pred_scan.append(vote)
 
     print("KNN from sklearn", time.time() - start_time)
 
