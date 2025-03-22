@@ -242,12 +242,24 @@ def knn_voting(embedding_library, k=1, batch_size=100):
 
     return np.array(y_true_scan), np.array(y_pred_scan)
 
+
+def normalize_embeddings(embeddings):
+    return embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+
+
 def faiss_knn_voting(embedding_library, k=1):
     start_time = time.time()
-    index = faiss.IndexFlatIP(embedding_library.enrolled_embeddings.shape[1])  # Cosine similarity
-    index.add(embedding_library.enrolled_embeddings)
 
-    _, indices = index.search(embedding_library.query_embeddings, k)
+    # Normalize vectors
+    enrolled_embeddings = normalize_embeddings(embedding_library.enrolled_embeddings)
+    query_embeddings = normalize_embeddings(embedding_library.query_embeddings)
+
+    # Create FAISS index
+    index = faiss.IndexFlatIP(enrolled_embeddings.shape[1])
+    index.add(enrolled_embeddings)
+
+    # Perform search
+    _, indices = index.search(query_embeddings, k)
     y_preds = embedding_library.enrolled_labels[indices.flatten()]
 
     # Majority voting
@@ -260,7 +272,7 @@ def faiss_knn_voting(embedding_library, k=1):
     y_pred_scan = np.array([max(set(votes), key=votes.count) for votes in vote_scan_id.values()])
     y_true_scan = np.array([label_scan_id[key] for key in vote_scan_id.keys()])
 
-    print("KNN from FAISS", time.time() - start_time)
+    print("FAISS KNN Time:", time.time() - start_time)
 
     return y_true_scan, y_pred_scan
 
