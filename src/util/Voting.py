@@ -237,7 +237,7 @@ def knn_voting(embedding_library, k=1, batch_size=100):
 
     # faiss_knn_voting(embedding_library)
 
-    return y_true_scan, y_pred_scan
+    return np.array(y_true_scan), np.array(y_pred_scan)
 
 def faiss_knn_voting(embedding_library, k=1):
     start_time = time.time()
