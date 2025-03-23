@@ -44,11 +44,11 @@ def process_chunk_embedding_similarity(tabular_data, image_data, start_row, end_
         similarity_matrix[i, :] = np.dot(tabular_data[i], image_data.T)
 
 
-def calculate_embedding_similarity(tabular_embeddings, image_embeddings, chunk_size=100, show_progress=True):
+def calculate_embedding_similarity(tabular_embeddings, image_embeddings, chunk_size=100, disable_bar=True):
     tabular_data = tabular_embeddings / np.linalg.norm(tabular_embeddings, axis=1, keepdims=True)
     image_data = image_embeddings / np.linalg.norm(image_embeddings, axis=1, keepdims=True)
     similarity_matrix = np.empty((tabular_data.shape[0], image_data.shape[0]), dtype=np.float32)
-    with tqdm(total=tabular_data.shape[0], disable=not show_progress, desc="Calculating Embedding Similarity") as pbar:
+    with tqdm(total=tabular_data.shape[0], disable=disable_bar, desc="Calculating Embedding Similarity") as pbar:
         for start_row in range(0, tabular_data.shape[0], chunk_size):
             end_row = min(start_row + chunk_size, tabular_data.shape[0])
             process_chunk_embedding_similarity(tabular_data, image_data, start_row, end_row, similarity_matrix)
@@ -57,7 +57,7 @@ def calculate_embedding_similarity(tabular_embeddings, image_embeddings, chunk_s
     return similarity_matrix
 
 
-def concat(embedding_library):
+def concat(embedding_library, disable_bar):
 
     def process_embeddings(scan_ids, embeddings, labels, perspectives):
         scan_to_data = {}
@@ -87,7 +87,7 @@ def concat(embedding_library):
         embedding_library.query_scan_ids, embedding_library.query_embeddings,
         embedding_library.query_labels, embedding_library.query_perspectives)
 
-    similarity_matrix = calculate_embedding_similarity(query_embedding_database, enrolled_embedding_database)
+    similarity_matrix = calculate_embedding_similarity(query_embedding_database, enrolled_embedding_database, disable_bar=disable_bar)
 
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
 

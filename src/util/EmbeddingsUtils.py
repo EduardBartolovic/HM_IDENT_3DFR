@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 
 @torch.no_grad()
-def build_embedding_library(device, model, data_loader):
+def build_embedding_library(device, model, data_loader, disable_bar):
     embedding_library = []
     embedding_labels = []
     embedding_scan_id = []
@@ -14,7 +14,7 @@ def build_embedding_library(device, model, data_loader):
 
     model.eval()
 
-    for images, labels, scan_id, perspective in tqdm(data_loader, desc="Generate Embeddings"):
+    for images, labels, scan_id, perspective in tqdm(data_loader, disable=disable_bar, desc="Generate Embeddings"):
         embeddings = model(images.to(device)).cpu().numpy()
         embedding_library.extend(embeddings)
         embedding_labels.extend(labels.cpu().numpy())

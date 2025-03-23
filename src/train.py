@@ -250,9 +250,9 @@ if __name__ == '__main__':
         for epoch in range(NUM_EPOCH):  # start training process
 
             #  ======= perform validation =======
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE*6)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE*6, disable_bar=True)
             #if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_vox2test, epoch, DISTANCE_METRIC, (170, 170), BATCH_SIZE*6)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_vox2test, epoch, DISTANCE_METRIC, (170, 170), BATCH_SIZE*6, disable_bar=True)
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_vox2train, epoch, DISTANCE_METRIC, (170, 170), BATCH_SIZE*6)
             # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE*8)
             # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE*8)

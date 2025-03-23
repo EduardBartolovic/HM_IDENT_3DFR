@@ -7,7 +7,6 @@ import numpy as np
 import time
 import torch
 import torchvision
-import psutil
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -21,10 +20,10 @@ from src.util.embeddungs_metrics import calc_embedding_analysis
 from src.util.misc import colorstr
 
 
-def get_embeddings(device, model, enrolled_loader, query_loader):
+def get_embeddings(device, model, enrolled_loader, query_loader, disable_bar):
 
-    enrolled = build_embedding_library(device, model, enrolled_loader)
-    query = build_embedding_library(device, model, query_loader)
+    enrolled = build_embedding_library(device, model, enrolled_loader, disable_bar)
+    query = build_embedding_library(device, model, query_loader, disable_bar)
 
     Results = namedtuple("Results",
                          ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives",
@@ -51,12 +50,12 @@ def load_data(data_dir, transform, max_batch_size: int) -> (
     return dataset, data_loader
 
 
-def get_topk_indices(distances, k=5, batch_size=1000):
+def get_topk_indices(distances, k=5, batch_size=1000, disable_bar=False):
     """Compute top-k indices in batches to reduce memory usage."""
     num_queries = distances.shape[0]
     y_pred_top5 = np.zeros((num_queries, k), dtype=np.int32)
 
-    for start in tqdm(range(0, num_queries, batch_size), desc="Find best Match"):
+    for start in tqdm(range(0, num_queries, batch_size), disable=disable_bar, desc="Find best Match"):
         end = min(start + batch_size, num_queries)
         batch_distances = distances[start:end]
 
@@ -71,7 +70,7 @@ def get_topk_indices(distances, k=5, batch_size=1000):
     return y_pred_top1, y_pred_top5
 
 
-def evaluate(device, batch_size, backbone, test_path, distance_metric, test_transform):
+def evaluate(device, batch_size, backbone, test_path, distance_metric, test_transform, disable_bar):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
@@ -82,7 +81,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
 
     time.sleep(0.1)
 
-    embedding_library = get_embeddings(device, backbone, enrolled_loader, query_loader)
+    embedding_library = get_embeddings(device, backbone, enrolled_loader, query_loader, disable_bar)
 
     # Compute mean embeddings for each label
     unique_labels, indices = np.unique(embedding_library.enrolled_labels, return_inverse=True)
@@ -94,7 +93,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     distances = batched_distances_gpu(device, embedding_library.query_embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric)
 
     # Sort indices/classes of the closest vectors for each query embedding
-    y_pred_top1, y_pred_top5 = get_topk_indices(distances, k=5, batch_size=batch_size)
+    y_pred_top1, y_pred_top5 = get_topk_indices(distances, k=5, batch_size=batch_size, disable_bar=disable_bar)
     del distances
 
     embedding_metrics = {}  # calc_embedding_analysis(embedding_library, enrolled_embeddings_mean, distance_metric)
@@ -131,12 +130,12 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     if 'texas' in test_path or 'colorferet' in test_path:
         metric_concat = {}
     else:
-        metric_concat = concat(embedding_library)
+        metric_concat = concat(embedding_library, disable_bar)
 
     return metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library
 
 
-def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metric, test_transform_sizes, batch_size):
+def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metric, test_transform_sizes, batch_size, disable_bar=False):
 
     test_transform = transforms.Compose([
         transforms.Resize(test_transform_sizes),
@@ -146,7 +145,7 @@ def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metri
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {test_transform_sizes}"))
-    metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library = evaluate(device, batch_size*2, backbone, os.path.join(data_root, dataset), distance_metric, test_transform)
+    metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library = evaluate(device, batch_size*2, backbone, os.path.join(data_root, dataset), distance_metric, test_transform, disable_bar)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
