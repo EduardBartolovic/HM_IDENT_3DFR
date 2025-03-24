@@ -30,10 +30,10 @@ def build_embedding_library(device, model, data_loader, disable_bar):
     return library(embeddings, labels, scan_id, perspective)
 
 
-def batched_distances(embeddings_val: np.array, embeddings_database: np.array, batch_size=1000):
+def batched_distances(embeddings_val: np.array, embeddings_database: np.array, batch_size=1000, disable_bar=True):
     num_samples = len(embeddings_val)
     distances_list = []
-    for i in tqdm(range(0, num_samples, batch_size), desc="Calculate Distances"):
+    for i in tqdm(range(0, num_samples, batch_size), disable=disable_bar, desc="Calculate Distances"):
         val_batch = embeddings_val[i:i + batch_size, :-1]
         dist_batch = np.linalg.norm(val_batch[:, None, :] - embeddings_database[None, :, :], axis=-1)
         distances_list.append(dist_batch)
@@ -42,26 +42,26 @@ def batched_distances(embeddings_val: np.array, embeddings_database: np.array, b
 
 
 @torch.no_grad()
-def batched_distances_gpu(device, embeddings_query: np.array, embeddings_enrolled: np.array, batch_size=64, distance_metric='cosine'):
+def batched_distances_gpu(device, embeddings_query: np.array, embeddings_enrolled: np.array, batch_size=64, distance_metric='cosine', disable_bar=True):
 
     if distance_metric == 'euclidean':
-        distances = batched_distances_gpu_euclidian(device, embeddings_query, embeddings_enrolled, batch_size)
+        distances = batched_distances_gpu_euclidian(device, embeddings_query, embeddings_enrolled, batch_size, disable_bar)
     elif distance_metric == 'cosine':
-        distances = batched_distances_gpu_cosine(device, embeddings_query, embeddings_enrolled, batch_size)
+        distances = batched_distances_gpu_cosine(device, embeddings_query, embeddings_enrolled, batch_size, disable_bar)
     else:
         raise ValueError('Wrong Distance Metric Selected')
     return distances
 
 
 @torch.no_grad()
-def batched_distances_gpu_euclidian(device, embeddings_query: np.array, embeddings_enrolled: np.array, batch_size):
+def batched_distances_gpu_euclidian(device, embeddings_query: np.array, embeddings_enrolled: np.array, batch_size, disable_bar):
     num_samples = len(embeddings_query)
 
     embeddings_query = torch.tensor(embeddings_query, device=device, dtype=torch.float32)
     embeddings_enrolled = torch.tensor(embeddings_enrolled, device=device, dtype=torch.float32)
 
     distances = np.empty((num_samples, len(embeddings_enrolled)), dtype=np.float32)
-    for start_idx in tqdm(range(0, num_samples, batch_size), desc="Calculate Distances"):
+    for start_idx in tqdm(range(0, num_samples, batch_size), disable=disable_bar, desc="Calculate Distances"):
         end_idx = min(start_idx + batch_size, num_samples)
         query_batch = embeddings_query[start_idx:end_idx]
         dist_batch = torch.cdist(query_batch, embeddings_enrolled, p=2)  # L2-norm / Euclidean
@@ -71,7 +71,7 @@ def batched_distances_gpu_euclidian(device, embeddings_query: np.array, embeddin
 
 
 @torch.no_grad()
-def batched_distances_gpu_cosine(device, embeddings_query: np.array, embeddings_enrolled: np.array, batch_size):
+def batched_distances_gpu_cosine(device, embeddings_query: np.array, embeddings_enrolled: np.array, batch_size, disable_bar):
     num_samples = len(embeddings_query)
 
     embeddings_query = torch.tensor(embeddings_query, device=device, dtype=torch.float32)
@@ -79,7 +79,7 @@ def batched_distances_gpu_cosine(device, embeddings_query: np.array, embeddings_
     enrolled_norm = torch.nn.functional.normalize(embeddings_enrolled, p=2, dim=1)
 
     distances = np.empty((num_samples, len(embeddings_enrolled)), dtype=np.float32)
-    for start_idx in tqdm(range(0, num_samples, batch_size), desc="Calculate Distances"):
+    for start_idx in tqdm(range(0, num_samples, batch_size), disable=disable_bar, desc="Calculate Distances"):
         end_idx = min(start_idx + batch_size, num_samples)
         query_batch = embeddings_query[start_idx:end_idx]
         query_batch_norm = torch.nn.functional.normalize(query_batch, p=2, dim=1)

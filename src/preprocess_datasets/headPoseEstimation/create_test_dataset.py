@@ -48,6 +48,11 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
                 hash_prefix = filename[:40]
                 groups[hash_prefix].append(os.path.join(class_path, filename))
 
+        # Remove groups that do not match the required number of poses
+        filtered_groups = {k: v for k, v in groups.items() if len(v) == poses}
+        ignored += len(groups) - len(filtered_groups)
+        groups = filtered_groups
+
         # Sort groups to ensure deterministic order
         sorted_groups = sorted(groups.items())
 

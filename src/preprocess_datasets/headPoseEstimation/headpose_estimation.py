@@ -197,7 +197,7 @@ def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, 
 
         # Skip video if hpe.txt already exists
         if os.path.exists(output_txt_path):
-            print(f"Skipping already processed folder: {output_hpe_folder}")
+            # print(f"Skipping already processed folder: {output_hpe_folder}")
             continue
 
         video_frames = []

@@ -90,7 +90,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
         enrolled_embeddings_mean[i] = embedding_library.enrolled_embeddings[indices == i].mean(axis=0)
 
     # Calculate distances between embeddings of query and library data
-    distances = batched_distances_gpu(device, embedding_library.query_embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric)
+    distances = batched_distances_gpu(device, embedding_library.query_embeddings, enrolled_embeddings_mean, batch_size, distance_metric=distance_metric, disable_bar=disable_bar)
 
     # Sort indices/classes of the closest vectors for each query embedding
     y_pred_top1, y_pred_top5 = get_topk_indices(distances, k=5, batch_size=batch_size, disable_bar=disable_bar)
