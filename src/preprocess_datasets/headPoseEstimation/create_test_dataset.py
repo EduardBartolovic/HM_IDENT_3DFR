@@ -33,6 +33,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
     test_folder = os.path.join(output_folder, "validation")
     os.makedirs(train_folder, exist_ok=True)
     os.makedirs(test_folder, exist_ok=True)
+    ignored = 0
 
     # Iterate over class subfolders
     for class_name in tqdm(os.listdir(input_folder), desc="Copy files"):
@@ -58,6 +59,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
         # Use the first group for training and the rest for testing
         for idx, (hash_prefix, file_paths) in enumerate(sorted_groups):
             if len(file_paths) != poses:
+                ignored += 1
                 continue  # Skip groups that do not match the required number of poses
 
             dest_folder = train_folder if idx == 0 else test_folder
@@ -69,7 +71,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
                 counter += 1
 
     elapsed_time = time.time() - start_time
-    print(f"Train-test split created in {output_folder} for {counter} files in", round(elapsed_time/60, 2), "minutes")
+    print(f"Train-test split created in {output_folder}. {ignored} groups in {counter} files in", round(elapsed_time/60, 2), "minutes")
 
 
 if __name__ == '__main__':
