@@ -20,6 +20,7 @@ if __name__ == '__main__':
     output_test_dataset = "E:\\Download\\test_vox2test"
     face_detect_model_root = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
     batch_size = 128
+    poses = 25 # Number of poses
     device = torch.device("cuda")
 
     print("##################################")
@@ -57,5 +58,5 @@ if __name__ == '__main__':
     print("###########GEN TEST DATASET############")
     print("for:", dataset_output_folder_crop, "to:", output_test_dataset)
     print("##################################")
-    create_train_test_split(dataset_output_folder_crop, output_test_dataset)
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset, poses=poses*2)
     print("######face_correspondences########")

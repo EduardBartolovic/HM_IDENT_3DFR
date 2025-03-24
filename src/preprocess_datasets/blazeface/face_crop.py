@@ -122,12 +122,15 @@ def better_face_crop(input_folder, output_folder, model_root):
     for class_name in tqdm(class_names, desc="Processing Classes"):
         class_path = os.path.join(input_folder, class_name)
         target_class_path = os.path.join(output_folder, class_name)
-        #if os.path.isdir(target_class_path):
-        #    continue
-        #else:
+
         os.makedirs(target_class_path, exist_ok=True)
         for filename in os.listdir(class_path):
             if filename.endswith((".jpg", ".png", ".jpeg")):
+
+                face_crop_path = os.path.join(target_class_path, filename)
+                if os.path.exists(face_crop_path):
+                    continue  # Skip already cropped images
+
                 image = cv2.imread(os.path.join(class_path, filename), cv2.COLOR_BGR2RGB)
 
                 # Add padding using cv2.copyMakeBorder
@@ -157,8 +160,6 @@ def better_face_crop(input_folder, output_folder, model_root):
 
                 face_crop = padded_image[y_min:y_max, x_min:x_max]
                 face_crop_resized = cv2.cvtColor(cv2.resize(face_crop, (112, 112)), cv2.COLOR_BGR2RGB)
-
-                face_crop_path = os.path.join(target_class_path, filename)
                 cv2.imwrite(str(face_crop_path), face_crop_resized)
     print(f"Done. total_faces: {total_faces}, missing_faces: {missing_faces}, more_faces: {more_faces}")
 

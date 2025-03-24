@@ -6,7 +6,7 @@ import shutil
 from tqdm import tqdm
 
 
-def create_train_test_split(input_folder, output_folder, filter_strings=None):
+def create_train_test_split(input_folder, output_folder, filter_strings=None, poses=25):
     """
     Splits images into train and test sets, always using the first group in each class for training
     and the remaining groups for testing. Only files containing a specific string from filter_strings
@@ -16,6 +16,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None):
         input_folder (str): Path to the folder containing the class subfolders with images.
         output_folder (str): Path to the output folder where train and test folders will be created.
         filter_strings (list): List of strings; only files containing one of these strings in their name are included.
+        poses (int): The required number of poses per group for inclusion.
     """
     if filter_strings is None:
         filter_strings = []
@@ -50,6 +51,9 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None):
 
         # Use the first group for training and the rest for testing
         for idx, (hash_prefix, file_paths) in enumerate(sorted_groups):
+            if len(file_paths) != poses:
+                continue  # Skip groups that do not match the required number of poses
+
             dest_folder = train_folder if idx == 0 else test_folder
             class_dest_folder = os.path.join(dest_folder, class_name)
             os.makedirs(class_dest_folder, exist_ok=True)
