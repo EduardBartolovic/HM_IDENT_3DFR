@@ -64,7 +64,7 @@ class MultiviewDataset(Dataset):
                     if len(file_paths) == self.num_views:
                         data.append((file_paths, class_idx))
                     else:
-                        raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}: to many views")
+                        raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}: number of views doesnt match with {self.num_views}")
 
         if not self.use_face_corr:  # If use_face_corr is False don't use face_corr
             self.face_cor_exist = False

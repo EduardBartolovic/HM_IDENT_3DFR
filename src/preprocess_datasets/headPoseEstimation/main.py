@@ -58,5 +58,4 @@ if __name__ == '__main__':
     print("###########GEN TEST DATASET############")
     print("for:", dataset_output_folder_crop, "to:", output_test_dataset)
     print("##################################")
-    create_train_test_split(dataset_output_folder_crop, output_test_dataset, poses=poses*2)
-    print("######face_correspondences########")
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset, poses=poses)

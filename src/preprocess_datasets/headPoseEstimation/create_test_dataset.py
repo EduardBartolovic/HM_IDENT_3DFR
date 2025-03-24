@@ -64,8 +64,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
         # Use the first group for training and the rest for testing
         for idx, (hash_prefix, file_paths) in enumerate(sorted_groups):
             if len(file_paths) != poses:
-                ignored += 1
-                continue  # Skip groups that do not match the required number of poses
+                assert f"views {len(file_paths)} dont match required {poses} poses"
 
             dest_folder = train_folder if idx == 0 else test_folder
             class_dest_folder = os.path.join(dest_folder, class_name)
