@@ -6,7 +6,7 @@ import shutil
 from tqdm import tqdm
 
 
-def create_train_test_split(input_folder, output_folder, filter_strings=None, poses=25):
+def create_train_test_split(input_folder, output_folder, filter_strings=None, poses=25, ignore_face_corr=True):
     """
     Splits images into train and test sets, always using the first group in each class for training
     and the remaining groups for testing. Only files containing a specific string from filter_strings
@@ -20,6 +20,12 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
     """
     if filter_strings is None:
         filter_strings = []
+
+    if ignore_face_corr:
+        file_ext = (".jpg", ".png", ".jpeg")
+    else:
+        poses = poses*2
+        file_ext = (".jpg", "corr.npz", ".png", ".jpeg")
     start_time = time.time()
     counter = 0
     os.makedirs(output_folder, exist_ok=True)
@@ -37,7 +43,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
         # Collect groups by hash prefix
         groups = defaultdict(list)
         for filename in os.listdir(class_path):
-            if (not filter_strings or any(fstr in filename for fstr in filter_strings)) and filename.endswith((".jpg", "corr.npz", ".png", ".jpeg")):
+            if (not filter_strings or any(fstr in filename for fstr in filter_strings)) and filename.endswith(file_ext):
                 hash_prefix = filename[:40]
                 groups[hash_prefix].append(os.path.join(class_path, filename))
 
