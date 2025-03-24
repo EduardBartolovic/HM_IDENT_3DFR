@@ -13,7 +13,7 @@ from tqdm import tqdm
 from src.backbone.model_multiview_irse import execute_model
 from src.util.Metrics import error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix
-from src.util.Voting import calculate_embedding_similarity_progress, compute_ranking_matrices, analyze_result
+from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.misc import colorstr
@@ -100,7 +100,7 @@ def load_data(data_dir, max_batch_size: int) -> (torchvision.datasets.ImageFolde
     return dataset, data_loader
 
 
-def evaluate(device, batch_size, backbone, test_path, distance_metric):
+def evaluate(device, batch_size, backbone, test_path, distance_metric, disable_bar):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
@@ -119,7 +119,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric):
     query_embedding = np.array(embedding_library.query_embeddings)
     query_label = np.array(embedding_library.query_labels)
 
-    similarity_matrix = calculate_embedding_similarity_progress(query_embedding, enrolled_embedding)
+    similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
 
@@ -168,7 +168,7 @@ def load_data_mvs(data_dir, max_batch_size: int, test_transform, use_face_corr: 
     return dataset, data_loader
 
 
-def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, use_face_corr: bool):
+def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, use_face_corr: bool, disable_bar: bool):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
@@ -187,7 +187,7 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
     query_embedding = embedding_library.query_embeddings
     query_label = embedding_library.query_labels
 
-    similarity_matrix = calculate_embedding_similarity_progress(query_embedding, enrolled_embedding)
+    similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
 
@@ -203,7 +203,7 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
     return result_metrics, embedding_library
 
 
-def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, use_face_corr: bool):
+def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, use_face_corr: bool, disable_bar: bool):
 
     test_transform = transforms.Compose([
         transforms.Resize(test_transform_sizes),
@@ -213,7 +213,7 @@ def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_r
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {test_transform_sizes}"))
-    metrics, embedding_library = evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, use_face_corr)
+    metrics, embedding_library = evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, use_face_corr, disable_bar)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
