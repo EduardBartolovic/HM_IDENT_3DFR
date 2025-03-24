@@ -187,7 +187,7 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
     query_embedding = embedding_library.query_embeddings
     query_label = embedding_library.query_labels
 
-    similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, chunk_size=batch_size, disable_bar)
+    similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, chunk_size=batch_size, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
 
