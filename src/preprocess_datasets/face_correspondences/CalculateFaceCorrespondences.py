@@ -238,14 +238,15 @@ def calculate_face_landmarks_dataset(dataset_folder, keep=True):
                 if results.multi_face_landmarks:
                     landmarks = results.multi_face_landmarks[0].landmark
                     points = np.array([[lm.x, lm.y] for lm in landmarks])
+                    np.savez_compressed(os.path.join(class_path, (filename[:-4] + '.npz')), landmarks=points)
+                    counter += 1
                 else:
-                    points = np.load(os.path.join(os.path.join(os.path.dirname(__file__)), "default_landmarks.npz"))['landmarks']        # TODO: Temporary solution for bad dataset
+                    # points = np.load(os.path.join(os.path.join(os.path.dirname(__file__)), "default_landmarks.npz"))['landmarks']
                     failed_landmark_counter+= 1
-                    print(f"No landmarks found for: {os.path.join(class_path, filename)} using default landmarks")
+                    #print(f"No landmarks found for: {os.path.join(class_path, filename)} using default landmarks")
                     #raise Exception(f"No landmarks found for: {os.path.join(class_path, filename)}")
 
-                np.savez_compressed(os.path.join(class_path, (filename[:-4]+'.npz')), landmarks=points)
-                counter += 1
+
 
     elapsed_time = time.time() - start_time
     print(f"Created landmarks in {dataset_folder} for {counter} images, {failed_landmark_counter} failed,  in", round(elapsed_time/60, 2), "minutes")
