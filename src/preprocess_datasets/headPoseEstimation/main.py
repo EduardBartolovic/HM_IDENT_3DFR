@@ -14,12 +14,12 @@ from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference im
 if __name__ == '__main__':
 
     folder_root = "E:\\Download\\vox2test"
-    model_path_hpe = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
+    model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     dataset_output_folder = "E:\\Download\\vox2test_out"
     dataset_output_folder_crop = "E:\\Download\\vox2test_out_crop"
     output_test_dataset = "E:\\Download\\test_vox2test"
-    face_detect_model_root = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
-    batch_size = 128
+    face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
+    batch_size = 128  # 48 for 8 GB VRAM
     poses = 25 # Number of poses
     device = torch.device("cuda")
 
@@ -59,3 +59,58 @@ if __name__ == '__main__':
     print("for:", dataset_output_folder_crop, "to:", output_test_dataset)
     print("##################################")
     create_train_test_split(dataset_output_folder_crop, output_test_dataset, poses=poses)
+
+    filter_pose = "-25_-25"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "-25_-10"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "-25_0"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "-25_10"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "-25_25"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+
+    filter_pose = "-10_-25"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "-10_-10"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "-10_0"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "-10_10"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "-10_25"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+
+    filter_pose = "0_-25"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "0_-10"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "0_0"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "0_10"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "0_25"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+
+    filter_pose = "25_-25"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "25_-10"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "25_0"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "25_10"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "25_25"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+
+    filter_pose = "10_-25"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "10_-10"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "10_0"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "10_10"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
+    filter_pose = "10_25"
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset+filter_pose, filter_strings=[filter_pose], poses=poses)
