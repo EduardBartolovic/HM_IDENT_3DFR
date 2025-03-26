@@ -43,6 +43,35 @@ if __name__ == '__main__':
     src_dataset = "F:\\Face\\data\\datasets8\\test_rgb_bff"
     dest_dataset = "F:\\Face\\data\\datasets8\\test_rgb_bff"
 
+    filters = ["-25_-25", "-25_0", "-25_25"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+    filters = ["25_-25", "25_0", "25_25"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+
+    filters = ["0_0", "-25_-25", "25_25"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+    filters = ["0_0", "25_-25", "-25_25"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+
+    filters = ["0_0", "-10_-10", "10_10"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+    filters = ["0_0", "10_-10", "-10_10"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+
+    filters = ["0_0", "0_-25", "0_25"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+    filters = ["0_0", "25_0", "25_0"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+    filters = ["0_0", "0_-10", "0_10"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+    filters = ["0_0", "10_0", "10_0"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[0]+"_"+filters[1]+"_"+filters[2], filters)
+
+    exit()
+
+
     filters = ["0_0", "-25_-25"]
     copy_filtered_dataset(src_dataset, dest_dataset+filters[1], filters)
     filters = ["0_0", "-25_-10"]
