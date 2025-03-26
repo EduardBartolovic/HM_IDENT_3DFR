@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from src.preprocess_datasets import PrepareDataset
-from Extract2DFaces import Extract2DFaces
+from src.preprocess_datasets.rendering import PrepareDataset
+from src.preprocess_datasets.rendering.Extract2DFaces import Extract2DFaces
 from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 

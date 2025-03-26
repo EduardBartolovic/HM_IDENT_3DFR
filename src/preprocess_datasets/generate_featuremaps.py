@@ -5,7 +5,7 @@ import torch
 from torchvision import transforms
 
 from src.backbone.model_irse import IR_50_reduced
-from src.preprocess_datasets.PrepareDataset import load_data
+from src.preprocess_datasets.rendering.PrepareDataset import load_data
 from src.util.EmbeddingsUtils import build_embedding_library
 from src.util.misc import colorstr
 

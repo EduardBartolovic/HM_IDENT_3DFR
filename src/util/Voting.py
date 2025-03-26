@@ -72,8 +72,8 @@ def concat(embedding_library, disable_bar):
             sorted_embeddings = [emb for _, emb in
                                  sorted(zip(data['perspectives'], data['embeddings']), key=lambda x: x[0])]
             concatenated_embedding = np.concatenate(sorted_embeddings, axis=0)
-            if concatenated_embedding.shape[0] not in {512, 512 * 5, 512 * 25}:
-                continue
+            #if concatenated_embedding.shape[0] not in {512*2, 512 * 5, 512 * 25}:
+            #    assert "Embedding sizes are not correct"
             concatenated_embeddings.append(concatenated_embedding)
             concatenated_labels.append(data['label'])
 
