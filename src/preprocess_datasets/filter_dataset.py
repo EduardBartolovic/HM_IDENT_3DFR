@@ -40,6 +40,15 @@ def copy_filtered_dataset(src_dir, dest_dir, filters):
 
 
 if __name__ == '__main__':
+
+    src_dataset = "F:\\Face\\data\\datasets8\\test_vox2train"
+    dest_dataset = "F:\\Face\\data\\datasets8\\test_vox2train"
+
+    filters = ["0_0", "-25_-25"]
+    copy_filtered_dataset(src_dataset, dest_dataset+filters[1], filters)
+
+    exit()
+
     src_dataset = "F:\\Face\\data\\datasets8\\test_rgb_bff"
     dest_dataset = "F:\\Face\\data\\datasets8\\test_rgb_bff"
 
