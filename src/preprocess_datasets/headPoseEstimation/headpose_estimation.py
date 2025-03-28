@@ -62,8 +62,8 @@ def process_batch(cropped_faces, device, head_pose_model):
     return [[int(deg[1]), int(deg[0]), int(deg[2])] for deg in eulers_deg]
 
 
-def headpose_estimation(input_folder, image_folder, output_folder, model_path_hpe, device, fix_rotation=False, draw=True, make_vid=False):
-
+def headpose_estimation(input_folder, image_folder, output_folder, model_path_hpe, device, fix_rotation=False,
+                        draw=True, make_vid=False):
     try:
         head_pose_model = get_model("resnet50", num_classes=6)
         state_dict = torch.load(model_path_hpe, map_location=device, weights_only=True)
@@ -111,7 +111,6 @@ def headpose_estimation(input_folder, image_folder, output_folder, model_path_hp
 
                 if make_vid:
                     if fix_rotation:
-
                         bbox_center_x = w // 2
                         bbox_center_y = h // 2
                         rotation_matrix = cv2.getRotationMatrix2D((bbox_center_x, bbox_center_y), r_pred_deg, 1.0)
@@ -174,7 +173,7 @@ def get_frames(video_path, frame_skip=1):
     return frame_list
 
 
-def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, device, batch_size=64):
+def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, device, batch_size=64, filter=""):
     start_time = time.time()
     try:
         head_pose_model = get_model("resnet50", num_classes=6)
@@ -204,6 +203,9 @@ def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, 
         video_names = []
         for video in files:
             if ".mp4" in video:
+                if filter is not "":
+                    if filter not in video:
+                        continue
                 os.makedirs(output_hpe_folder, exist_ok=True)
                 imgs = get_frames(os.path.join(root, video))
 
@@ -237,7 +239,7 @@ def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, 
             print(f"Processed: {output_txt_path}")
 
     elapsed_time = time.time() - start_time
-    print("HPE for ", num_folders, " in", round(elapsed_time/60, 2), "minutes")
+    print("HPE for ", num_folders, " in", round(elapsed_time / 60, 2), "minutes")
 
 
 if __name__ == '__main__':
