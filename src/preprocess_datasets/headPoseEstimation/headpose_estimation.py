@@ -173,7 +173,7 @@ def get_frames(video_path, frame_skip=1):
     return frame_list
 
 
-def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, device, batch_size=64, filter=""):
+def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, device, batch_size=64, filter=None):
     start_time = time.time()
     try:
         head_pose_model = get_model("resnet50", num_classes=6)
@@ -203,7 +203,7 @@ def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, 
         video_names = []
         for video in files:
             if ".mp4" in video:
-                if filter is not "":
+                if filter is not None:
                     if filter not in video:
                         continue
                 os.makedirs(output_hpe_folder, exist_ok=True)
