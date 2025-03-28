@@ -32,7 +32,7 @@ def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matpl
     assert len(true_labels) == len(pred_labels)
 
     if len(np.unique(true_labels)) > 1000:
-        print("Too many classes for confusion_matrix. Continuing...")
+        # print("Too many classes for confusion_matrix. Continuing...")
         return 0
 
     class_to_idx = dataset.class_to_idx
