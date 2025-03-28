@@ -119,12 +119,12 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     #    metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
 
     # VotingV2 KNN
-    if 'texas' in test_path:
-        metrics_knn_voting = {}
-    else:
-        y_true_knn, y_pred_knn = knn_voting(embedding_library)
-        metrics_knn_voting = calc_metrics(y_true_knn, y_pred_knn)
-        plot_confusion_matrix(y_true_knn, y_pred_knn, dataset_enrolled, os.path.basename(test_path) + '_votingV2', matplotlib=False)
+    #if 'texas' in test_path:
+    metrics_knn_voting = {}
+    #else:
+    #    y_true_knn, y_pred_knn = knn_voting(embedding_library)
+    #    metrics_knn_voting = calc_metrics(y_true_knn, y_pred_knn)
+    #    plot_confusion_matrix(y_true_knn, y_pred_knn, dataset_enrolled, os.path.basename(test_path) + '_votingV2', matplotlib=False)
 
     # Concat
     if 'texas' in test_path or 'colorferet' in test_path:
