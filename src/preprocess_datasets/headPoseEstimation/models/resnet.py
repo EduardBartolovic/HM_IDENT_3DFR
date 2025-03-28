@@ -4,10 +4,11 @@ from torchvision.models import ResNet18_Weights, ResNet34_Weights, ResNet50_Weig
 
 from typing import Any, Callable, List, Optional, Type, Tuple
 
-from utils.general import compute_rotation_matrix_from_ortho6d
 from .common import load_filtered_state_dict
 
 __all__ = ["resnet18", "resnet34", "resnet50"]
+
+from ..utils.general import compute_rotation_matrix_from_ortho6d
 
 
 def conv3x3(in_channels: int, out_channels: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
