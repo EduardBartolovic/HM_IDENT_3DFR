@@ -53,6 +53,11 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
         ignored += len(groups) - len(filtered_groups)
         groups = filtered_groups
 
+        # Sanity check: Ensure all groups have the same number of perspectives
+        if len(set(len(v) for v in groups.values())) > 1:
+            raise ValueError(
+                f"Inconsistent number of perspectives in class {class_name}: {[len(v) for v in groups.values()]}")
+
         # Sort groups to ensure deterministic order
         sorted_groups = sorted(groups.items())
 

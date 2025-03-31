@@ -67,17 +67,26 @@ def concat(embedding_library, disable_bar):
             scan_to_data[scan_id]['embeddings'].append(embedding)
             scan_to_data[scan_id]['perspectives'].append(perspective)
 
-        concatenated_embeddings, concatenated_labels = [], []
-        for scan_id, data in scan_to_data.items():
-            sorted_embeddings = [emb for _, emb in
-                                 sorted(zip(data['perspectives'], data['embeddings']), key=lambda x: x[0])]
-            concatenated_embedding = np.concatenate(sorted_embeddings, axis=0)
-            #if concatenated_embedding.shape[0] not in {512*2, 512 * 5, 512 * 25}:
-            #    assert "Embedding sizes are not correct"
-            concatenated_embeddings.append(concatenated_embedding)
-            concatenated_labels.append(data['label'])
+        embeddings_shape = None
+        num_scans = len(scan_to_data)
+        concatenated_embeddings = None
+        concatenated_labels = np.empty(num_scans, dtype=np.int64)
+        for i, (scan_id, data) in enumerate(scan_to_data.items()):
+            sorted_embs = np.array([emb for _, emb in sorted(zip(data['perspectives'], data['embeddings']), key=lambda x: x[0])])
+            concatenated_embedding = np.concatenate(sorted_embs, axis=0)
 
-        return np.array(concatenated_embeddings, dtype=np.float32), np.array(concatenated_labels)
+            if embeddings_shape is None:
+                embeddings_shape = concatenated_embedding.shape[0]
+                concatenated_embeddings = np.empty((num_scans, embeddings_shape), dtype=np.float32)
+
+            assert concatenated_embedding.shape[0] == embeddings_shape, (
+                f"Embedding sizes are not correct: {embeddings_shape} != {concatenated_embedding.shape[0]} for {scan_id}. Check Dataset!"
+            )
+
+            concatenated_embeddings[i] = concatenated_embedding
+            concatenated_labels[i] = data['label']
+
+        return concatenated_embeddings, concatenated_labels
 
     enrolled_embedding_database, enrolled_label_database = process_embeddings(
         embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
