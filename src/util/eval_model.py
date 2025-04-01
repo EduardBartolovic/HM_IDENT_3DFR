@@ -77,7 +77,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     dataset_enrolled_path = os.path.join(test_path, 'train')
     dataset_query_path = os.path.join(test_path, 'validation')
     dataset_enrolled, enrolled_loader = load_data(dataset_enrolled_path, test_transform, batch_size)
-    _, query_loader = load_data(dataset_query_path, test_transform, batch_size)
+    dataset_query, query_loader = load_data(dataset_query_path, test_transform, batch_size)
 
     time.sleep(0.1)
 
@@ -110,13 +110,10 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
         metrics_front = accuracy_front_perspective(embedding_library, distance_metric)
 
     # VotingV1 Single Encoding
-    #if 'texas' in test_path:
-    metrics_voting = {}
-    #else:
-    #    y_true_voting, y_pred_voting = voting(y_pred, embedding_library.query_scan_ids, embedding_library.query_labels)
-    #    y_pred_voting_top1 = y_pred_voting[:, 0]
-    #    y_pred_voting_top5 = y_pred_voting[:, :5]
-    #    metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
+    # y_true_voting, y_pred_voting = voting(y_pred, embedding_library.query_scan_ids, embedding_library.query_labels)
+    # y_pred_voting_top1 = y_pred_voting[:, 0]
+    # y_pred_voting_top5 = y_pred_voting[:, :5]
+    # metrics_voting = calc_metrics(y_true_voting, y_pred_voting_top1, y_pred_voting_top5)
 
     # VotingV2 KNN
     #if 'texas' in test_path:
@@ -132,7 +129,7 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     else:
         metric_concat = concat(embedding_library, disable_bar)
 
-    return metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library
+    return metrics, metrics_front, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library, dataset_enrolled, dataset_query
 
 
 def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metric, test_transform_sizes, batch_size, disable_bar=False):
@@ -145,7 +142,7 @@ def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metri
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {test_transform_sizes}"))
-    metrics, metrics_front, metrics_voting, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library = evaluate(device, batch_size*2, backbone, os.path.join(data_root, dataset), distance_metric, test_transform, disable_bar)
+    metrics, metrics_front, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate(device, batch_size*2, backbone, os.path.join(data_root, dataset), distance_metric, test_transform, disable_bar)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
@@ -154,8 +151,6 @@ def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metri
 
     if 'Rank-1 Rate' in metrics_front.keys():
         mlflow.log_metric(f"{neutral_dataset}_Front_RR1", metrics_front['Rank-1 Rate'], step=epoch + 1)
-    if 'Rank-1 Rate' in metrics_voting.keys():
-        mlflow.log_metric(f"{neutral_dataset}_Voting_RR1", metrics_voting['Rank-1 Rate'], step=epoch + 1)
     if 'Rank-1 Rate' in metrics_knn_voting.keys():
         mlflow.log_metric(f"{neutral_dataset}_KNNVoting_RR1", metrics_knn_voting['Rank-1 Rate'], step=epoch + 1)
     if 'Rank-1 Rate' in metric_concat.keys():
@@ -184,18 +179,15 @@ def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metri
     rank_5 = metrics.get('Rank-5 Rate', 'N/A')
     front_rank_1 = metrics_front.get('Rank-1 Rate', 'N/A')
     front_rank_5 = metrics_front.get('Rank-5 Rate', 'N/A')
-    voting_rank_1 = metrics_voting.get('Rank-1 Rate', 'N/A')
-    voting_rank_5 = metrics_voting.get('Rank-5 Rate', 'N/A')
     knn_voting_rank_1 = metrics_knn_voting.get('Rank-1 Rate', 'N/A')
     concat_rank_1 = metric_concat.get('Rank-1 Rate', 'N/A')
     concat_rank_5 = metric_concat.get('Rank-5 Rate', 'N/A')
 
     print(colorstr(
         'bright_green',
-        f"{neutral_dataset} Evaluation: "
+        f"{neutral_dataset} ; Classes {len(dataset_enrolled.classes)} ; Samples {len(dataset_enrolled)} {len(dataset_query)} Evaluation: "
         f"RR1: {rank_1} RR5: {rank_5} "
         f"Front-RR1: {front_rank_1} Front-RR5: {front_rank_5} "
-        f"Voting-RR1: {voting_rank_1} Voting-RR5: {voting_rank_5} "
         f"KNN-Voting-RR1: {knn_voting_rank_1} "
         f"Concat-RR1: {concat_rank_1} Concat-RR5: {concat_rank_5}"
     ))
