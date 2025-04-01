@@ -185,7 +185,7 @@ def evaluate_and_log(device, backbone, data_root, dataset, epoch, distance_metri
 
     print(colorstr(
         'bright_green',
-        f"{neutral_dataset} ; Classes {len(dataset_enrolled.classes)}; Samples E{len(dataset_enrolled)}Q{len(dataset_query)} Evaluation: "
+        f"{neutral_dataset}: C{len(dataset_enrolled.classes)} E{len(dataset_enrolled)} Q{len(dataset_query)} ; Evaluation: "
         f"RR1: {rank_1} RR5: {rank_5} "
         f"Front-RR1: {front_rank_1} Front-RR5: {front_rank_5} "
         f"KNN-Voting-RR1: {knn_voting_rank_1} "
