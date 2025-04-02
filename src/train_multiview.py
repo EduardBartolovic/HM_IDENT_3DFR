@@ -186,6 +186,10 @@ if __name__ == '__main__':
         load_checkpoint(BACKBONE_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         print("=" * 60)
 
+        print("=" * 60)
+        print(colorstr('magenta', f"Using face correspondences: {use_face_corr}"))
+        print("=" * 60)
+
         # ======= GPU Settings =======
         if MULTI_GPU:
             BACKBONE_reg = nn.DataParallel(BACKBONE_reg, device_ids=GPU_ID)

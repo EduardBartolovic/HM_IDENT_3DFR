@@ -45,7 +45,7 @@ def get_embeddings(device, model, enrolled_loader, query_loader):
 
 
 @torch.no_grad()
-def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader):
+def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr: bool):
 
     backbone_reg.eval()
     backbone_agg.eval()
@@ -54,12 +54,10 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
     enrolled_embeddings = []
     enrolled_labels = []
     enrolled_perspectives = []
-    use_face_corr = False
     for inputs, labels, perspectives, face_corr in tqdm(iter(enrolled_loader), desc="Generate Enrolled Embeddings"):
 
-        if not use_face_corr and face_corr.shape[1] > 0:
-            print("Using Feature Alignment")
-            use_face_corr = True
+        if use_face_corr:
+            assert face_corr.shape[1] == 0
 
         embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr).cpu().numpy()
         enrolled_embeddings.extend(embeddings)
@@ -179,7 +177,7 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
 
     time.sleep(0.1)
 
-    embedding_library = get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader)
+    embedding_library = get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr)
 
     enrolled_embedding = embedding_library.enrolled_embeddings
     enrolled_label = embedding_library.enrolled_labels
@@ -190,15 +188,8 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
     similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, chunk_size=batch_size, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
-
-    # result_metrics_front = accuracy_front_perspective(embedding_library) # TODO Use correct embeddings
-
-    # metrics = calc_metrics(embedding_library.query_labels, top_indices[:, 0])
     plot_confusion_matrix(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], os.path.basename(test_path))
-
-    # metric_concat = concat(embedding_library)  # TODO Use correct embeddings
-    # print(metric_concat)
 
     return result_metrics, embedding_library, dataset_enrolled, dataset_query
 
