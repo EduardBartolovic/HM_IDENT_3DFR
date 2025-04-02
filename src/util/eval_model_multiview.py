@@ -57,7 +57,7 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
     for inputs, labels, perspectives, face_corr in tqdm(iter(enrolled_loader), desc="Generate Enrolled Embeddings"):
 
         if use_face_corr:
-            assert face_corr.shape[1] == 0
+            assert face_corr.shape[1] > 0
 
         embeddings = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr).cpu().numpy()
         enrolled_embeddings.extend(embeddings)
