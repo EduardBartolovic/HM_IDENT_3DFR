@@ -99,8 +99,9 @@ def concat(embedding_library, disable_bar):
     similarity_matrix = calculate_embedding_similarity(query_embedding_database, enrolled_embedding_database, disable_bar=disable_bar)
 
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
-
-    return analyze_result(similarity_matrix, top_indices, enrolled_label_database, query_label_database, top_k_acc_k=5)
+    result = analyze_result(similarity_matrix, top_indices, enrolled_label_database, query_label_database, top_k_acc_k=5)
+    predicted_labels = enrolled_label_database[top_indices[:, 0]]
+    return result, predicted_labels, query_label_database
 
 
 def multidatabase_voting(embedding_library):

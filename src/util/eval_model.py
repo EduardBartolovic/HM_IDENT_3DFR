@@ -127,7 +127,9 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     if 'texas' in test_path or 'colorferet' in test_path:
         metric_concat = {}
     else:
-        metric_concat = concat(embedding_library, disable_bar)
+        metric_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar)
+        error_rate_per_class(embedding_library.query_labels, y_pred_top1, os.path.basename(test_path) + '_concat')
+        plot_confusion_matrix(y_true_concat, y_pred_concat, dataset_enrolled, os.path.basename(test_path) + '_concat', matplotlib=False)
 
     return metrics, metrics_front, metrics_knn_voting, metric_concat, embedding_metrics, embedding_library, dataset_enrolled, dataset_query
 
