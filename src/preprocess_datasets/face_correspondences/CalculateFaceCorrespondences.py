@@ -218,7 +218,7 @@ def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=
 def calculate_face_landmarks_dataset(dataset_folder, keep=True):
     start_time = time.time()
     counter = 0
-    face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True)
+    face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, min_detection_confidence=0.1, refine_landmarks=True)
 
     class_names = os.listdir(dataset_folder)
     failed_landmark_counter = 0
