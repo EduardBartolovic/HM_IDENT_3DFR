@@ -227,7 +227,7 @@ def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_featur
 
 
 def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr):
-    # Initialize a dictionary to hold stage features for all views
+    # Dictionary to hold stage features for all views
     stage_to_index = {
         "input_stage": 0,
         "block_2": 1,
@@ -248,4 +248,4 @@ def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, persp
     embeddings_agg = perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr)  # Embeddings of aggregator branch
     embeddings_reg = all_views_stage_features[5]  # Embeddings of regular branch
 
-    return embeddings_agg
+    return embeddings_reg, embeddings_agg

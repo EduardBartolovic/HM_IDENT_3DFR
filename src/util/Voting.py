@@ -57,7 +57,7 @@ def calculate_embedding_similarity(tabular_embeddings, image_embeddings, chunk_s
     return similarity_matrix
 
 
-def concat(embedding_library, disable_bar):
+def concat(embedding_library, disable_bar, pre_sorted=False):
 
     def process_embeddings(scan_ids, embeddings, labels, perspectives):
         scan_to_data = {}
@@ -88,13 +88,19 @@ def concat(embedding_library, disable_bar):
 
         return concatenated_embeddings, concatenated_labels
 
-    enrolled_embedding_database, enrolled_label_database = process_embeddings(
-        embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
-        embedding_library.enrolled_labels, embedding_library.enrolled_perspectives)
+    if sorted:
+        enrolled_embedding_database, enrolled_label_database = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
+        enrolled_embedding_database = enrolled_embedding_database.transpose(1, 0, 2).reshape(enrolled_embedding_database.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+        query_embedding_database, query_label_database = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
+        query_embedding_database = query_embedding_database.transpose(1, 0, 2).reshape(query_embedding_database.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+    else:
+        enrolled_embedding_database, enrolled_label_database = process_embeddings(
+            embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
+            embedding_library.enrolled_labels, embedding_library.enrolled_perspectives)
 
-    query_embedding_database, query_label_database = process_embeddings(
-        embedding_library.query_scan_ids, embedding_library.query_embeddings,
-        embedding_library.query_labels, embedding_library.query_perspectives)
+        query_embedding_database, query_label_database = process_embeddings(
+            embedding_library.query_scan_ids, embedding_library.query_embeddings,
+            embedding_library.query_labels, embedding_library.query_perspectives)
 
     similarity_matrix = calculate_embedding_similarity(query_embedding_database, enrolled_embedding_database, disable_bar=disable_bar)
 
@@ -304,20 +310,39 @@ def voting(y_pred, scan_ids, query_labels):
     return np.array(y_true_scan), np.array(y_pred_scan)
 
 
-def accuracy_front_perspective(embedding_library, distance_metric=None):
-    # enrolled_embeddings.shape -> (num_samples, embedding_dim)
-    # enrolled_labels.shape -> (num_samples,)
-    # enrolled_perspectives.shape -> (num_samples,)
+def accuracy_front_perspective(embedding_library, distance_metric=None, pre_sorted=False):
 
-    # Mask rows where the enrolled_perspectives contain the specific string
-    mask = np.array(["0_0" in perspective or "-fa" in perspective for perspective in embedding_library.enrolled_perspectives])
-    enrolled_embeddings = embedding_library.enrolled_embeddings[mask]
-    enrolled_labels = embedding_library.enrolled_labels[mask]
+    if pre_sorted:
+        # enrolled_embeddings.shape -> (views, num_samples, embedding_dim)
+        # enrolled_labels.shape -> (num_samples,)
+        # enrolled_perspectives.shape -> (num_samples, views)
 
-    # Mask rows where the query_perspectives contain the specific string
-    mask = np.array(["0_0" in perspective or "-fa" in perspective for perspective in embedding_library.query_perspectives])
-    query_embeddings = embedding_library.query_embeddings[mask]
-    query_labels = embedding_library.query_labels[mask]
+        view_mask = np.array([["0_0" in perspective or "-fa" in perspective for perspective in perspectives] for perspectives in embedding_library.enrolled_perspectives]).T  # shape becomes (views, num_samples), then transpose to (views, num_samples)
+        selected_view_indices = np.argmax(view_mask, axis=0)  # shape (num_samples,)
+        assert np.all(selected_view_indices == selected_view_indices[0]), f"Expected all selected views to be the same, but got: {np.unique(selected_view_indices)}"  # Assert all samples use the same view
+        enrolled_embeddings = embedding_library.enrolled_embeddings[selected_view_indices[0]]
+        enrolled_labels = embedding_library.enrolled_labels
+
+        view_mask = np.array([["0_0" in perspective or "-fa" in perspective for perspective in perspectives] for perspectives in embedding_library.query_perspectives]).T  # shape becomes (views, num_samples), then transpose to (views, num_samples)
+        selected_view_indices = np.argmax(view_mask, axis=0)  # shape (num_samples,)
+        assert np.all(selected_view_indices == selected_view_indices[0]), f"Expected all selected views to be the same, but got: {np.unique(selected_view_indices)}"  # Assert all samples use the same view
+        query_embeddings = embedding_library.query_embeddings[selected_view_indices[0]]
+        query_labels = embedding_library.query_labels
+
+    else:
+        # enrolled_embeddings.shape -> (num_samples, embedding_dim)
+        # enrolled_labels.shape -> (num_samples,)
+        # enrolled_perspectives.shape -> (num_samples,)
+
+        # Mask rows where the enrolled_perspectives contain the specific string
+        mask = np.array(["0_0" in perspective or "-fa" in perspective for perspective in embedding_library.enrolled_perspectives])
+        enrolled_embeddings = embedding_library.enrolled_embeddings[mask]
+        enrolled_labels = embedding_library.enrolled_labels[mask]
+
+        # Mask rows where the query_perspectives contain the specific string
+        mask = np.array(["0_0" in perspective or "-fa" in perspective for perspective in embedding_library.query_perspectives])
+        query_embeddings = embedding_library.query_embeddings[mask]
+        query_labels = embedding_library.query_labels[mask]
 
     similarity_matrix = calculate_embedding_similarity(query_embeddings, enrolled_embeddings)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)

@@ -1,4 +1,5 @@
 import os
+import re
 
 import numpy as np
 import torch
@@ -55,6 +56,8 @@ class MultiviewDataset(Dataset):
                             if sha_hash not in sha_groups:
                                 sha_groups[sha_hash] = []
                             sha_groups[sha_hash].append(file_path)
+
+                        assert re.match(r"^[-+]?\d+_[-+]?\d+$", os.path.basename(file_path)[40:-10]), "perspective in dataset doesnt match convention "
                     else:
                         if filename.endswith(".npz"):
                             self.face_cor_exist = True
@@ -66,7 +69,7 @@ class MultiviewDataset(Dataset):
                     else:
                         raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}: number of views doesnt match with {self.num_views}")
 
-        if not self.use_face_corr:  # If use_face_corr is False don't use face_corr
+        if not self.use_face_corr:  # If use_face_corr is deactivated then ignore face_corr
             self.face_cor_exist = False
 
         return data
@@ -93,5 +96,5 @@ class MultiviewDataset(Dataset):
         if self.transform:
             images = [self.transform(img) for img in images]
 
-        # Return images as a tensor batch along with class and perspective
+        # Return images as a tensor batch along with additional data
         return images, class_name, perspectives, facial_corr
