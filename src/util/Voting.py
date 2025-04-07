@@ -88,26 +88,26 @@ def concat(embedding_library, disable_bar, pre_sorted=False):
 
         return concatenated_embeddings, concatenated_labels
 
-    if sorted:
-        enrolled_embedding_database, enrolled_label_database = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
-        enrolled_embedding_database = enrolled_embedding_database.transpose(1, 0, 2).reshape(enrolled_embedding_database.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
-        query_embedding_database, query_label_database = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
-        query_embedding_database = query_embedding_database.transpose(1, 0, 2).reshape(query_embedding_database.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+    if pre_sorted:
+        enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
+        enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+        query_embedding, query_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
+        query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
     else:
-        enrolled_embedding_database, enrolled_label_database = process_embeddings(
+        enrolled_embedding, enrolled_label = process_embeddings(
             embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
             embedding_library.enrolled_labels, embedding_library.enrolled_perspectives)
 
-        query_embedding_database, query_label_database = process_embeddings(
+        query_embedding, query_label = process_embeddings(
             embedding_library.query_scan_ids, embedding_library.query_embeddings,
             embedding_library.query_labels, embedding_library.query_perspectives)
 
-    similarity_matrix = calculate_embedding_similarity(query_embedding_database, enrolled_embedding_database, disable_bar=disable_bar)
+    similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar=disable_bar)
 
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
-    result = analyze_result(similarity_matrix, top_indices, enrolled_label_database, query_label_database, top_k_acc_k=5)
-    predicted_labels = enrolled_label_database[top_indices[:, 0]]
-    return result, predicted_labels, query_label_database
+    result = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
+    predicted_labels = enrolled_label[top_indices[:, 0]]
+    return result, predicted_labels, query_label
 
 
 def multidatabase_voting(embedding_library):
