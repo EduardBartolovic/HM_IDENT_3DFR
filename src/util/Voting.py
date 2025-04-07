@@ -318,15 +318,15 @@ def accuracy_front_perspective(embedding_library, distance_metric=None, pre_sort
         # enrolled_perspectives.shape -> (num_samples, views)
 
         view_mask = np.array([["0_0" in perspective or "-fa" in perspective for perspective in perspectives] for perspectives in embedding_library.enrolled_perspectives]).T  # shape becomes (views, num_samples), then transpose to (views, num_samples)
-        #selected_view_indices = np.argmax(view_mask, axis=0)  # shape (num_samples,)
+        selected_view_indices = np.argmax(view_mask, axis=0)  # shape (num_samples,)
         #assert np.all(selected_view_indices == selected_view_indices[0]), f"Expected all selected views to be the same, but got: {selected_view_indices} != {selected_view_indices[0]}"  # Assert all samples use the same view
-        enrolled_embeddings = embedding_library.enrolled_embeddings[view_mask]
+        enrolled_embeddings = embedding_library.enrolled_embeddings[selected_view_indices, np.arange(selected_view_indices.shape[0]), :]
         enrolled_labels = embedding_library.enrolled_labels
 
         view_mask = np.array([["0_0" in perspective or "-fa" in perspective for perspective in perspectives] for perspectives in embedding_library.query_perspectives]).T  # shape becomes (views, num_samples), then transpose to (views, num_samples)
-        #selected_view_indices = np.argmax(view_mask, axis=0)  # shape (num_samples,)
+        selected_view_indices = np.argmax(view_mask, axis=0)  # shape (num_samples,)
         #assert np.all(selected_view_indices == selected_view_indices[0]), f"Expected all selected views to be the same, but got: {np.unique(selected_view_indices)}"  # Assert all samples use the same view
-        query_embeddings = embedding_library.query_embeddings[view_mask]
+        query_embeddings = embedding_library.query_embeddings[selected_view_indices, np.arange(selected_view_indices.shape[0]), :]
         query_labels = embedding_library.query_labels
 
     else:
