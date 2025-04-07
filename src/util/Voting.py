@@ -57,7 +57,7 @@ def calculate_embedding_similarity(tabular_embeddings, image_embeddings, chunk_s
     return similarity_matrix
 
 
-def concat(embedding_library, disable_bar, pre_sorted=False):
+def concat(embedding_library, disable_bar:bool, pre_sorted=False):
 
     def process_embeddings(scan_ids, embeddings, labels, perspectives):
         scan_to_data = {}
@@ -91,13 +91,12 @@ def concat(embedding_library, disable_bar, pre_sorted=False):
     if pre_sorted:
         enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
         enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
-        query_embedding, query_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
+        query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
         query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
     else:
         enrolled_embedding, enrolled_label = process_embeddings(
             embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
             embedding_library.enrolled_labels, embedding_library.enrolled_perspectives)
-
         query_embedding, query_label = process_embeddings(
             embedding_library.query_scan_ids, embedding_library.query_embeddings,
             embedding_library.query_labels, embedding_library.query_perspectives)
