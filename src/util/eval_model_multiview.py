@@ -240,7 +240,7 @@ def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_r
     print(colorstr(
         'bright_green',
         f"{neutral_dataset}: C{len(dataset_enrolled.classes)} E{len(dataset_enrolled)} Q{len(dataset_query)} ; Evaluation: "
-        f"Front RR1: {rank_1_front} Front RR5: {rank_5_front} "
+        f"Front-RR1: {rank_1_front} Front-RR5: {rank_5_front} "
         f"Concat-RR1: {rank_1_concat} Concat-RR5: {rank_5_concat} "
         f"MVS-RR1: {rank_1} MVS-RR5: {rank_5} "
     ))

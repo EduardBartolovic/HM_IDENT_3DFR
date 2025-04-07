@@ -226,7 +226,6 @@ if __name__ == '__main__':
         print(colorstr('blue', f"{OPTIMIZER_NAME} Optimizer Generated"))
         print("=" * 60)
 
-        print("=" * 60)
         load_checkpoint(BACKBONE, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         print("=" * 60)
 
@@ -250,7 +249,10 @@ if __name__ == '__main__':
         for epoch in range(NUM_EPOCH):  # start training process
 
             #  ======= perform validation =======
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE*6, disable_bar=True)
+            #evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE*6, disable_bar=True)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_vox2testX", epoch, DISTANCE_METRIC, (150, 150),
+                             BATCH_SIZE * 6, disable_bar=False)
+
             #if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_vox2test, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE*6, disable_bar=True)
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_vox2train, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE*6)
