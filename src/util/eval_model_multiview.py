@@ -46,7 +46,7 @@ def get_embeddings(device, model, enrolled_loader, query_loader):
 
 
 @torch.no_grad()
-def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr: bool):
+def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr: bool, disable_bar=False):
 
     backbone_reg.eval()
     backbone_agg.eval()
@@ -56,7 +56,7 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
     enrolled_embeddings_agg = []
     enrolled_labels = []
     enrolled_perspectives = []
-    for inputs, labels, perspectives, face_corr in tqdm(iter(enrolled_loader), desc="Generate Enrolled Embeddings"):
+    for inputs, labels, perspectives, face_corr in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
 
         if use_face_corr:
             assert face_corr.shape[1] > 0
@@ -71,7 +71,7 @@ def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled
     query_embeddings_agg = []
     query_labels = []
     query_perspectives = []
-    for inputs, labels, perspectives, face_corr in tqdm(iter(query_loader), desc="Generate Query Embeddings"):
+    for inputs, labels, perspectives, face_corr in tqdm(iter(query_loader), disable=disable_bar, desc="Generate Query Embeddings"):
         embeddings_reg, embeddings_agg = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr)
         query_embeddings_agg.extend(embeddings_agg.cpu().numpy())
         query_embeddings_reg.append(np.array([t.cpu().numpy() for t in embeddings_reg]))
@@ -185,7 +185,7 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
 
     time.sleep(0.1)
 
-    embedding_library = get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr)
+    embedding_library = get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr, disable_bar)
 
     enrolled_label = embedding_library.enrolled_labels
     query_label = embedding_library.query_labels

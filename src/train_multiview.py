@@ -13,7 +13,6 @@ from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mvs
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
-from util.visualize_feature_maps import visualize_feature_maps
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
     separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
 
@@ -132,7 +131,6 @@ if __name__ == '__main__':
         BACKBONE_DICT = {'IR_MV_50': IR_MV_50(INPUT_SIZE, EMBEDDING_SIZE)}
         BACKBONE_reg = BACKBONE_DICT[BACKBONE_NAME]
         BACKBONE_agg = BACKBONE_DICT[BACKBONE_NAME]
-        print("=" * 60)
         model_stats = summary(BACKBONE_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
         print(colorstr('magenta', str(model_stats)))
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
@@ -181,12 +179,10 @@ if __name__ == '__main__':
         print(colorstr('blue', f"{OPTIMIZER_NAME} Optimizer Generated"))
         print("=" * 60)
 
-        print("=" * 60)
         load_checkpoint(BACKBONE_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         load_checkpoint(BACKBONE_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         print("=" * 60)
 
-        print("=" * 60)
         print(colorstr('magenta', f"Using face correspondences: {use_face_corr}"))
         print("=" * 60)
 
@@ -206,7 +202,7 @@ if __name__ == '__main__':
         # ======= Initialize early stopping parameters =======
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
-        for epoch in range(NUM_EPOCH):  # start training process
+        for epoch in range(NUM_EPOCH):
             # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
             if epoch == STAGES[0]:
                 schedule_lr(OPTIMIZER)
@@ -216,13 +212,11 @@ if __name__ == '__main__':
                 schedule_lr(OPTIMIZER)
 
             #  ======= perform validation =======
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE*4, use_face_corr, disable_bar=True)
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus_fc, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2test, epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2train, epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2, epoch,(150, 150), BATCH_SIZE * 4, use_face_corr)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE * 4, False, disable_bar=True)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2test, epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2train, epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             print("=" * 60)
 
             BACKBONE_reg.eval()
