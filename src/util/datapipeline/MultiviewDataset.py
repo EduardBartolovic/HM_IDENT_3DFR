@@ -36,8 +36,7 @@ class MultiviewDataset(Dataset):
         Returns:
             dict: A mapping from class names to class indices.
         """
-        class_names = sorted(
-            [d for d in os.listdir(self.root_dir) if os.path.isdir(os.path.join(self.root_dir, d))])
+        class_names = sorted([d for d in os.listdir(self.root_dir) if os.path.isdir(os.path.join(self.root_dir, d))])
         return {class_name: idx for idx, class_name in enumerate(class_names)}
 
     def _load_data(self):
