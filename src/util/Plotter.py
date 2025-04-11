@@ -238,3 +238,39 @@ def write_embeddings(embedding_library, dataset, epoch):
         # np.savez_compressed(os.path.join(tmp_dir, f'{dataset}_distances_{epoch}.npz'), embedding_library.distances)
 
         mlflow.log_artifacts(tmp_dir, artifact_path="embeddings")
+
+
+def plot_weight_evolution(weights_log, save_dir="weights_logs"):
+    os.makedirs(save_dir, exist_ok=True)
+
+    line_styles = ['-', '--', '-.', ':']
+    color_map = plt.cm.get_cmap('tab20', 26)  # up to 26 distinct colors
+
+    for i, weight_history in enumerate(weights_log):
+        weight_history = np.array(weight_history)  # (epochs, num_views)
+        num_views = weight_history.shape[1]
+        plt.figure(figsize=(10, 6))
+
+        style_cycle = itertools.cycle(line_styles)
+
+        for v in range(num_views):
+            color = color_map(v % 26)
+            linestyle = next(style_cycle) if v % 4 == 0 else '-'
+            plt.plot(
+                weight_history[:, v],
+                label=f"View {v}",
+                color=color,
+                linestyle=linestyle,
+                linewidth=1.3,
+                alpha=0.85
+            )
+
+        plt.xlabel("Epoch", fontsize=12)
+        plt.ylabel("Weight", fontsize=12)
+        plt.title(f"Weight Evolution - Aggregator {i}", fontsize=14)
+        plt.legend(fontsize=8, ncol=3, loc='upper right', frameon=False)
+        plt.grid(alpha=0.3)
+        plt.tight_layout()
+
+        plt.savefig(os.path.join(save_dir, f"aggregator_{i}_weight_evolution.png"))
+        plt.close()

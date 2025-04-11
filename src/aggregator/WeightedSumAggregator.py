@@ -2,8 +2,9 @@ import torch
 import torch.nn.functional as f
 from torch import nn
 
+
 class WeightedSumAggregator(nn.Module):
-    def __init__(self, num_views):
+    def __init__(self, num_views, last_view_bias=2.0):
         """
         Initialize the WeightedSumAggregator.
 
@@ -11,8 +12,6 @@ class WeightedSumAggregator(nn.Module):
             num_views (int): Number of views to aggregate.
         """
         super(WeightedSumAggregator, self).__init__()
-
-        last_view_bias = 2.0
         initial_weights = torch.ones(num_views)  # Start with uniform weights
         initial_weights[-1] += last_view_bias  # Boost view
         self.weights = nn.Parameter(initial_weights)
@@ -38,6 +37,6 @@ class WeightedSumAggregator(nn.Module):
 
 def make_weighted_sum_aggregator(view_list):
     aggregators = []
-    for i in view_list:
-        aggregators.append(WeightedSumAggregator(i))
+    for views, bias in view_list:
+        aggregators.append(WeightedSumAggregator(views, last_view_bias=bias))
     return aggregators

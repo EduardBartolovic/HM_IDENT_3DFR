@@ -4,11 +4,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
+
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
 from src.backbone.model_multiview_irse import IR_MV_50, execute_model
+from src.util.Plotter import plot_weight_evolution
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mvs
 from src.util.load_checkpoint import load_checkpoint
@@ -136,8 +138,8 @@ if __name__ == '__main__':
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
         print("=" * 60)
 
-        AGG_DICT = {'WeightedSumAggregator': make_weighted_sum_aggregator([25,26,26,26,26]),
-                    'MeanAggregator': make_mean_aggregator([25,25,25,25,25])}
+        AGG_DICT = {'WeightedSumAggregator': make_weighted_sum_aggregator([(25, 0), (26, 2), (26, 2), (26, 2), (26, 2)]),
+                    'MeanAggregator': make_mean_aggregator([25, 25, 25, 25, 25])}
         aggregators = AGG_DICT[AGG_NAME]
 
         HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
@@ -166,10 +168,15 @@ if __name__ == '__main__':
             _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
 
         if TRAIN_ALL:
-            params_list = [{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}].extend([ {'params': i.parameters()} for i in aggregators])
+            params_list = [{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}].extend([{'params': i.parameters()} for i in aggregators])
         else:
             params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
             params_list.extend([{'params': i.parameters()} for i in aggregators])
+
+            for param in BACKBONE_reg.parameters():
+                param.requires_grad = False
+            for param in BACKBONE_agg.parameters():
+                param.requires_grad = False
 
         OPTIMIZER_DICT = {'SGD': optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
                           'ADAM': torch.optim.Adam(params_list, lr=LR)}
@@ -202,6 +209,7 @@ if __name__ == '__main__':
         # ======= Initialize early stopping parameters =======
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
+        weights_log = [[] for _ in range(len(aggregators))]
         for epoch in range(NUM_EPOCH):
             # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
             if epoch == STAGES[0]:
@@ -211,12 +219,15 @@ if __name__ == '__main__':
             if epoch == STAGES[2]:
                 schedule_lr(OPTIMIZER)
 
+            for i, agg in enumerate(aggregators):
+                weights_log[i].append(agg.weights.detach().cpu().numpy().copy())
+
             #  ======= perform validation =======
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE * 4, False, disable_bar=True)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2test, epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2train, epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2testlc01", epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2train, epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             print("=" * 60)
 
             BACKBONE_reg.eval()
@@ -292,3 +303,5 @@ if __name__ == '__main__':
             # else:
             #     torch.save(BACKBONE.state_dict(), os.path.join(MODEL_ROOT, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(BACKBONE_NAME, epoch + 1, batch, get_time())))
             #     torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
+
+    plot_weight_evolution(weights_log, save_dir="weights_logs")
