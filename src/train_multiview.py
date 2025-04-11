@@ -169,7 +169,7 @@ if __name__ == '__main__':
             params_list = [{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}].extend([ {'params': i.parameters()} for i in aggregators])
         else:
             params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
-            params_list.extend([ {'params': i.parameters()} for i in aggregators])
+            params_list.extend([{'params': i.parameters()} for i in aggregators])
 
         OPTIMIZER_DICT = {'SGD': optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
                           'ADAM': torch.optim.Adam(params_list, lr=LR)}
@@ -238,7 +238,7 @@ if __name__ == '__main__':
                     use_face_corr = True
 
                 labels = labels.to(DEVICE).long()
-                embeddings = execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs, perspectives, face_corrs, use_face_corr)
+                _, embeddings = execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs, perspectives, face_corrs, use_face_corr)
                 outputs = HEAD(embeddings, labels)
                 loss = LOSS(outputs, labels)
 

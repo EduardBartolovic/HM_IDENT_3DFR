@@ -56,7 +56,7 @@ class MultiviewDataset(Dataset):
                                 sha_groups[sha_hash] = []
                             sha_groups[sha_hash].append(file_path)
 
-                        assert re.match(r"^[-+]?\d+_[-+]?\d+$", os.path.basename(file_path)[40:-10]), "perspective in dataset doesnt match convention "
+                        assert re.match(r"^[-+]?\d+_[-+]?\d+$", os.path.basename(file_path)[40:-10]), "perspective in dataset doesnt match convention"
                     else:
                         if filename.endswith(".npz"):
                             self.face_cor_exist = True
