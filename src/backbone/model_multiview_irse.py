@@ -236,13 +236,14 @@ def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, persp
         "block_23": 4,
         "output_stage": 5,
     }
-    all_views_stage_features = [[] for _ in stage_to_index]
-    for view in inputs:
-        view = view.to(device)
-        features_stages = backbone_reg(view, return_featuremaps=True)
-        for stage, index in stage_to_index.items():
-            if stage in features_stages:
-                all_views_stage_features[index].append(features_stages[stage])
+    with torch.no_grad():
+        all_views_stage_features = [[] for _ in stage_to_index]
+        for view in inputs:
+            view = view.to(device)
+            features_stages = backbone_reg(view, return_featuremaps=True)
+            for stage, index in stage_to_index.items():
+                if stage in features_stages:
+                    all_views_stage_features[index].append(features_stages[stage])
 
     # visualize_feature_maps(all_views_stage_features, "E:\\Download", batch_idx=0)
     embeddings_agg = perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr)  # Embeddings of aggregator branch
