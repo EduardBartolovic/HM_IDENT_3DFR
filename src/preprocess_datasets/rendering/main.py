@@ -29,6 +29,7 @@ def main():
 
     # -------- Bellus --------
     if bellus:
+        print("################# BELLUS #################")
 
         # Image Rendering
         #directory_path = Path('H:\\Maurer\\Bellus\\')
@@ -71,7 +72,7 @@ def main():
 
     # -------- FACESCAPE --------
     if facescape:
-
+        print("################# FACESCAPE #################")
         # Image Rendering
         #directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
         #output_dir = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
@@ -102,7 +103,7 @@ def main():
         calculate_face_correspondences_dataset(root+'test_rgb_facescape/validation_crop', keep=True, processes=2)
 
     if faceverse:
-
+        print("################# FACEVERSE #################")
         # Image Rendering faceverse
         #directory_path = Path('H:\\Maurer\\FaceVerse\\')
         #output_dir = Path('F:\\Face\\data\\tmp\\3D_faceverse\\')
