@@ -133,8 +133,6 @@ def main():
         calculate_face_correspondences_dataset(root+'test_rgb_faceverse/train_crop', keep=True, processes=2)
         calculate_face_correspondences_dataset(root+'test_rgb_faceverse/validation_crop', keep=True, processes=2)
 
-        exit()
-
     # if nphm:
     #     # Image Rendering nphm
     #     directory_path = Path('H:\\Maurer\\nphm\\')
