@@ -248,14 +248,14 @@ def main():
         PrepareDataset.prepare_dataset_colorferet_1_n(input_path, output_dir)
 
     if bff:
-
-        input_paths = [Path('F:\\Face\\data\\datasets7\\test_rgb_bellus'), Path('F:\\Face\\data\\datasets7\\test_rgb_facescape'), Path('F:\\Face\\data\\datasets7\\test_rgb_faceverse')]
+        print("################# BFF #################")
+        input_paths = [Path(root+'test_rgb_bellus'), Path(root+'test_rgb_facescape'), Path(root+'test_rgb_faceverse')]
         output_dir = Path(root + 'test_rgb_bff')
         PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
-        input_paths = [Path('F:\\Face\\data\\datasets7\\test_rgbd_bellus'), Path('F:\\Face\\data\\datasets7\\test_rgbd_facescape'), Path('F:\\Face\\data\\datasets7\\test_rgbd_faceverse')]
-        output_dir = Path(root + 'test_rgbd_bff')
-        PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
+        #input_paths = [Path('F:\\Face\\data\\datasets7\\test_rgbd_bellus'), Path('F:\\Face\\data\\datasets7\\test_rgbd_facescape'), Path('F:\\Face\\data\\datasets7\\test_rgbd_faceverse')]
+        #output_dir = Path(root + 'test_rgbd_bff')
+        #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)
