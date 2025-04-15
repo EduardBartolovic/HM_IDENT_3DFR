@@ -9,46 +9,47 @@ class SEAggregator(nn.Module):
         This implements the Squeeze-and-Excitation mechanic from https://arxiv.org/abs/1709.01507
 
         Args:
-            channels (int): Number of feature channels (e.g., 124).
+            channels (int): Number of feature channels
             reduction (int): Reduction ratio for the SE block.
         """
         super(SEAggregator, self).__init__()
-        self.squeeze = nn.AdaptiveAvgPool3d((1, 1, 1))  # Pool across [view, h, w]
-        self.excitation = nn.Sequential(
-            nn.Linear(channels, channels // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channels // reduction, channels, bias=False),
-            nn.Sigmoid()
-        )
+        self.reduction = reduction
+        self.fc1 = nn.Linear(channels, channels // reduction, bias=False)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Linear(channels // reduction, channels, bias=False)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, all_view_stage):
         """
         Args:
-            all_view_stage (torch.Tensor): Tensor shape [batch, view, c, h, w].
+            all_view_stage (torch.Tensor): Tensor of shape [B, V, C, H, W].
 
         Returns:
-            torch.Tensor: Aggregated tensor shape [batch, c, h, w].
+            torch.Tensor: Aggregated tensor of shape [B, C, H, W].
         """
-        b, v, c, h, w = all_view_stage.shape
+        # B, V, C, H, W = all_view_stage.shape
 
-        # Squeeze: Pool across view, height, and width
-        pooled = self.squeeze(all_view_stage)  # [b, c, 1, 1, 1]
-        pooled = pooled.view(b, c)  # [b, c]
+        # Squeeze: average spatial dimensions (H, W)
+        pooled = all_view_stage.mean(dim=[3, 4])  # [B, V, C]
 
-        # Excitation: Learn attention per channel
-        channel_weights = self.excitation(pooled).view(b, 1, c, 1, 1)  # [b, 1, c, 1, 1]
+        # Excitation: apply FC layers to each view
+        se_weights = self.fc1(pooled)  # [B, V, C//r]
+        se_weights = self.relu(se_weights)
+        se_weights = self.fc2(se_weights)  # [B, V, C]
+        se_weights = self.sigmoid(se_weights)  # [B, V, C]
 
-        # Reweight each view using the channel attention
-        reweighted = all_view_stage * channel_weights  # [b, v, c, h, w]
+        # Reweight: apply channel-wise weights to each view
+        se_weights = se_weights.unsqueeze(-1).unsqueeze(-1)  # [B, V, C, 1, 1]
+        weighted = all_view_stage * se_weights  # [B, V, C, H, W]
 
-        # Average the views TODO: Check weighted sum over views
-        output = torch.mean(reweighted, dim=1)  # [b, c, h, w]
+        # Aggregate over views
+        output = weighted.mean(dim=1)  # [B, C, H, W]
 
         return output
 
 
-def make_se_aggregator(view_list):
+def make_se_aggregator(channels_list):
     aggregators = []
-    for views, bias in view_list:
-        aggregators.append(SEAggregator(views))
+    for channels in channels_list:
+        aggregators.append(SEAggregator(channels))
     return aggregators

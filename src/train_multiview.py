@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
         AGG_DICT = {'WeightedSumAggregator': make_weighted_sum_aggregator([(25, 0), (26, 2), (26, 2), (26, 2), (26, 2)]),
                     'MeanAggregator': make_mean_aggregator([25, 25, 25, 25, 25]),
-                    'SEAggregator': make_se_aggregator([64, 64, 124, 256, 512])}
+                    'SEAggregator': make_se_aggregator([64, 64, 128, 256, 512])}
         aggregators = AGG_DICT[AGG_NAME]
 
         HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
@@ -221,8 +221,8 @@ if __name__ == '__main__':
             if epoch == STAGES[2]:
                 schedule_lr(OPTIMIZER)
 
-            for i, agg in enumerate(aggregators):
-                weights_log[i].append(agg.weights.detach().cpu().numpy().copy())
+            #for i, agg in enumerate(aggregators):
+            #    weights_log[i].append(agg.weights.detach().cpu().numpy().copy())
 
             #  ======= perform validation =======
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE * 4, False, disable_bar=True)
