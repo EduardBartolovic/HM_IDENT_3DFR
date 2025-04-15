@@ -8,6 +8,7 @@ import torchvision.transforms as transforms
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.aggregator.MeanAggregator import make_mean_aggregator
+from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
 from src.backbone.model_multiview_irse import IR_MV_50, execute_model
 from src.util.Plotter import plot_weight_evolution
@@ -139,7 +140,8 @@ if __name__ == '__main__':
         print("=" * 60)
 
         AGG_DICT = {'WeightedSumAggregator': make_weighted_sum_aggregator([(25, 0), (26, 2), (26, 2), (26, 2), (26, 2)]),
-                    'MeanAggregator': make_mean_aggregator([25, 25, 25, 25, 25])}
+                    'MeanAggregator': make_mean_aggregator([25, 25, 25, 25, 25]),
+                    'SEAggregator': make_se_aggregator([64, 64, 124, 256, 512])}
         aggregators = AGG_DICT[AGG_NAME]
 
         HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
@@ -226,12 +228,12 @@ if __name__ == '__main__':
             evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE * 4, False, disable_bar=True)
             #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2testlc01", epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2testlc01", epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=True)
             #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2train, epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             print("=" * 60)
 
             BACKBONE_reg.eval()
-            BACKBONE_agg.train()
+            BACKBONE_agg.eval()
             [i.train() for i in aggregators]
             HEAD.train()
 
