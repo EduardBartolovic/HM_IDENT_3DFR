@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 import torch
 
+from src.preprocess_datasets.blazeface.face_crop import better_face_crop
 from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_landmarks_dataset, \
     calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
@@ -16,6 +17,8 @@ if __name__ == '__main__':
     folder_root = "C:\\Users\\Eduard\\Downloads\\nersemble"
     model_path_hpe = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     dataset_output_folder = "C:\\Users\\Eduard\\Downloads\\nersemble_out"
+    dataset_output_folder_crop = "C:\\Users\\Eduard\\Downloads\\nersemble_out_crop"
+    face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
     output_test_dataset = "C:\\Users\\Eduard\\Downloads\\nersemble\\sequence_EXP-1-head_part-1-out-test"
     batch_size = 128
     device = torch.device("cuda")
@@ -50,7 +53,7 @@ if __name__ == '__main__':
     print("#######Find matches#############")
     print("##################################")
     find_matches(folder_root, permutations, txt_name="hpe.txt")
-    evaluate_gaze_coverage(folder_root)
+    #evaluate_gaze_coverage(folder_root)
 
     print("##################################")
     print("###########GEN DATASET############")
@@ -58,14 +61,19 @@ if __name__ == '__main__':
     generate_voxceleb_dataset_from_video_nersemble(folder_root, dataset_output_folder, keep=True)
 
     print("##################################")
+    print("##########Better Face Crop###########")
+    print("##################################")
+    better_face_crop(dataset_output_folder, dataset_output_folder_crop, face_detect_model_root)
+
+    print("##################################")
     print("######face_correspondences########")
     print("##################################")
-    calculate_face_landmarks_dataset(dataset_output_folder)
-    calculate_face_correspondences_dataset(dataset_output_folder, keep=True)
+    calculate_face_landmarks_dataset(dataset_output_folder_crop)
+    calculate_face_correspondences_dataset(dataset_output_folder_crop, keep=True)
 
     print("##################################")
     print("###########GEN TEST DATASET############")
-    print("for:", dataset_output_folder, "to:", output_test_dataset)
+    print("for:", dataset_output_folder_crop, "to:", output_test_dataset)
     print("##################################")
-    create_train_test_split(dataset_output_folder, output_test_dataset)
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset)
     print("######face_correspondences########")
