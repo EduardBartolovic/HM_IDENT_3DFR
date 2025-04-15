@@ -109,7 +109,6 @@ def better_face_crop(input_folder, output_folder, model_root):
     back_net.load_weights(os.path.join(model_root, "blazefaceback.pth"))
     back_net.load_anchors(os.path.join(model_root, "anchorsback.npy"))
 
-    # Optionally change the thresholds:
     back_net.min_score_thresh = 0.6
     back_net.min_suppression_threshold = 0.3
 
@@ -161,6 +160,81 @@ def better_face_crop(input_folder, output_folder, model_root):
                 face_crop = padded_image[y_min:y_max, x_min:x_max]
                 face_crop_resized = cv2.cvtColor(cv2.resize(face_crop, (112, 112)), cv2.COLOR_BGR2RGB)
                 cv2.imwrite(str(face_crop_path), face_crop_resized)
+    print(f"Done. total_faces: {total_faces}, missing_faces: {missing_faces}, more_faces: {more_faces}")
+
+
+def face_crop_full_frame(input_folder, output_folder, model_root):
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    back_net = BlazeFace(back_model=True).to(device)
+    back_net.load_weights(os.path.join(model_root, "blazefaceback.pth"))
+    back_net.load_anchors(os.path.join(model_root, "anchorsback.npy"))
+
+    back_net.min_score_thresh = 0.6
+    back_net.min_suppression_threshold = 0.3
+
+    os.makedirs(output_folder, exist_ok=True)
+
+    class_names = os.listdir(input_folder)
+    missing_faces = 0
+    more_faces = 0
+    total_faces = 0
+    for class_name in tqdm(class_names, desc="Processing Classes"):
+        class_path = os.path.join(input_folder, class_name)
+        target_class_path = os.path.join(output_folder, class_name)
+
+        os.makedirs(target_class_path, exist_ok=True)
+        for filename in os.listdir(class_path):
+            if filename.endswith((".jpg", ".png", ".jpeg")):
+
+                face_crop_path = os.path.join(target_class_path, filename)
+                if os.path.exists(face_crop_path):
+                    continue  # Skip already cropped images
+
+                image_path = os.path.join(class_path, filename)
+                image = cv2.imread(image_path)
+                image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+                original_h, original_w = image_rgb.shape[:2]
+
+                # Resize for BlazeFace detection
+                resized_image = cv2.resize(image_rgb, (256, 256))
+                detections = back_net.predict_on_image(resized_image).cpu().numpy()
+
+                if detections.shape[0] == 0:
+                    missing_faces += 1
+                    continue
+                elif detections.shape[0] > 1:
+                    more_faces += 1
+                    detections = max(detections, key=lambda det: (det[2] - det[0]) * (det[3] - det[1]))
+                else:
+                    detections = detections[0]
+
+                total_faces += 1
+
+                # Map normalized detection box from resized back to original image
+                y_min = int(detections[0] * original_h)
+                x_min = int(detections[1] * original_w)
+                y_max = int(detections[2] * original_h)
+                x_max = int(detections[3] * original_w)
+
+                x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max, factor=0.3)
+
+                # Make sure the bounding box is square
+                box_w = x_max - x_min
+                box_h = y_max - y_min
+                side = max(box_w, box_h)
+                center_x = (x_min + x_max) // 2
+                center_y = (y_min + y_max) // 2
+                x_min = max(center_x - side // 2, 0)
+                y_min = max(center_y - side // 2, 0)
+                x_max = min(x_min + side, original_w)
+                y_max = min(y_min + side, original_h)
+
+                face_crop = image_rgb[y_min:y_max, x_min:x_max]
+                face_crop_resized = cv2.resize(face_crop, (112, 112))
+                final_image = cv2.cvtColor(face_crop_resized, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(str(face_crop_path), final_image)
     print(f"Done. total_faces: {total_faces}, missing_faces: {missing_faces}, more_faces: {more_faces}")
 
 

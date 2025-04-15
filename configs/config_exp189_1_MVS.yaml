@@ -1,12 +1,12 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP189-MVS-enc_512-ArcFace-FocalLoss-112_112-batchsize_16-epochs10-IR_50_PRE_MS1M63'  # experiment_name
-DATA_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\dataset8'  # the parent root
+DATA_ROOT: 'F:\\Face\\data\\datasets8'  # the parent root
 TRAIN_SET: 'rgb_bellus'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: './log'  # the root to log your train/val status
-BACKBONE_RESUME_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
+BACKBONE_RESUME_ROOT: 'F:\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 TRAIN_ALL: False
 USE_FACE_CORR: False
@@ -20,10 +20,10 @@ INPUT_SIZE: [112, 112]  # support: [112, 112] and [224, 224]
 RGB_MEAN: [0.5, 0.5, 0.5]  # for normalize inputs to [-1, 1]
 RGB_STD: [0.5, 0.5, 0.5]
 EMBEDDING_SIZE: 512  # feature dimension
-BATCH_SIZE: 4
+BATCH_SIZE: 2
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
-LR: 0.0005  # initial LR
-NUM_EPOCH: 20  # total epoch number (use the first 1/25 epochs to warm up)
+LR: 0.01  # initial LR
+NUM_EPOCH: 10  # total epoch number (use the first 1/25 epochs to warm up)
 PATIENCE: 100  # patience for early stopping
 WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
 MOMENTUM: 0.3

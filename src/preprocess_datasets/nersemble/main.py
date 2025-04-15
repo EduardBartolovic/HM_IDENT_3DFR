@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 import torch
 
-from src.preprocess_datasets.blazeface.face_crop import better_face_crop
+from src.preprocess_datasets.blazeface.face_crop import better_face_crop, face_crop_full_frame
 from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_landmarks_dataset, \
     calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##########Better Face Crop###########")
     print("##################################")
-    better_face_crop(dataset_output_folder, dataset_output_folder_crop, face_detect_model_root)
+    face_crop_full_frame(dataset_output_folder, dataset_output_folder_crop, face_detect_model_root)
 
     print("##################################")
     print("######face_correspondences########")
