@@ -27,10 +27,10 @@ def find_min_error_per_line(file_paths):
     combined_df = pd.concat(data_frames, axis=0).groupby(['Ref_X', 'Ref_Y', 'Ref_Z']).min().reset_index()
     return combined_df
 
+
 def generate_voxceleb_dataset_from_video_nersemble(input_folder, output_folder, keep=True):
 
     start_time = time.time()
-    # Create output folder if it doesn't exist
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
