@@ -241,7 +241,8 @@ def calculate_face_landmarks_dataset(dataset_folder, keep=True):
                     np.savez_compressed(os.path.join(class_path, (filename[:-4] + '.npz')), landmarks=points)
                     counter += 1
                 else:
-                    # points = np.load(os.path.join(os.path.join(os.path.dirname(__file__)), "default_landmarks.npz"))['landmarks']
+                    points = np.load(os.path.join(os.path.join(os.path.dirname(__file__)), "default_landmarks.npz"))['landmarks']
+                    np.savez_compressed(os.path.join(class_path, (filename[:-4] + '.npz')), landmarks=points)
                     failed_landmark_counter += 1
                     #print(f"No landmarks found for: {os.path.join(class_path, filename)} using default landmarks")
                     #raise Exception(f"No landmarks found for: {os.path.join(class_path, filename)}")
