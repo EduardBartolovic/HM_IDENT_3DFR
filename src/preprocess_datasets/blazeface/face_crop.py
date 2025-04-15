@@ -163,6 +163,23 @@ def better_face_crop(input_folder, output_folder, model_root):
     print(f"Done. total_faces: {total_faces}, missing_faces: {missing_faces}, more_faces: {more_faces}")
 
 
+def resize_with_padding(image, target_size=(256, 256), pad_color=(0, 0, 0)):
+    h, w = image.shape[:2]
+    scale = min(target_size[0] / h, target_size[1] / w)
+    new_w, new_h = int(w * scale), int(h * scale)
+    resized = cv2.resize(image, (new_w, new_h))
+
+    pad_w = target_size[1] - new_w
+    pad_h = target_size[0] - new_h
+    top = pad_h // 2
+    bottom = pad_h - top
+    left = pad_w // 2
+    right = pad_w - left
+
+    padded_image = cv2.copyMakeBorder(resized, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)
+    return padded_image, scale, left, top
+
+
 def face_crop_full_frame(input_folder, output_folder, model_root):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -198,7 +215,7 @@ def face_crop_full_frame(input_folder, output_folder, model_root):
                 original_h, original_w = image_rgb.shape[:2]
 
                 # Resize for BlazeFace detection
-                resized_image = cv2.resize(image_rgb, (256, 256))
+                resized_image, scale, pad_left, pad_top = resize_with_padding(image_rgb)
                 detections = back_net.predict_on_image(resized_image).cpu().numpy()
 
                 if detections.shape[0] == 0:
@@ -212,13 +229,13 @@ def face_crop_full_frame(input_folder, output_folder, model_root):
 
                 total_faces += 1
 
-                # Map normalized detection box from resized back to original image
-                y_min = int(detections[0] * original_h)
-                x_min = int(detections[1] * original_w)
-                y_max = int(detections[2] * original_h)
-                x_max = int(detections[3] * original_w)
+                # Undo normalization and padding
+                y_min = int((detections[0] * 256 - pad_top) / scale)
+                x_min = int((detections[1] * 256 - pad_left) / scale)
+                y_max = int((detections[2] * 256 - pad_top) / scale)
+                x_max = int((detections[3] * 256 - pad_left) / scale)
 
-                x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max, factor=0.3)
+                x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max, factor=0.1)
 
                 # Make sure the bounding box is square
                 box_w = x_max - x_min
