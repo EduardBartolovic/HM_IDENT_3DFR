@@ -158,7 +158,7 @@ def face_crop_full_frame(input_folder, output_folder, model_root):
     missing_faces = 0
     more_faces = 0
     total_faces = 0
-    for class_name in tqdm(class_names, desc="Processing Classes"):
+    for class_name in tqdm(class_names, desc="Cropping Faces - Processing Classes"):
         class_path = os.path.join(input_folder, class_name)
         target_class_path = os.path.join(output_folder, class_name)
 
@@ -215,7 +215,7 @@ def face_crop_full_frame(input_folder, output_folder, model_root):
                 face_crop_resized = cv2.resize(face_crop, (112, 112))
                 final_image = cv2.cvtColor(face_crop_resized, cv2.COLOR_RGB2BGR)
                 cv2.imwrite(str(face_crop_path), final_image)
-    print(f"Done. total_faces: {total_faces}, missing_faces: {missing_faces}, more_faces: {more_faces}")
+    print(f"Done! Total_faces: {total_faces}, missing_faces: {missing_faces}, more_faces: {more_faces}")
 
 
 if __name__ == '__main__':
