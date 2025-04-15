@@ -107,8 +107,7 @@ def prepare_dataset_rgb(input_path, output_dir, mode=''):
         splited_path = Path(p).parts
         scan_set = splited_path[-2] + splited_path[-3]
         model = splited_path[-4]
-        file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest() + \
-                    splited_path[-1]
+        file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest() + splited_path[-1]
 
         if mode == '':
 

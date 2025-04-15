@@ -6,7 +6,7 @@ from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences i
     calculate_face_landmarks_dataset, calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.eval_hpe import evaluate_gaze_coverage
-from src.preprocess_datasets.blazeface.face_crop import better_face_crop
+from src.preprocess_datasets.blazeface.face_crop import better_face_crop_voxceleb
 from src.preprocess_datasets.headPoseEstimation.headpose_estimation import headpose_estimation_from_video
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_voxceleb_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
@@ -14,13 +14,13 @@ from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference im
 if __name__ == '__main__':
 
     folder_root = "E:\\Download\\vox2test"
-    model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
+    model_path_hpe = "/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
     dataset_output_folder = "E:\\Download\\vox2test_out"
     dataset_output_folder_crop = "E:\\Download\\vox2test_out_crop"
     output_test_dataset = "E:\\Download\\test_vox2test"
     face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
     batch_size = 128  # 48 for 8 GB VRAM
-    poses = 25 # Number of poses
+    poses = 25  # Number of poses
     device = torch.device("cuda")
 
     print("##################################")
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##########Better Face Crop###########")
     print("##################################")
-    better_face_crop(dataset_output_folder, dataset_output_folder_crop, face_detect_model_root)
+    better_face_crop_voxceleb(dataset_output_folder, dataset_output_folder_crop, face_detect_model_root)
 
     print("##################################")
     print("######face_correspondences########")

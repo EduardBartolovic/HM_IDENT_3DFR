@@ -1,137 +1,161 @@
 from pathlib import Path
 
+from src.preprocess_datasets.blazeface.face_crop import face_crop_full_frame
+from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_landmarks_dataset, \
+    calculate_face_correspondences_dataset
 from src.preprocess_datasets.rendering import PrepareDataset
 from src.preprocess_datasets.rendering.Extract2DFaces import Extract2DFaces
-from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
+#from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 
 def main():
 
-    bellus = False
-    facescape = False
-    faceverse = False
+    bellus = True
+    facescape = True
+    faceverse = True
     texas = False
     nphm = False
     facewarehouse = False
-    mononphm = True
+    mononphm = False
     ffhq = False
     prep_data = False
-    colorferet = True
-    bff = False
+    colorferet = False
+    bff = True
 
-    root = 'F:\\Face\\data\\datasets7\\'
+    root = 'F:\\Face\\data\\datasets8\\'
+
+    face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
     render_angles = [-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
 
-    # -------- Bellus -------------
+    # -------- Bellus --------
     if bellus:
 
-        # Image Rendering Bellus
-        directory_path = Path('H:\\Maurer\\Bellus\\')
-        output_dir = Path('F:\\Face\\data\\tmp\\3D_bellus\\')
-        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        obj_reader.render_obj_files("Bellus")
+        # Image Rendering
+        #directory_path = Path('H:\\Maurer\\Bellus\\')
+        #output_dir = Path('F:\\Face\\data\\tmp\\3D_bellus\\')
+        #obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+        #obj_reader.render_obj_files("Bellus")
 
-        # Photos for 2D Bellus
-        directory_path = Path('H:\\Maurer\\Bellus\\')
-        output_dir = Path('F:\\Face\\data\\tmp\\2D_Bellus\\')
-        obj_reader = Extract2DFaces(directory_path, output_dir)
-        obj_reader.extract_photos()
-        
-        # Prepare Dataset Depth Bellus:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus')
-        output_dir = Path(root+'test_depth_bellus')
-        PrepareDataset.prepare_dataset_depth(input_path, output_dir)
+        # Photos for 2D
+        #directory_path = Path('H:\\Maurer\\Bellus\\')
+        #output_dir = Path('F:\\Face\\data\\tmp\\2D_Bellus\\')
+        ##obj_reader = Extract2DFaces(directory_path, output_dir)
+        #obj_reader.extract_photos()
+        # Prepare Dataset Depth:
+        #input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus')
+        #output_dir = Path(root+'test_depth_bellus')
+        #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
-        # Prepare Dataset RGB Bellus:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus\\')
-        output_dir = Path(root+'test_rgb_bellus')
-        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        # Prepare Dataset RGB:
+        #input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus\\')
+        #output_dir = Path(root+'test_rgb_bellus')
+        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
-        # Prepare Dataset RGB + Depth Bellus:
-        input_path = Path(root+'test_rgb_bellus')
-        input_path2 = Path(root+'test_depth_bellus')
-        output_dir = Path(root+'test_rgbd_bellus')
-        PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
+        # Prepare Dataset RGB + Depth:
+        #input_path = Path(root+'test_rgb_bellus')
+        #input_path2 = Path(root+'test_depth_bellus')
+        #output_dir = Path(root+'test_rgbd_bellus')
+        #PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
-        # Prepare Dataset Photos Bellus:
-        input_path = Path('F:\\Face\\data\\tmp\\2D_Bellus\\')
-        output_dir = Path(root+'test_photo_bellus')
-        PrepareDataset.prepare_dataset_photos(input_path, output_dir)
+        # Prepare Dataset Photos:
+        #input_path = Path('F:\\Face\\data\\tmp\\2D_Bellus\\')
+        #output_dir = Path(root+'test_photo_bellus')
+        #PrepareDataset.prepare_dataset_photos(input_path, output_dir)
 
+        face_crop_full_frame(root+'test_rgb_bellus/train', root+'test_rgb_bellus/train_crop', face_detect_model_root)
+        face_crop_full_frame(root+'test_rgb_bellus/validation', root+'test_rgb_bellus/validation_crop', face_detect_model_root)
+        calculate_face_landmarks_dataset(root+'test_rgb_bellus/train_crop')
+        calculate_face_landmarks_dataset(root + 'test_rgb_bellus/validation_crop')
+        calculate_face_correspondences_dataset(root+'test_rgb_bellus/train_crop', keep=True, processes=2)
+        calculate_face_correspondences_dataset(root+'test_rgb_bellus/validation_crop', keep=True, processes=2)
 
-    # FACESCAPE
+    # -------- FACESCAPE --------
     if facescape:
 
-        # Image Rendering facescape
-        directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
-        output_dir = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
-        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        obj_reader.render_obj_files('facescape')
+        # Image Rendering
+        #directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
+        #output_dir = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
+        #obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+        #obj_reader.render_obj_files('facescape')
 
-        # Prepare Dataset Depth Facescape:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_facescape')
-        output_dir = Path(root+'test_depth_facescape')
-        PrepareDataset.prepare_dataset_depth(input_path, output_dir, mode='facescape')
+        # Prepare Dataset Depth:
+        #input_path = Path('F:\\Face\\data\\tmp\\3D_facescape')
+        #output_dir = Path(root+'test_depth_facescape')
+        #PrepareDataset.prepare_dataset_depth(input_path, output_dir, mode='facescape')
 
-        # Prepare Dataset RGB Facescape:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
-        output_dir = Path(root+'test_rgb_facescape')
-        PrepareDataset.prepare_dataset_rgb(input_path, output_dir, mode='facescape')
+        # Prepare Dataset RGB:
+        #input_path = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
+        #output_dir = Path(root+'test_rgb_facescape')
+        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir, mode='facescape')
 
-        # Prepare Dataset RGB + Depth Facescape:
-        input_path = Path(root+'test_rgb_facescape')
-        input_path2 = Path(root+'test_depth_facescape')
-        output_dir = Path(root+'test_rgbd_facescape')
-        PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
+        # Prepare Dataset RGB + Depth:
+        #input_path = Path(root+'test_rgb_facescape')
+        #input_path2 = Path(root+'test_depth_facescape')
+        #output_dir = Path(root+'test_rgbd_facescape')
+        #PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
+
+        face_crop_full_frame(root+'test_rgb_facescape/train', root+'test_rgb_facescape/train_crop', face_detect_model_root)
+        face_crop_full_frame(root+'test_rgb_facescape/validation', root+'test_rgb_facescape/validation_crop', face_detect_model_root)
+        calculate_face_landmarks_dataset(root+'test_rgb_facescape/train_crop')
+        calculate_face_landmarks_dataset(root + 'test_rgb_facescape/validation_crop')
+        calculate_face_correspondences_dataset(root+'test_rgb_facescape/train_crop', keep=True, processes=2)
+        calculate_face_correspondences_dataset(root+'test_rgb_facescape/validation_crop', keep=True, processes=2)
 
     if faceverse:
 
         # Image Rendering faceverse
-        directory_path = Path('H:\\Maurer\\FaceVerse\\')
-        output_dir = Path('F:\\Face\\data\\tmp\\3D_faceverse\\')
-        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        obj_reader.render_obj_files("FaceVerse")
+        #directory_path = Path('H:\\Maurer\\FaceVerse\\')
+        #output_dir = Path('F:\\Face\\data\\tmp\\3D_faceverse\\')
+        #obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+        #obj_reader.render_obj_files("FaceVerse")
 
         # Prepare Dataset Depth faceverse:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_faceverse')
-        output_dir = Path(root+'test_depth_faceverse')
-        PrepareDataset.prepare_dataset_depth(input_path, output_dir)
+        #input_path = Path('F:\\Face\\data\\tmp\\3D_faceverse')
+        #output_dir = Path(root+'test_depth_faceverse')
+        #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB faceverse:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_faceverse\\')
-        output_dir = Path(root+'test_rgb_faceverse')
-        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        #input_path = Path('F:\\Face\\data\\tmp\\3D_faceverse\\')
+        #output_dir = Path(root+'test_rgb_faceverse')
+        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth faceverse:
-        input_path = Path(root+'test_rgb_faceverse')
-        input_path2 = Path(root+'test_depth_faceverse')
-        output_dir = Path(root+'test_rgbd_faceverse')
-        PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
+        #input_path = Path(root+'test_rgb_faceverse')
+        #input_path2 = Path(root+'test_depth_faceverse')
+        #output_dir = Path(root+'test_rgbd_faceverse')
+        #PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
-    if nphm:
-        # Image Rendering nphm
-        directory_path = Path('H:\\Maurer\\nphm\\')
-        output_dir = Path('F:\\Face\\data\\tmp\\3D_nphm\\')
-        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        obj_reader.render_obj_files("nphm")
+        face_crop_full_frame(root+'test_rgb_faceverse/train', root+'test_rgb_faceverse/train_crop', face_detect_model_root)
+        face_crop_full_frame(root+'test_rgb_faceverse/validation', root+'test_rgb_faceverse/validation_crop', face_detect_model_root)
+        calculate_face_landmarks_dataset(root+'test_rgb_faceverse/train_crop')
+        calculate_face_landmarks_dataset(root + 'test_rgb_faceverse/validation_crop')
+        calculate_face_correspondences_dataset(root+'test_rgb_faceverse/train_crop', keep=True, processes=2)
+        calculate_face_correspondences_dataset(root+'test_rgb_faceverse/validation_crop', keep=True, processes=2)
 
-        return 0 
-    
-        # Prepare Dataset Depth nphm:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_nphm')
-        output_dir = Path('F:\\Face\\data\\datasets4\\test_depth_nphm')
-        PrepareDataset.prepare_dataset_depth(input_path, output_dir)
+        exit()
 
-        # Prepare Dataset RGB nphm:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_nphm\\')
-        output_dir = Path('F:\\Face\\data\\datasets4\\test_rgb_nphm')
-        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
-
-        # Prepare Dataset RGB + Depth nphm:
-        input_path = Path('F:\\Face\\data\\datasets4\\test_rgb_nphm')
-        input_path2 = Path('F:\\Face\\data\\datasets4\\test_depth_nphm')
-        output_dir = Path('F:\\Face\\data\\datasets4\\test_rgbd_nphm')
-        PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
+    # if nphm:
+    #     # Image Rendering nphm
+    #     directory_path = Path('H:\\Maurer\\nphm\\')
+    #     output_dir = Path('F:\\Face\\data\\tmp\\3D_nphm\\')
+    #     obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+    #     obj_reader.render_obj_files("nphm")
+    #
+    #     # Prepare Dataset Depth nphm:
+    #     input_path = Path('F:\\Face\\data\\tmp\\3D_nphm')
+    #     output_dir = Path('F:\\Face\\data\\datasets4\\test_depth_nphm')
+    #     PrepareDataset.prepare_dataset_depth(input_path, output_dir)
+    #
+    #     # Prepare Dataset RGB nphm:
+    #     input_path = Path('F:\\Face\\data\\tmp\\3D_nphm\\')
+    #     output_dir = Path('F:\\Face\\data\\datasets4\\test_rgb_nphm')
+    #     PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+    #
+    #     # Prepare Dataset RGB + Depth nphm:
+    #     input_path = Path('F:\\Face\\data\\datasets4\\test_rgb_nphm')
+    #     input_path2 = Path('F:\\Face\\data\\datasets4\\test_depth_nphm')
+    #     output_dir = Path('F:\\Face\\data\\datasets4\\test_rgbd_nphm')
+    #     PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
     # Texas
     if texas:
@@ -192,48 +216,7 @@ def main():
 
     if ffhq:
         directory_paths = [
-            Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\00000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\24000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\25000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\26000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\27000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\33000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\34000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\35000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\36000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\37000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\38000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\39000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\40000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\41000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\42000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\43000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\44000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\45000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\46000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\47000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\48000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\49000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\50000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\51000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\52000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\53000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\54000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\55000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\56000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\57000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\58000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\59000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\60000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\61000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\62000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\63000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\64000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\65000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\66000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\67000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\68000'),
-            #Path('H:\\Maurer\\ffhq-dataset\\images1024x1024\\69000'),
+            Path('ffhq-dataset\\images1024x1024\\00000')
         ]
 
         # Output directory (common for all)

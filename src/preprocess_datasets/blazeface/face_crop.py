@@ -63,46 +63,8 @@ def plot_detections(img, detections, with_keypoints=True):
 
     plt.show()
 
-def better_face_crop_old(input_folder, output_folder, model):
 
-    face_detector = SCRFD(model_path=model)
-    print("Face Detection model weights loaded.")
-
-    os.makedirs(output_folder, exist_ok=True)
-
-    class_names = os.listdir(input_folder)
-    for class_name in tqdm(class_names, desc="Processing Classes"):
-        class_path = os.path.join(input_folder, class_name)
-        target_class_path = os.path.join(output_folder, class_name)
-        #if os.path.isdir(target_class_path):
-        #    continue
-        #else:
-        os.makedirs(target_class_path, exist_ok=True)
-
-        for filename in os.listdir(class_path):
-            if filename.endswith((".jpg", ".png", ".jpeg")):
-                image = cv2.imread(os.path.join(class_path, filename), cv2.COLOR_BGR2RGB)
-
-                bboxes = face_detector.detect(image)
-                print(bboxes)
-                if len(bboxes) != 1:
-                    print("Error")
-                    print(bboxes)
-                for i, bbox in enumerate(bboxes):
-                    x_min, y_min, x_max, y_max = map(int, bbox[:4])
-                    x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max,factor=0.1)
-
-                    face_crop = image[y_min:y_max, x_min:x_max]
-                    face_crop_resized = cv2.resize(face_crop, (112, 112))
-
-                    face_crop_path = os.path.join(target_class_path, filename)
-                    cv2.imwrite(str(face_crop_path), face_crop_resized)
-                    print(f"Saved cropped face to {face_crop_path}")
-
-        break
-
-
-def better_face_crop(input_folder, output_folder, model_root):
+def better_face_crop_voxceleb(input_folder, output_folder, model_root):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     back_net = BlazeFace(back_model=True).to(device)
@@ -187,7 +149,7 @@ def face_crop_full_frame(input_folder, output_folder, model_root):
     back_net.load_weights(os.path.join(model_root, "blazefaceback.pth"))
     back_net.load_anchors(os.path.join(model_root, "anchorsback.npy"))
 
-    back_net.min_score_thresh = 0.6
+    back_net.min_score_thresh = 0.45
     back_net.min_suppression_threshold = 0.3
 
     os.makedirs(output_folder, exist_ok=True)
@@ -220,6 +182,7 @@ def face_crop_full_frame(input_folder, output_folder, model_root):
 
                 if detections.shape[0] == 0:
                     missing_faces += 1
+                    print("Missing face:", face_crop_path)
                     continue
                 elif detections.shape[0] > 1:
                     more_faces += 1
@@ -260,4 +223,4 @@ if __name__ == '__main__':
     dataset_output_folder_crop = "E:\\Download\\vox2test_out_crop"
     face_detect_model = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\det_10g.onnx"
 
-    better_face_crop(dataset_folder, dataset_output_folder_crop, face_detect_model)
+    better_face_crop_voxceleb(dataset_folder, dataset_output_folder_crop, face_detect_model)
