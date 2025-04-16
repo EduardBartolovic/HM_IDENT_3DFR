@@ -18,7 +18,7 @@ if __name__ == '__main__':
     dataset_output_folder = "C:\\Users\\Eduard\\Downloads\\nersemble_out"
     dataset_output_folder_crop = "C:\\Users\\Eduard\\Downloads\\nersemble_out_crop"
     face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
-    output_test_dataset = "C:\\Users\\Eduard\\Downloads\\nersemble\\sequence_EXP-1-head_part-1-out-test"
+    output_test_dataset = "C:\\Users\\Eduard\\Downloads\\nersemble\\test_nersemble"
     batch_size = 128
     device = torch.device("cuda")
 
@@ -74,5 +74,5 @@ if __name__ == '__main__':
     print("###########GEN TEST DATASET############")
     print("for:", dataset_output_folder_crop, "to:", output_test_dataset)
     print("##################################")
-    create_train_test_split(dataset_output_folder_crop, output_test_dataset)
+    create_train_test_split(dataset_output_folder_crop, output_test_dataset, ignore_face_corr=False)
     print("######face_correspondences########")

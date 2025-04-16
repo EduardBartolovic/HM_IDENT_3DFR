@@ -5,6 +5,26 @@ import shutil
 
 from tqdm import tqdm
 
+def sanity_check(folder_path, views):
+    """
+       Checks if the number of files in the given folder is a multiple of `multiple_of`.
+
+       Args:
+           folder_path (str): Path to the folder.
+           views (int): The number to check multiplicity against.
+
+       Returns:
+           bool: True if file count is a multiple of `multiple_of`, False otherwise.
+       """
+    try:
+        # List all files (ignoring directories)
+        files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+        file_count = len(files)
+        print(f"Found {file_count} files in '{folder_path}'.")
+        return file_count % views == 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
 
 def create_train_test_split(input_folder, output_folder, filter_strings=None, poses=25, ignore_face_corr=True):
     """
@@ -13,6 +33,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
     in their name are included.
 
     Args:
+        ignore_face_corr:
         input_folder (str): Path to the folder containing the class subfolders with images.
         output_folder (str): Path to the output folder where train and test folders will be created.
         filter_strings (list): List of strings; only files containing one of these strings in their name are included.
@@ -81,7 +102,8 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
 
     elapsed_time = time.time() - start_time
     print(f"Train-test split created in {output_folder}. {ignored} groups in {counter} files in", round(elapsed_time/60, 2), "minutes")
-
+    sanity_check(output_folder, views=poses)
+    print("Sanity Check completed successfully")
 
 if __name__ == '__main__':
     input_dir = "E:\\Download\\test_out"  # input folder path
