@@ -20,7 +20,7 @@ from src.util.misc import colorstr
 
 
 @torch.no_grad()
-def get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr: bool, disable_bar=False):
+def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr: bool, disable_bar=False):
     """
     Calculate Embeddings
     """
@@ -80,7 +80,7 @@ def load_data(data_dir, max_batch_size: int) -> (torchvision.datasets.ImageFolde
     return dataset, data_loader
 
 
-def load_data_mvs(data_dir, max_batch_size: int, transform, use_face_corr: bool) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
+def load_data_mv(data_dir, max_batch_size: int, transform, use_face_corr: bool) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
     """
      Load Dataset and sets that batch size so that large batch is always greater then 1
     Args:
@@ -100,23 +100,23 @@ def load_data_mvs(data_dir, max_batch_size: int, transform, use_face_corr: bool)
     return dataset, data_loader
 
 
-def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, use_face_corr: bool, disable_bar: bool):
+def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, use_face_corr: bool, disable_bar: bool):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
     dataset_enrolled_path = os.path.join(test_path, 'train')
     dataset_query_path = os.path.join(test_path, 'validation')
-    dataset_enrolled, enrolled_loader = load_data_mvs(dataset_enrolled_path, batch_size, test_transform, use_face_corr)
-    dataset_query, query_loader = load_data_mvs(dataset_query_path, batch_size, test_transform, use_face_corr)
+    dataset_enrolled, enrolled_loader = load_data_mv(dataset_enrolled_path, batch_size, test_transform, use_face_corr)
+    dataset_query, query_loader = load_data_mv(dataset_query_path, batch_size, test_transform, use_face_corr)
 
     time.sleep(0.1)
 
-    embedding_library = get_embeddings_mvs(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr, disable_bar)
+    embedding_library = get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr, disable_bar)
 
     enrolled_label = embedding_library.enrolled_labels
     query_label = embedding_library.query_labels
 
-    # MVS evaluation
+    # Multi View evaluation
     similarity_matrix = calculate_embedding_similarity(embedding_library.query_embeddings_agg, embedding_library.enrolled_embeddings_agg, chunk_size=batch_size, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
@@ -132,7 +132,7 @@ def evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, test_path, tes
     return result_metrics, metrics_front, metrics_concat, embedding_library, dataset_enrolled, dataset_query
 
 
-def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, use_face_corr: bool, disable_bar: bool):
+def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, use_face_corr: bool, disable_bar: bool):
 
     test_transform = transforms.Compose([
         transforms.Resize(test_transform_sizes),
@@ -142,12 +142,12 @@ def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_r
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {test_transform_sizes} and face_corr: {use_face_corr}"))
-    metrics, metrics_front, metrics_concat, embedding_library, dataset_enrolled, dataset_query = evaluate_mvs(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, use_face_corr, disable_bar)
+    metrics, metrics_front, metrics_concat, embedding_library, dataset_enrolled, dataset_query = evaluate_mv(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, use_face_corr, disable_bar)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
-    mlflow.log_metric(f'{neutral_dataset}_MVS-RR1', metrics['Rank-1 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_MVS-RR5', metrics['Rank-5 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_MV-RR1', metrics['Rank-1 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_MV-RR5', metrics['Rank-5 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_Front-RR1', metrics_front['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_Front-RR5', metrics_front['Rank-5 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_Concat-RR1', metrics_concat['Rank-1 Rate'], step=epoch)
@@ -168,6 +168,6 @@ def evaluate_and_log_mvs(device, backbone_reg, backbone_agg, aggregators, data_r
         f"{neutral_dataset}: C{len(dataset_enrolled.classes)} E{len(dataset_enrolled)} Q{len(dataset_query)} ; Evaluation: "
         f"Front-RR1: {rank_1_front} Front-RR5: {rank_5_front} "
         f"Concat-RR1: {rank_1_concat} Concat-RR5: {rank_5_concat} "
-        f"MVS-RR1: {rank_1} MVS-RR5: {rank_5} "
+        f"MV-RR1: {rank_1} MV-RR5: {rank_5} "
     ))
 
