@@ -13,7 +13,7 @@ from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
 from src.backbone.model_multiview_irse import IR_MV_50, execute_model
 from src.util.Plotter import plot_weight_evolution
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
-from src.util.eval_model_multiview import evaluate_and_log_mvs
+from src.util.eval_model_multiview import evaluate_and_log_mv
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
@@ -225,11 +225,11 @@ if __name__ == '__main__':
             #    weights_log[i].append(agg.weights.detach().cpu().numpy().copy())
 
             #  ======= perform validation =======
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bellus, epoch, (150, 150), BATCH_SIZE * 4, False, disable_bar=True)
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff_fc, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_bff, epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2testlc01", epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=True)
-            #evaluate_and_log_mvs(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test_vox2train, epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus", epoch, (150, 150), BATCH_SIZE * 4, False, disable_bar=True)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_bfflc01", epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemblelc01", epoch, (112, 112),BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2testlc01", epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=True)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2trainlc01", epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             print("=" * 60)
 
             BACKBONE_reg.eval()
