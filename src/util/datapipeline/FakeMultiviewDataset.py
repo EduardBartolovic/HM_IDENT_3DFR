@@ -69,12 +69,12 @@ class FakeMultiviewDataset(Dataset):
 
         if self.augmentation_type == 'rotation':
             # Apply fixed rotation based on the augmentation factor (e.g., factor * 30 degrees)
-            angle = factor * 30  # Maximum rotation will be 30 degrees
+            angle = factor * 10  # Maximum rotation will be 30 degrees
             img = img.rotate(angle, resample=Image.BICUBIC)
 
         elif self.augmentation_type == 'shift':
             # Apply fixed shift (translation) based on the augmentation factor
-            max_shift = int(0.1 * img.width)  # Shift up to 10% of image width/height
+            max_shift = int(0.05 * img.width)  # Shift up to 10% of image width/height
             shift_x = int(factor * max_shift)
             shift_y = int(factor * max_shift)
 
@@ -93,7 +93,7 @@ class FakeMultiviewDataset(Dataset):
 
         elif self.augmentation_type == 'cutout':
             width, height = img.size  # 💡 define width and height here
-            cutout_ratio = factor * 0.3  # up to 30% of image size
+            cutout_ratio = factor * 0.2  # up to 30% of image size
             cutout_size = int(cutout_ratio * min(width, height))
 
             # Choose cutout center based on factor (for deterministic placement)
