@@ -60,7 +60,7 @@ class FakeMultiviewDataset(Dataset):
 
         return data
 
-    def _apply_fixed_augmentations(self, img, idx):
+    def _apply_fixed_augmentation(self, img, idx):
         """
         Apply deterministic augmentations like brightness change based on index.
         """
@@ -78,21 +78,24 @@ class FakeMultiviewDataset(Dataset):
         # Load the front-view image
         img = Image.open(img_path).convert("RGB")
 
-        # Prepare augmented views
-        images = []
-        for i in range(self.num_views):
-            aug_img = self._apply_fixed_augmentations(img, i)
+        # 1. Base image (unaltered)
+        images = [self.transform(img) if self.transform else img]
+
+        # 2. Augmented images
+        for i in range(self.num_views - 1):
+            aug_img = self._apply_fixed_augmentation(img, i)
             if self.transform:
                 aug_img = self.transform(aug_img)
             images.append(aug_img)
 
-        # Duplicate face correspondence if available
+        # 3. Face correspondence
         if self.face_cor_exist:
             face_corr = np.load(img_path.replace("_image.jpg", "_corr.npz"))['corr']
             face_corr_tensor = torch.Tensor(np.stack([face_corr] * self.num_views))
         else:
             face_corr_tensor = torch.Tensor([])
 
-        perspectives = ["0_0"] * self.num_views
+        # 4. Perspective labels
+        perspectives = ["0_0"] + [f"0_{i+1}" for i in range(self.num_views - 1)]
 
         return images, class_idx, perspectives, face_corr_tensor
