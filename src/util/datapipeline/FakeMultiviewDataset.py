@@ -1,18 +1,18 @@
 import os
-import re
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageOps
 
 
 class FakeMultiviewDataset(Dataset):
-    def __init__(self, root_dir, num_views, transform=None, use_face_corr=True):
+    def __init__(self, root_dir, num_views, augmentation_type='rotation', transform=None, use_face_corr=True):
         """
         Args:
             root_dir (string): Path to the root directory of the dataset.
             num_views (int): Number of views (augmentations of front view) to return.
+            augmentation_type (string): Type of augmentation ('rotation', 'shift', or 'brightness').
             transform (callable, optional): Optional transform to be applied on a sample.
         """
         self.root_dir = root_dir
@@ -24,7 +24,8 @@ class FakeMultiviewDataset(Dataset):
         self.data = self._load_data()
         self.classes = self._find_classes()
 
-        # Define consistent brightness factors (or any other parameter)
+        # Define consistent augmentation factors
+        self.augmentation_type = augmentation_type
         self.augmentation_factors = self._generate_factors(0.7, 1.3, self.num_views)
 
     def _get_class_to_idx(self):
@@ -60,13 +61,29 @@ class FakeMultiviewDataset(Dataset):
 
         return data
 
-    def _apply_fixed_augmentation(self, img, idx):
+    def _apply_augmentation(self, img, idx):
         """
-        Apply deterministic augmentations like brightness change based on index.
+        Apply specified augmentations: rotation, shifting, or brightness based on the input parameter.
         """
         factor = self.augmentation_factors[idx]
-        enhancer = ImageEnhance.Brightness(img)
-        img = enhancer.enhance(factor)
+
+        if self.augmentation_type == 'rotation':
+            # Apply fixed rotation based on the augmentation factor (e.g., factor * 30 degrees)
+            angle = factor * 30  # Maximum rotation will be 30 degrees
+            img = img.rotate(angle, resample=Image.BICUBIC)
+
+        elif self.augmentation_type == 'shift':
+            # Apply fixed shift (translation) based on the augmentation factor
+            max_shift = int(0.1 * img.width)  # Shift up to 10% of image width/height
+            shift_x = int(factor * max_shift)
+            shift_y = int(factor * max_shift)
+            img = ImageOps.offset(img, shift_x, shift_y)
+
+        elif self.augmentation_type == 'brightness':
+            # Apply deterministic brightness change based on index (as before)
+            enhancer = ImageEnhance.Brightness(img)
+            img = enhancer.enhance(factor)
+
         return img
 
     def __len__(self):
