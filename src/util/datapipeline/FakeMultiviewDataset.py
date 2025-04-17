@@ -96,6 +96,6 @@ class FakeMultiviewDataset(Dataset):
             face_corr_tensor = torch.Tensor([])
 
         # 4. Perspective labels
-        perspectives = ["0_0"] + [f"0_{i+1}" for i in range(self.num_views - 1)]
+        perspectives = [f"0_{i}" for i in range(self.num_views)]
 
         return images, class_idx, perspectives, face_corr_tensor
