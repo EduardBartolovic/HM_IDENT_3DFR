@@ -77,7 +77,14 @@ class FakeMultiviewDataset(Dataset):
             max_shift = int(0.1 * img.width)  # Shift up to 10% of image width/height
             shift_x = int(factor * max_shift)
             shift_y = int(factor * max_shift)
-            img = ImageOps.offset(img, shift_x, shift_y)
+
+            # Create an affine matrix for shifting
+            img = img.transform(
+                img.size,
+                Image.AFFINE,
+                (1, 0, shift_x, 0, 1, shift_y),
+                resample=Image.BICUBIC
+            )
 
         elif self.augmentation_type == 'brightness':
             # Apply deterministic brightness change based on index (as before)
