@@ -7,7 +7,7 @@ from PIL import Image, ImageEnhance, ImageOps
 
 
 class FakeMultiviewDataset(Dataset):
-    def __init__(self, root_dir, num_views, augmentation_type='rotation', transform=None, use_face_corr=True):
+    def __init__(self, root_dir, num_views, augmentation_type='cutout', transform=None, use_face_corr=True):
         """
         Args:
             root_dir (string): Path to the root directory of the dataset.
