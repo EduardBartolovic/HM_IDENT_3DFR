@@ -91,6 +91,24 @@ class FakeMultiviewDataset(Dataset):
             enhancer = ImageEnhance.Brightness(img)
             img = enhancer.enhance(factor)
 
+        elif self.augmentation_type == 'cutout':
+            width, height = img.size  # 💡 define width and height here
+            cutout_ratio = factor * 0.3  # up to 30% of image size
+            cutout_size = int(cutout_ratio * min(width, height))
+
+            # Choose cutout center based on factor (for deterministic placement)
+            center_x = int(width * (0.2 + 0.6 * factor))  # between 20% and 80%
+            center_y = int(height * (0.2 + 0.6 * factor))
+
+            x0 = max(center_x - cutout_size // 2, 0)
+            y0 = max(center_y - cutout_size // 2, 0)
+            x1 = min(center_x + cutout_size // 2, width)
+            y1 = min(center_y + cutout_size // 2, height)
+
+            img = img.copy()
+            draw = ImageDraw.Draw(img)
+            draw.rectangle([x0, y0, x1, y1], fill=(0, 0, 0))
+
         return img
 
     def __len__(self):
