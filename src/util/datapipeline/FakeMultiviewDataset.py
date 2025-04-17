@@ -47,7 +47,7 @@ class FakeMultiviewDataset(Dataset):
             if os.path.isdir(class_path):
                 class_idx = self.class_to_idx[class_name]
                 for filename in os.listdir(class_path):
-                    if filename.endswith((".jpg", ".png", ".jpeg", ".webp")) and "0_0" in filename:
+                    if filename.endswith((".jpg", ".png", ".jpeg", ".webp")) and "0_0" == filename[40:-10]:
                         file_path = os.path.join(class_path, filename)
                         if os.path.isfile(file_path):
                             data.append((file_path, class_idx))
