@@ -100,7 +100,7 @@ class FakeMultiviewDataset(Dataset):
 
         # 2. Augmented images
         for i in range(self.num_views - 1):
-            aug_img = self._apply_fixed_augmentation(img, i)
+            aug_img = self._apply_augmentation(img, i)
             if self.transform:
                 aug_img = self.transform(aug_img)
             images.append(aug_img)
