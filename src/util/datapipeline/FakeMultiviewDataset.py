@@ -109,6 +109,25 @@ class FakeMultiviewDataset(Dataset):
             draw = ImageDraw.Draw(img)
             draw.rectangle([x0, y0, x1, y1], fill=(0, 0, 0))
 
+        elif self.augmentation_type == 'color':
+            # Slight hue and saturation variation using factor
+            img = img.convert("RGB")
+            hsv_img = img.convert('HSV')
+            hsv_np = np.array(hsv_img, dtype=np.uint8)
+
+            h, s, v = hsv_np[..., 0], hsv_np[..., 1], hsv_np[..., 2]
+
+            # Slightly change hue and saturation (within small bounds)
+            hue_shift = int((factor - 1.0) * 3)  # degrees shift max
+            sat_scale = 1.0 + (factor - 1.0) * 0.2  # ±20% max change
+
+            h = (h.astype(int) + hue_shift) % 256
+            s = np.clip(s.astype(float) * sat_scale, 0, 255).astype(np.uint8)
+
+            hsv_np[..., 0], hsv_np[..., 1] = h.astype(np.uint8), s
+
+            img = Image.fromarray(hsv_np, 'HSV').convert('RGB')
+
         return img
 
     def __len__(self):
