@@ -222,7 +222,7 @@ if __name__ == '__main__':
                 schedule_lr(OPTIMIZER)
 
             #for i, agg in enumerate(aggregators):
-            #    weights_log[i].append(agg.weights.detach().cpu().numpy().copy())
+            #    weights_log[i].append(agg.get_weights())
 
             #  ======= perform validation =======
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus", epoch, (150, 150), BATCH_SIZE * 4, False, disable_bar=True)

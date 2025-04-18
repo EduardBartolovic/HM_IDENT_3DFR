@@ -34,6 +34,9 @@ class WeightedSumAggregator(nn.Module):
 
         return views_pooled_stage
 
+    def get_weights(self):
+        return self.weights.detach().cpu().numpy().copy()
+
 
 def make_weighted_sum_aggregator(view_list):
     aggregators = []
