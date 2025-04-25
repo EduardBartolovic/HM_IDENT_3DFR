@@ -36,7 +36,7 @@ def generate_voxceleb_dataset_from_video_nersemble(input_folder, output_folder, 
 
     counter = 0
     for id_folder in tqdm(os.listdir(input_folder), desc="Iterating over ids"):
-        for exp_folder in os.listdir(os.path.join(input_folder, id_folder)):
+        for exp_folder in os.listdir(os.path.join(input_folder, id_folder, "sequences")):
             video_folder_path = os.path.join(input_folder, id_folder, "sequences", exp_folder)
             txts = []
             for root, _, files in os.walk(video_folder_path):
