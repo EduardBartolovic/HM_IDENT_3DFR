@@ -1,6 +1,7 @@
 import csv
 import itertools
 import os
+import random
 import time
 
 import numpy as np
@@ -13,8 +14,12 @@ def match_hpe_angles_to_references(data, references, ignore_roll=False):
             distances = np.linalg.norm(np.array(data[:, :2], dtype=int) - reference[:2], axis=1)
         else:
             distances = np.linalg.norm(np.array(data[:, :3], dtype=int) - reference[:3], axis=1)
-        closest_index = np.argmin(distances)
-        closest_rows.append((reference, data[closest_index], int(distances[closest_index])))
+
+        min_distance = np.min(distances)
+        min_indices = np.where(distances == min_distance)[0]
+        closest_index = random.choice(min_indices)
+
+        closest_rows.append((reference, data[closest_index], int(min_distance)))
         assert closest_index < len(data)
 
     # print("####")
