@@ -13,7 +13,7 @@ from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 def main():
 
-    bellus = True
+    bellus = False
     facescape = True
     faceverse = True
     texas = False

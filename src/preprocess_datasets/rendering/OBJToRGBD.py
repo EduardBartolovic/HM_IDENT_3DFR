@@ -1,3 +1,5 @@
+import time
+
 import os
 from tqdm import tqdm
 from pathlib import Path
@@ -73,26 +75,28 @@ class ObjFileRenderer:
                     headscans_paths.append(headscans)
 
         print('Collected:', len(headscans_paths), 'headscans')
+        time.sleep(0.5)
         return headscans_paths
 
     def collect_obj_files_facescape(self):
 
         excluded_paths = {
-            r"148\models_reg\13_lip_funneler.obj",
-            r"148\models_reg\14_sadness.obj",
-            r"148\models_reg\15_lip_roll.obj",
-            r"148\models_reg\16_grin.obj",
-            r"148\models_reg\17_cheek_blowing.obj",
-            r"148\models_reg\18_lip_roll.obj",
-            r"148\models_reg\20_brow_lower.obj",
-            r"169\models_reg\10_dimpler.obj",
-            r"169\models_reg\16_grin.obj",
-            r"210\models_reg\2_smile.obj",
-            r"323\models_reg\11_chin_raiser.obj",
-            # r"433\models_reg\12_lip_puckerer.obj",
-            r"452\models_reg\18_eye_closed.obj",
-            r"488\models_reg\8_mouth_left.obj",
-            # r"501\models_reg\10_dimpler.obj",
+            "1.1.2020\\148\\models_reg\\13_lip_funneler.obj",
+            "1.1.2020\\148\\models_reg\\14_sadness.obj",
+            "1.1.2020\\148\\models_reg\\15_lip_roll.obj",
+            "1.1.2020\\148\\models_reg\\16_grin.obj",
+            "1.1.2020\\148\\models_reg\\17_cheek_blowing.obj",
+            "1.1.2020\\148\\models_reg\\18_eye_closed.obj",
+            "1.1.2020\\148\\models_reg\\19_brow_raiser.obj",
+            "1.1.2020\\148\\models_reg\\20_brow_lower.obj",
+            "1.1.2020\\169\\models_reg\\10_dimpler.obj",
+            "1.1.2020\\169\\models_reg\\16_grin.obj",
+            "1.1.2020\\210\\models_reg\\2_smile.obj",
+            "1.1.2020\\323\\models_reg\\11_chin_raiser.obj",
+            # "1.1.2020\\433\\models_reg\\12_lip_puckerer.obj",
+            "1.1.2020\\452\\models_reg\\18_eye_closed.obj",
+            "1.1.2020\\488\\models_reg\\8_mouth_left.obj",
+            # "1.1.2020\\501\\models_reg\\10_dimpler.obj",
         }
 
         headscans_paths = []
@@ -103,7 +107,7 @@ class ObjFileRenderer:
 
                     rel_path = os.path.relpath(obj_file_path, self.root_directory)
 
-                    if rel_path.replace('/', '\\') in excluded_paths:
+                    if rel_path in excluded_paths:
                         continue
 
                     splited_path = Path(obj_file_path).parts
