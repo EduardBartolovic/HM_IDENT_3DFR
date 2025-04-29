@@ -5,6 +5,9 @@ from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences i
     calculate_face_correspondences_dataset
 from src.preprocess_datasets.rendering import PrepareDataset
 from src.preprocess_datasets.rendering.Extract2DFaces import Extract2DFaces
+from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
+
+
 #from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 
@@ -32,16 +35,17 @@ def main():
         print("################# BELLUS #################")
 
         # Image Rendering
-        #directory_path = Path('H:\\Maurer\\Bellus\\')
-        #output_dir = Path('F:\\Face\\data\\tmp\\3D_bellus\\')
-        #obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        #obj_reader.render_obj_files("Bellus")
+        directory_path = Path(r'H:\\Maurer\\Bellus')
+        output_dir = Path(r"F:\Face\data\tmp\3D_bellus")
+        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+        obj_reader.render_obj_files("Bellus")
 
         # Photos for 2D
         #directory_path = Path('H:\\Maurer\\Bellus\\')
         #output_dir = Path('F:\\Face\\data\\tmp\\2D_Bellus\\')
         ##obj_reader = Extract2DFaces(directory_path, output_dir)
         #obj_reader.extract_photos()
+
         # Prepare Dataset Depth:
         #input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus')
         #output_dir = Path(root+'test_depth_bellus')
@@ -73,11 +77,12 @@ def main():
     # -------- FACESCAPE --------
     if facescape:
         print("################# FACESCAPE #################")
+
         # Image Rendering
-        #directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
-        #output_dir = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
-        #obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        #obj_reader.render_obj_files('facescape')
+        directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
+        output_dir = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
+        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+        obj_reader.render_obj_files('facescape')
 
         # Prepare Dataset Depth:
         #input_path = Path('F:\\Face\\data\\tmp\\3D_facescape')

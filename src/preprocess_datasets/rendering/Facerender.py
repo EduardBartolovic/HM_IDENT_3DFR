@@ -9,16 +9,16 @@ from tqdm import tqdm
 
 
 class DepthCaptureCallback:
-    def __init__(self):
+    def __init__(self, vis):
+        self.vis = vis
         self.depth = None
         self.image = None
 
-    def __call__(self, vis):
-        # Capture depth and image
-        self.depth = np.asarray(vis.capture_depth_float_buffer())
-        self.image = np.asarray(vis.capture_screen_float_buffer())
-        vis.destroy_window()
-        return False
+    def capture(self):
+        self.vis.poll_events()
+        self.vis.update_renderer()
+        self.depth = np.asarray(self.vis.capture_depth_float_buffer())
+        self.image = np.asarray(self.vis.capture_screen_float_buffer())
 
     def get_depth_image(self):
         return self.depth, self.image
@@ -32,7 +32,6 @@ def read_mesh(path, texture):
     new_mesh.triangle_uvs = mesh.triangle_uvs
     new_mesh.triangle_material_ids = mesh.triangle_material_ids
     new_mesh.vertex_colors = mesh.vertex_colors
-    # new_mesh.compute_vertex_normals()
 
     if texture is None:
         try:
@@ -60,17 +59,16 @@ def render_rgbd(model, rotation_matrix):
 
     # Create a visualization window
     vis = o3d.visualization.Visualizer()
-    vis.create_window()
+    vis.create_window(width=int(1920), height=int(1080))
 
     vis.add_geometry(model)
 
-    # Get the view control
     view_ctl = vis.get_view_control()
     ZOOM_FACTOR = 2
     view_ctl.set_zoom(ZOOM_FACTOR)
 
-    callback = DepthCaptureCallback()
-    o3d.visualization.draw_geometries_with_animation_callback([model], callback)
+    callback = DepthCaptureCallback(vis)
+    callback.capture()
     depth, image = callback.get_depth_image()
 
     return depth, image
@@ -200,5 +198,15 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None):
 
         depth, image = postprocess_renderer_image(depth, image)
 
-        plt.imsave(targetfile_depth, np.asarray(depth), dpi=1, cmap='gray')
-        plt.imsave(targetfile_image, np.asarray(image), dpi=1)
+        try:
+            plt.imsave(targetfile_depth, np.asarray(depth), dpi=1, cmap='gray')
+            plt.imsave(targetfile_image, np.asarray(image), dpi=1)
+        except KeyboardInterrupt:
+            print(f"\nInterrupted while saving image at {path}. Attempting to finish saving and exit cleanly.")
+            try:
+                # Try final save attempt before quitting
+                plt.imsave(targetfile_depth, np.asarray(depth), dpi=1, cmap='gray')
+                plt.imsave(targetfile_image, np.asarray(image), dpi=1)
+            except Exception as save_err:
+                print(f"Failed to save images due to: {save_err}")
+            raise  # Re-raise to exit the loop cleanly

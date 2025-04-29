@@ -76,11 +76,36 @@ class ObjFileRenderer:
         return headscans_paths
 
     def collect_obj_files_facescape(self):
+
+        excluded_paths = {
+            r"148\models_reg\13_lip_funneler.obj",
+            r"148\models_reg\14_sadness.obj",
+            r"148\models_reg\15_lip_roll.obj",
+            r"148\models_reg\16_grin.obj",
+            r"148\models_reg\17_cheek_blowing.obj",
+            r"148\models_reg\18_lip_roll.obj",
+            r"148\models_reg\20_brow_lower.obj",
+            r"169\models_reg\10_dimpler.obj",
+            r"169\models_reg\16_grin.obj",
+            r"210\models_reg\2_smile.obj",
+            r"323\models_reg\11_chin_raiser.obj",
+            # r"433\models_reg\12_lip_puckerer.obj",
+            r"452\models_reg\18_eye_closed.obj",
+            r"488\models_reg\8_mouth_left.obj",
+            # r"501\models_reg\10_dimpler.obj",
+        }
+
         headscans_paths = []
         for root, _, files in os.walk(self.root_directory):
             for file in files:
                 if file.endswith('.obj'):
                     obj_file_path = os.path.join(root, file)
+
+                    rel_path = os.path.relpath(obj_file_path, self.root_directory)
+
+                    if rel_path.replace('/', '\\') in excluded_paths:
+                        continue
+
                     splited_path = Path(obj_file_path).parts
                     headscans = {'date': splited_path[-4],
                                  'user': splited_path[-3],
