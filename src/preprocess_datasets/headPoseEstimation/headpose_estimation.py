@@ -14,7 +14,6 @@ from src.preprocess_datasets.headPoseEstimation.utils.general import draw_axis, 
 
 
 def pre_process(image):
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize((224, 224)),
@@ -165,6 +164,7 @@ def get_frames(video_path, frame_skip=1):
         if not ret:
             break
         if counter % frame_skip == 0:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame_list.append(frame)
         counter += 1
 

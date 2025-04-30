@@ -127,19 +127,24 @@ def better_face_crop_voxceleb(input_folder, output_folder, model_root):
 
 def resize_with_padding(image, target_size=(256, 256), pad_color=(0, 0, 0)):
     h, w = image.shape[:2]
-    scale = min(target_size[0] / h, target_size[1] / w)
-    new_w, new_h = int(w * scale), int(h * scale)
-    resized = cv2.resize(image, (new_w, new_h), cv2.INTER_AREA)
 
-    pad_w = target_size[1] - new_w
-    pad_h = target_size[0] - new_h
-    top = pad_h // 2
-    bottom = pad_h - top
-    left = pad_w // 2
-    right = pad_w - left
+    # Calculate padding to make the image square
+    if h > w:
+        pad = (h - w) // 2
+        left, right = pad, h - w - pad
+        top, bottom = 0, 0
+    else:
+        pad = (w - h) // 2
+        top, bottom = pad, w - h - pad
+        left, right = 0, 0
 
-    padded_image = cv2.copyMakeBorder(resized, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)
-    return padded_image, scale, left, top
+    # Add border to make image square
+    squared_image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)
+
+    # Resize the square image to target size
+    resized_image = cv2.resize(squared_image, target_size, interpolation=cv2.INTER_AREA)
+
+    return resized_image, (h, w), (top, bottom, left, right)
 
 
 def face_crop_full_frame(input_folder, output_folder, model_root):
