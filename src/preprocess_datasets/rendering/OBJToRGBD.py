@@ -75,7 +75,7 @@ class ObjFileRenderer:
                     headscans_paths.append(headscans)
 
         print('Collected:', len(headscans_paths), 'headscans')
-        time.sleep(0.5)
+        time.sleep(1)
         return headscans_paths
 
     def collect_obj_files_facescape(self):

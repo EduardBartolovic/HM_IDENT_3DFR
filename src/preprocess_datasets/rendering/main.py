@@ -13,7 +13,7 @@ from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 def main():
 
-    bellus = False
+    bellus = True
     facescape = True
     faceverse = True
     texas = False
@@ -25,7 +25,7 @@ def main():
     colorferet = False
     bff = True
 
-    root = 'F:\\Face\\data\\datasets8\\'
+    root = 'F:\\Face\\data\\datasets9\\'
 
     face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
     render_angles = [-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
@@ -52,9 +52,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB:
-        #input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus\\')
-        #output_dir = Path(root+'test_rgb_bellus')
-        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus\\')
+        output_dir = Path(root+'test_rgb_bellus')
+        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth:
         #input_path = Path(root+'test_rgb_bellus')
@@ -69,10 +69,10 @@ def main():
 
         face_crop_full_frame(root+'test_rgb_bellus/train', root+'test_rgb_bellus/train_crop', face_detect_model_root)
         face_crop_full_frame(root+'test_rgb_bellus/validation', root+'test_rgb_bellus/validation_crop', face_detect_model_root)
-        calculate_face_landmarks_dataset(root+'test_rgb_bellus/train_crop')
-        calculate_face_landmarks_dataset(root + 'test_rgb_bellus/validation_crop')
-        calculate_face_correspondences_dataset(root+'test_rgb_bellus/train_crop', keep=True, processes=2)
-        calculate_face_correspondences_dataset(root+'test_rgb_bellus/validation_crop', keep=True, processes=2)
+        #calculate_face_landmarks_dataset(root+'test_rgb_bellus/train_crop')
+        #calculate_face_landmarks_dataset(root + 'test_rgb_bellus/validation_crop')
+        #calculate_face_correspondences_dataset(root+'test_rgb_bellus/train_crop', keep=True, processes=2)
+        #calculate_face_correspondences_dataset(root+'test_rgb_bellus/validation_crop', keep=True, processes=2)
 
     # -------- FACESCAPE --------
     if facescape:
@@ -90,9 +90,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir, mode='facescape')
 
         # Prepare Dataset RGB:
-        #input_path = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
-        #output_dir = Path(root+'test_rgb_facescape')
-        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir, mode='facescape')
+        input_path = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
+        output_dir = Path(root+'test_rgb_facescape')
+        PrepareDataset.prepare_dataset_rgb(input_path, output_dir, mode='facescape')
 
         # Prepare Dataset RGB + Depth:
         #input_path = Path(root+'test_rgb_facescape')
@@ -102,10 +102,10 @@ def main():
 
         face_crop_full_frame(root+'test_rgb_facescape/train', root+'test_rgb_facescape/train_crop', face_detect_model_root)
         face_crop_full_frame(root+'test_rgb_facescape/validation', root+'test_rgb_facescape/validation_crop', face_detect_model_root)
-        calculate_face_landmarks_dataset(root+'test_rgb_facescape/train_crop')
-        calculate_face_landmarks_dataset(root + 'test_rgb_facescape/validation_crop')
-        calculate_face_correspondences_dataset(root+'test_rgb_facescape/train_crop', keep=True, processes=2)
-        calculate_face_correspondences_dataset(root+'test_rgb_facescape/validation_crop', keep=True, processes=2)
+        #calculate_face_landmarks_dataset(root+'test_rgb_facescape/train_crop')
+        #calculate_face_landmarks_dataset(root + 'test_rgb_facescape/validation_crop')
+        #calculate_face_correspondences_dataset(root+'test_rgb_facescape/train_crop', keep=True, processes=2)
+        #calculate_face_correspondences_dataset(root+'test_rgb_facescape/validation_crop', keep=True, processes=2)
 
     if faceverse:
         print("################# FACEVERSE #################")
@@ -121,9 +121,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB faceverse:
-        #input_path = Path('F:\\Face\\data\\tmp\\3D_faceverse\\')
-        #output_dir = Path(root+'test_rgb_faceverse')
-        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        input_path = Path('F:\\Face\\data\\tmp\\3D_faceverse\\')
+        output_dir = Path(root+'test_rgb_faceverse')
+        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth faceverse:
         #input_path = Path(root+'test_rgb_faceverse')
@@ -133,10 +133,10 @@ def main():
 
         face_crop_full_frame(root+'test_rgb_faceverse/train', root+'test_rgb_faceverse/train_crop', face_detect_model_root)
         face_crop_full_frame(root+'test_rgb_faceverse/validation', root+'test_rgb_faceverse/validation_crop', face_detect_model_root)
-        calculate_face_landmarks_dataset(root+'test_rgb_faceverse/train_crop')
-        calculate_face_landmarks_dataset(root + 'test_rgb_faceverse/validation_crop')
-        calculate_face_correspondences_dataset(root+'test_rgb_faceverse/train_crop', keep=True, processes=2)
-        calculate_face_correspondences_dataset(root+'test_rgb_faceverse/validation_crop', keep=True, processes=2)
+        #calculate_face_landmarks_dataset(root+'test_rgb_faceverse/train_crop')
+        #calculate_face_landmarks_dataset(root + 'test_rgb_faceverse/validation_crop')
+        #calculate_face_correspondences_dataset(root+'test_rgb_faceverse/train_crop', keep=True, processes=2)
+        #calculate_face_correspondences_dataset(root+'test_rgb_faceverse/validation_crop', keep=True, processes=2)
 
     # if nphm:
     #     # Image Rendering nphm

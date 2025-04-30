@@ -26,6 +26,7 @@ def sanity_check(folder_path, views):
         print(f"Error: {e}")
         return False
 
+
 def create_train_test_split(input_folder, output_folder, filter_strings=None, poses=25, ignore_face_corr=True):
     """
     Splits images into train and test sets, always using the first group in each class for training
@@ -88,6 +89,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
             continue
 
         # Use the first group for training and the rest for testing
+        # TODO: Change this: dont use first but use the "best" as reference
         for idx, (hash_prefix, file_paths) in enumerate(sorted_groups):
             if len(file_paths) != poses:
                 assert f"views {len(file_paths)} dont match required {poses} poses"
@@ -104,6 +106,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
     print(f"Train-test split created in {output_folder}. {ignored} groups in {counter} files in", round(elapsed_time/60, 2), "minutes")
     sanity_check(output_folder, views=poses)
     print("Sanity Check completed successfully")
+
 
 if __name__ == '__main__':
     input_dir = "E:\\Download\\test_out"  # input folder path

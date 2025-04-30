@@ -129,7 +129,7 @@ def resize_with_padding(image, target_size=(256, 256), pad_color=(0, 0, 0)):
     h, w = image.shape[:2]
     scale = min(target_size[0] / h, target_size[1] / w)
     new_w, new_h = int(w * scale), int(h * scale)
-    resized = cv2.resize(image, (new_w, new_h))
+    resized = cv2.resize(image, (new_w, new_h), cv2.INTER_AREA)
 
     pad_w = target_size[1] - new_w
     pad_h = target_size[0] - new_h
