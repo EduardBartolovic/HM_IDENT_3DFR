@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 import csv
 import itertools
 import os
@@ -79,85 +77,6 @@ def find_matches(input_folder, references, txt_name="analysis.txt"):
                             error = row[2]
                             all_errors.append(error)
                             writer.writerow(ref_angles + hpe_angles + [error] + [filename] + list(bbox))
-
-    elapsed_time = time.time() - start_time
-    avg_error = sum(all_errors) / len(all_errors)
-    print("Found matches for", counter, "files in", round(elapsed_time, 2), "seconds, Average angle error:", round(avg_error, 4))
-
-
-def find_all_analysis_files_grouped_by_scene(root_folder, txt_name="analysis.txt"):
-    scene_groups = defaultdict(list)
-    counter = 0
-    for root, _, files in os.walk(root_folder):
-        if "analysis" in root:
-            for file in files:
-                if file == txt_name:
-                    counter += 1
-                    full_path = os.path.join(root, file)
-                    parts = full_path.split(os.sep)
-                    try:
-                        scene_name = os.sep.join(parts[4:7])  # 'id/sequences/exp'
-                        scene_groups[scene_name].append(full_path)
-                    except:
-                        Exception("Could not extract scene from:", full_path)
-    return scene_groups, counter
-
-
-def find_best_multiview_matches(analysis_files, references, output_path):
-    all_errors = []
-    lines = []
-    for file_path in analysis_files:
-        with open(file_path) as file:
-
-            for line in file:
-                parts = line.strip().split(',')
-                if len(parts) != 8:
-                    raise Exception("Unexpected line format:", line, "in", file_path)
-                try:
-                    angles = list(map(float, parts[0:3]))
-                    filename_frame = parts[3]
-                    bbox = list(map(int, parts[4:8]))
-                except:
-                    raise Exception("Error in Conversion! at:", file_path)
-
-                lines.append(angles + [filename_frame] + bbox)
-
-    data = np.array(lines, dtype=object)
-    infos = match_hpe_angles_to_references(data, references)
-    assert len(infos) == len(references)
-
-    with open(output_path, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow([
-            "Ref_X", "Ref_Y", "Ref_Z",
-            "Hpe_X", "Hpe_Y", "Hpe_Z",
-            "Error",
-            "file_name",
-            "BBox_x_min", "BBox_y_min", "BBox_x_max", "BBox_y_max"
-        ])
-        for row in infos:
-            ref_angles = row[0].tolist()
-            hpe_angles = row[1][:3].tolist()
-            filename = row[1][3]
-            bbox = row[1][4:]
-            error = row[2]
-            all_errors.append(error)
-            writer.writerow(ref_angles + hpe_angles + [error] + [filename] + list(bbox))
-
-    return all_errors
-
-
-def find_matches_mv(input_folder, references, txt_name="analysis.txt"):
-    start_time = time.time()
-
-    scene_groups, counter = find_all_analysis_files_grouped_by_scene(input_folder, txt_name)
-    all_errors = []
-    for scene_name, files in scene_groups.items():
-        # print(f"Processing scene: {scene_name} with {len(files)} views...")
-        output_path = os.path.join(input_folder, scene_name, "analysis", "matched_angles.txt")
-        os.makedirs(os.path.join(input_folder, scene_name, "analysis"), exist_ok=True)
-        error = find_best_multiview_matches(files, references, output_path)
-        all_errors.extend(error)
 
     elapsed_time = time.time() - start_time
     avg_error = sum(all_errors) / len(all_errors)
