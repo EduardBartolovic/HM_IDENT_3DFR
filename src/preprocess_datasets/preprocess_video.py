@@ -69,13 +69,14 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
         if not video_frames:
             continue
 
-        for i in range(0, len(imgs), batch_size):
-            batch = [img for img in imgs[i:i + batch_size] if img is not None]
-            if batch:
+        for i in range(0, len(video_frames), batch_size):
+            img_batch = [img for img in video_frames[i:i + batch_size] if img is not None]
+            name_batch = [name for name in video_names[i:i + batch_size] if name is not None]
+            if img_batch:
 
                 # Blazeface
                 padded_batch = []
-                for image in batch:
+                for image in img_batch:
                     pad_size = 16  # Pad the image Since (256-224)/2 = 16
                     padded_image = cv2.copyMakeBorder(image, pad_size, pad_size, pad_size, pad_size, cv2.BORDER_CONSTANT, value=[0, 0, 0])
                     padded_batch.append(padded_image)
@@ -122,19 +123,25 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
                 # +++++++++++++++++++  HPE ++++++++++++++++++++
                 batch_infos = process_hpe_batch(cropped_batch, device, head_pose_model)
                 for j, info in enumerate(batch_infos):
-                    info.append(video + "#" + str(i + j))
+                    info.append(name_batch[j] + "#" + str(i + j))
                     frame_hpe.append(info)
-                    hpe_counter += 1
 
-        assert len(frame_hpe) == len(frame_dets)
-        if frame_dets:
-            with open(output_txt_path, 'w') as txt_file:
-                for info_hpe, info_dets in zip(frame_hpe, frame_dets):
-                    txt_file.write(','.join(map(str, info_hpe)) + "," + ','.join(map(str, info_dets)) + '\n')
-
-            #print(f"Processed: {root}")
-        else:
-            print(f"Processed {root} with no frames usable")
+            assert len(frame_hpe) == len(frame_dets)
+            if frame_dets:
+                try:
+                    with open(output_txt_path, 'w') as txt_file:
+                        for info_hpe, info_dets in zip(frame_hpe, frame_dets):
+                            txt_file.write(','.join(map(str, info_hpe)) + "," + ','.join(map(str, info_dets)) + '\n')
+                except KeyboardInterrupt:
+                    print(
+                        f"\nInterrupted while saving at {output_txt_path}. Attempting to finish saving and exit cleanly.")
+                    with open(output_txt_path, 'w') as txt_file:
+                        for info_hpe, info_dets in zip(frame_hpe, frame_dets):
+                            txt_file.write(','.join(map(str, info_hpe)) + "," + ','.join(map(str, info_dets)) + '\n')
+                    exit()
+                # print(f"Processed: {root}")
+            else:
+                print(f"Processed {root} with no frames usable")
 
     elapsed_time = time.time() - start_time
     print("Video Analysis for ", num_folders, " in", round(elapsed_time / 60, 2), "minutes, missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces+more_faces+found_one_face, ", too_small:", too_small, "hpe on", hpe_counter, "frames")
@@ -178,9 +185,6 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
         video_names = []
         for video in files:
             if ".mp4" in video:
-                if filter is not None:
-                    if filter not in video:
-                        continue
                 os.makedirs(output_analysis_folder, exist_ok=True)
                 imgs = get_frames(os.path.join(root, video), frame_skip=2)
 
@@ -195,13 +199,14 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
         if not video_frames:
             continue
 
-        for i in range(0, len(imgs), batch_size):
-            batch = [img for img in imgs[i:i + batch_size] if img is not None]
-            if batch:
+        for i in range(0, len(video_frames), batch_size):
+            img_batch = [img for img in video_frames[i:i + batch_size] if img is not None]
+            name_batch = [name for name in video_names[i:i + batch_size] if name is not None]
+            if img_batch:
 
                 # Blazeface
                 padded_batch = []
-                for image in batch:
+                for image in img_batch:
                     resized_image, _, _ = resize_with_padding(image)  # Resize for BlazeFace detection
                     padded_batch.append(resized_image)
 
@@ -246,15 +251,21 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
                 # +++++++++++++++++++  HPE ++++++++++++++++++++
                 batch_infos = process_hpe_batch(cropped_batch, device, head_pose_model)
                 for j, info in enumerate(batch_infos):
-                    info.append(video + "#" + str(i + j))
+                    info.append(name_batch[j] + "#" + str(i + j))
                     frame_hpe.append(info)
 
         assert len(frame_hpe) == len(frame_dets)
         if frame_dets:
-            with open(output_txt_path, 'w') as txt_file:
-                for info_hpe, info_dets in zip(frame_hpe, frame_dets):
-                    txt_file.write(','.join(map(str, info_hpe)) + "," + ','.join(map(str, info_dets)) + '\n')
-
+            try:
+                with open(output_txt_path, 'w') as txt_file:
+                    for info_hpe, info_dets in zip(frame_hpe, frame_dets):
+                        txt_file.write(','.join(map(str, info_hpe)) + "," + ','.join(map(str, info_dets)) + '\n')
+            except KeyboardInterrupt:
+                print(f"\nInterrupted while saving at {output_txt_path}. Attempting to finish saving and exit cleanly.")
+                with open(output_txt_path, 'w') as txt_file:
+                    for info_hpe, info_dets in zip(frame_hpe, frame_dets):
+                        txt_file.write(','.join(map(str, info_hpe)) + "," + ','.join(map(str, info_dets)) + '\n')
+                exit()
             # print(f"Processed: {root}")
         else:
             print(f"Processed {root} with no frames usable")

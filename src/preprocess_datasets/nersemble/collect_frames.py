@@ -41,7 +41,7 @@ def generate_voxceleb_dataset_from_video_nersemble(input_folder, output_folder, 
             txts = []
             for root, _, files in os.walk(video_folder_path):
                 for f in files:
-                    if f.endswith('matched_angles.txt') and "cam_222200037" in root:
+                    if f.endswith('matched_angles.txt'):
                         txts.append(os.path.join(root, f))
 
             df = find_min_error_per_line(txts)
@@ -56,8 +56,8 @@ def generate_voxceleb_dataset_from_video_nersemble(input_folder, output_folder, 
 
             for info in df.iterrows():
                 info = np.array(info[1])
-                video_path = os.path.join(video_folder_path, "cam_222200037.mp4")
-                frame_index = int(info[6].split('#')[1])
+                video_path = os.path.join(video_folder_path, info[7].split('#')[0])
+                frame_index = int(info[7].split('#')[1])
 
                 hash_name = hashlib.sha1((id_folder + exp_folder).encode()).hexdigest()
                 dst = os.path.join(destination, f'{hash_name}{info[0]}_{info[1]}_image.jpg')
