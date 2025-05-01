@@ -29,7 +29,7 @@ def match_hpe_angles_to_references(data, references, ignore_roll=False):
     return closest_rows
 
 
-def find_matches_new(input_folder, references, txt_name="analysis.txt"):
+def find_matches(input_folder, references, txt_name="analysis.txt"):
     start_time = time.time()
     counter = 0
     all_errors = []
@@ -81,44 +81,6 @@ def find_matches_new(input_folder, references, txt_name="analysis.txt"):
     elapsed_time = time.time() - start_time
     avg_error = sum(all_errors) / len(all_errors)
     print("Found matches for", counter, "files in", round(elapsed_time, 2), "seconds, Average angle error:", round(avg_error, 4))
-
-
-def find_matches(input_folder, references, txt_name="hpe.txt"):
-    start_time = time.time()
-    counter = 0
-    for root, _, files in os.walk(input_folder):
-        if "hpe" in root:
-            for txt_file in files:
-                if txt_file.endswith(txt_name):
-                    counter += 1
-                    file_path = os.path.join(root, txt_file)
-                    with open(file_path) as file:
-                        lines = []
-                        for line in file:
-                            parts = line.strip().split(',')
-                            try:
-                                integers = list(map(int, parts[:-1]))  # Convert all but the last part to integers
-                            except:
-                                raise Exception("Error in Conversion! at:", file_path)
-                            last_part = parts[-1]  # Keep the last part as a string
-                            lines.append(integers + [last_part])  # Combine integers with the string part
-                    data = np.array(lines, dtype=object)
-                    infos = match_hpe_angles_to_references(data, references)
-
-                    assert len(infos) == len(references)
-
-                    output_file = os.path.join(root, "matched_angles.txt")
-                    with open(output_file, mode='w', newline='') as file:
-                        writer = csv.writer(file)
-                        writer.writerow(["Ref_X", "Ref_Y", "Ref_Z", "Hpe_X", "Hpe_Y", "Hpe_Z", "file_name", "Error"])
-                        for row in infos:
-                            array1 = row[0].tolist()
-                            array2 = row[1].tolist()
-                            other_values = row[2:]
-                            writer.writerow(array1 + array2 + list(other_values))
-
-    elapsed_time = time.time() - start_time
-    print("Found matches for", counter, "files in", round(elapsed_time, 2), "seconds")
 
 
 if __name__ == '__main__':

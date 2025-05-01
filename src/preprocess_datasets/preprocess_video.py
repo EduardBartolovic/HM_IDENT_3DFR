@@ -33,6 +33,8 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
     found_one_face = 0
     too_small = 0
 
+    hpe_counter = 0
+
     folders = list(os.walk(input_folder))
     num_folders = len(folders)
     for root, _, files in tqdm(folders, desc="Processing folders"):
@@ -122,6 +124,7 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
                 for j, info in enumerate(batch_infos):
                     info.append(video + "#" + str(i + j))
                     frame_hpe.append(info)
+                    hpe_counter += 1
 
         assert len(frame_hpe) == len(frame_dets)
         if frame_dets:
@@ -134,10 +137,10 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
             print(f"Processed {root} with no frames usable")
 
     elapsed_time = time.time() - start_time
-    print("Video Analysis for ", num_folders, " in", round(elapsed_time / 60, 2), "minutes, missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces+more_faces+found_one_face, ", too_small:", too_small)
+    print("Video Analysis for ", num_folders, " in", round(elapsed_time / 60, 2), "minutes, missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces+more_faces+found_one_face, ", too_small:", too_small, "hpe on", hpe_counter, "frames")
 
 
-def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, filter=None, keep=True, min_accepted_face_size=224):
+def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, filter=None, keep=True, min_accepted_face_size=64):
     start_time = time.time()
 
     head_pose_model = get_model("resnet50", num_classes=6)
@@ -179,12 +182,12 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
                     if filter not in video:
                         continue
                 os.makedirs(output_analysis_folder, exist_ok=True)
-                imgs = get_frames(os.path.join(root, video))
+                imgs = get_frames(os.path.join(root, video), frame_skip=2)
 
                 for counter, img in enumerate(imgs):
                     if img is not None:
                         video_frames.append(img)
-                        video_names.append(video + "#" + str(counter))
+                        video_names.append(video + "#" + str(counter*2))
 
                 if not video_frames:
                     print("Error for", os.path.join(root, output_folder))
@@ -199,9 +202,8 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
                 # Blazeface
                 padded_batch = []
                 for image in batch:
-                    resized_image, _, _, _ = resize_with_padding(image)  # Resize for BlazeFace detection
-                    padded_image = cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB)
-                    padded_batch.append(padded_image)
+                    resized_image, _, _ = resize_with_padding(image)  # Resize for BlazeFace detection
+                    padded_batch.append(resized_image)
 
                 padded_batch = np.array(padded_batch)
                 detections = back_net.predict_on_batch(padded_batch)
@@ -253,7 +255,7 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
                 for info_hpe, info_dets in zip(frame_hpe, frame_dets):
                     txt_file.write(','.join(map(str, info_hpe)) + "," + ','.join(map(str, info_dets)) + '\n')
 
-            print(f"Processed: {root}")
+            # print(f"Processed: {root}")
         else:
             print(f"Processed {root} with no frames usable")
 

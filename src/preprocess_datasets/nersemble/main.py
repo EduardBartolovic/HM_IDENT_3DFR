@@ -8,32 +8,33 @@ from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences i
     calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.headpose_estimation import headpose_estimation_from_video
-from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
+from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches, find_matches
 from src.preprocess_datasets.nersemble.collect_frames import generate_voxceleb_dataset_from_video_nersemble
+from src.preprocess_datasets.preprocess_video import analyse_video_nersemble
 
 if __name__ == '__main__':
 
-    folder_root = "C:\\Users\\Eduard\\Downloads\\nersemble"
-    model_path_hpe = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
-    dataset_output_folder = "C:\\Users\\Eduard\\Downloads\\nersemble_out"
-    dataset_output_folder_crop = "C:\\Users\\Eduard\\Downloads\\nersemble_out_crop"
+    root = "F:\\Face\\nersemble\\"
+    folder_root = root + "data"
+    dataset_output_folder = root + "data_out"
+    output_test_dataset = root + "test_data"
+    model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
-    output_test_dataset = "C:\\Users\\Eduard\\Downloads\\nersemble\\test_nersemble"
-    batch_size = 128
+    batch_size = 48 # 128  # 48 for 8 GB VRAM
+    poses = 25  # Number of poses
     device = torch.device("cuda")
 
     print("##################################")
-    print("#######    HPE       #############")
+    print("##### Analyse Video ##############")
     print("##################################")
-    cams = [#"cam_220700191",
-            #"cam_221501007",
+    cams = ["cam_222200037",#["cam_220700191",
+            "cam_221501007",
+            "cam_222200042"]
             #"cam_222200036",
-            "cam_222200037"]#,
             #"cam_222200038",
             #"cam_222200039",
             #"cam_222200040",
             #"cam_222200041",
-            #"cam_222200042",
             #"cam_222200043",
             #"cam_222200044",
             #"cam_222200045",
@@ -42,18 +43,20 @@ if __name__ == '__main__':
             #"cam_222200048",
             #"cam_222200049"]
     for i in cams:
-        headpose_estimation_from_video(folder_root, "hpe_"+i, model_path_hpe, device, batch_size=batch_size, filter=i)
+        analyse_video_nersemble(folder_root, "analysis_"+i, model_path_hpe, face_detect_model_root, device, batch_size=batch_size, filter=i, keep=False)
 
+    exit()
+    print("##################################")
+    print("##### FIND MATCHES ###############")
+    print("##################################")
     ref_angles = [-25, -10, 0, 10, 25]
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
-    print(len(permutations))
+    print("number of permutations:", len(permutations))
     print(permutations)
-    print("##################################")
-    print("#######Find matches#############")
-    print("##################################")
-    find_matches(folder_root, permutations, txt_name="hpe.txt")
-    #evaluate_gaze_coverage(folder_root)
+    find_matches_new(folder_root, permutations, txt_name="analysis.txt")
 
+
+    exit()
     print("##################################")
     print("###########GEN DATASET############")
     print("##################################")

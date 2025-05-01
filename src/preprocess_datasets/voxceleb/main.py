@@ -4,7 +4,7 @@ import torch
 
 from src.preprocess_datasets.headPoseEstimation.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_voxceleb_dataset_from_video_new
-from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches_new
+from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
 from src.preprocess_datasets.preprocess_video import analyse_video_vox
 
 
@@ -31,7 +31,7 @@ def preprocessing():
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches_new(folder_root, permutations, txt_name="analysis.txt")
+    find_matches(folder_root, permutations, txt_name="analysis.txt")
     # evaluate_gaze_coverage(folder_root)
 
     print("##################################")
