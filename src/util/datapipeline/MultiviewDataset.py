@@ -51,7 +51,6 @@ class MultiviewDataset(Dataset):
                         file_path = os.path.join(class_path, filename)
                         if os.path.isfile(file_path):
                             sha_hash = filename[:40]  # Extract SHA hash from filename
-                            # perspective = filename[40:-10]
                             if sha_hash not in sha_groups:
                                 sha_groups[sha_hash] = []
                             sha_groups[sha_hash].append(file_path)
@@ -69,7 +68,7 @@ class MultiviewDataset(Dataset):
                     else:
                         raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}: number of views doesnt match with {self.num_views}")
 
-        if not self.use_face_corr:  # If use_face_corr is deactivated then ignore face_corr
+        if not self.use_face_corr:  # When use_face_corr is deactivated then ignore face_corr
             self.face_cor_exist = False
 
         return data

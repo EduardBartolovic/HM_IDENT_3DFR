@@ -16,7 +16,6 @@ def visualize_feature_maps(feature_maps, output_dir, stage_names=None, cols=8, b
         batch_idx (int): Index of the sample in the batch to visualize.
         view_idx (int): Index of the sample in the view to visualize.
     """
-    # Ensure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
     # Ensure feature_maps is a dict for consistency
@@ -57,3 +56,47 @@ def visualize_feature_maps(feature_maps, output_dir, stage_names=None, cols=8, b
 
         print(f"Visualization saved to {output_path}")
     raise ValueError("Done")
+
+
+def plot_feature_maps_grid(tensor, output_path, cols=8, title_prefix=""):
+    """
+    Plots a grid of feature maps from a tensor of shape (channels, H, W)
+    """
+    num_channels = tensor.shape[0]
+    rows = int(np.ceil(num_channels / cols))
+
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 2, rows * 2))
+    axes = axes.flatten()
+
+    for i in range(num_channels):
+        axes[i].imshow(tensor[i], cmap='gray', interpolation='nearest')
+        axes[i].axis('off')
+        axes[i].set_title(f"Ch {i + 1}", fontsize=8)
+
+    for i in range(num_channels, len(axes)):
+        axes[i].axis('off')
+
+    plt.suptitle(f"{title_prefix}", fontsize=10)
+    plt.tight_layout(pad=1.0)
+    plt.savefig(output_path, dpi=300)
+    plt.close(fig)
+
+
+def visualize_all_views_and_pooled(all_view_stage, views_pooled_stage, output_dir, sample_idx=1):
+    os.makedirs(output_dir, exist_ok=True)
+
+    all_views_sample = all_view_stage[sample_idx]  # shape (25, 64, 112, 112)
+    pooled_sample = views_pooled_stage[sample_idx]  # shape (64, 112, 112)
+
+    # Save each view's feature maps
+    for view_idx in range(all_views_sample.shape[0]):
+        fmap = all_views_sample[view_idx].detach().cpu().numpy()
+        output_path = os.path.join(output_dir, f"view_{view_idx:02d}_sample_{sample_idx}.png")
+        plot_feature_maps_grid(fmap, output_path, title_prefix=f"View {view_idx}")
+
+    # Save pooled view feature maps
+    pooled_fmap = pooled_sample.detach().cpu().numpy()
+    output_path = os.path.join(output_dir, f"pooled_sample_{sample_idx}.png")
+    plot_feature_maps_grid(pooled_fmap, output_path, title_prefix="Pooled View")
+
+    print(f"All visualizations saved to {output_dir}")

@@ -15,6 +15,7 @@ from src.util.Metrics import error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix
 from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, accuracy_front_perspective
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
+from src.util.datapipeline.FakeMultiviewDataset import FakeMultiviewDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.misc import colorstr
 
