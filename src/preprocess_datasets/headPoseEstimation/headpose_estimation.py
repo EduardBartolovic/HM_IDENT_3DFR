@@ -14,7 +14,6 @@ from src.preprocess_datasets.headPoseEstimation.utils.general import draw_axis, 
 
 
 def pre_process(image):
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize((224, 224)),
@@ -49,7 +48,7 @@ def process(cropped_face, device, head_pose_model):
     return [int(eulers_deg[1]), int(eulers_deg[0]), int(eulers_deg[2])]
 
 
-def process_batch(cropped_faces, device, head_pose_model):
+def process_hpe_batch(cropped_faces, device, head_pose_model):
     """Process a batch of frames."""
 
     processed_faces = [pre_process(face) for face in cropped_faces]
@@ -59,7 +58,7 @@ def process_batch(cropped_faces, device, head_pose_model):
     eulers = compute_euler_angles_from_rotation_matrices(rotation_matrices).detach().cpu().numpy()
     eulers_deg = np.degrees(eulers)
 
-    return [[int(deg[1]), int(deg[0]), int(deg[2])] for deg in eulers_deg]
+    return [[(deg[1]), (deg[0]), (deg[2])] for deg in eulers_deg]
 
 
 def headpose_estimation(input_folder, image_folder, output_folder, model_path_hpe, device, fix_rotation=False,
@@ -165,6 +164,7 @@ def get_frames(video_path, frame_skip=1):
         if not ret:
             break
         if counter % frame_skip == 0:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame_list.append(frame)
         counter += 1
 
@@ -223,7 +223,7 @@ def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, 
         for i in range(0, len(imgs), batch_size):
             batch = [img for img in imgs[i:i + batch_size] if img is not None]
             if batch:
-                batch_infos = process_batch(batch, device, head_pose_model)
+                batch_infos = process_hpe_batch(batch, device, head_pose_model)
                 for j, info in enumerate(batch_infos):
                     info.append(video + "#" + str(i + j))
                     frame_infos.append(info)

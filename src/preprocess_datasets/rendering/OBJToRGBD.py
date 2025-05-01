@@ -1,3 +1,5 @@
+import time
+
 import os
 from tqdm import tqdm
 from pathlib import Path
@@ -73,14 +75,57 @@ class ObjFileRenderer:
                     headscans_paths.append(headscans)
 
         print('Collected:', len(headscans_paths), 'headscans')
+        time.sleep(1)
         return headscans_paths
 
     def collect_obj_files_facescape(self):
+
+        excluded_paths = {
+            "1.1.2020\\66\\models_reg\\3_mouth_stretch.obj",
+            "1.1.2020\\148\\models_reg\\13_lip_funneler.obj",
+            "1.1.2020\\148\\models_reg\\14_sadness.obj",
+            "1.1.2020\\148\\models_reg\\15_lip_roll.obj",
+            "1.1.2020\\148\\models_reg\\16_grin.obj",
+            "1.1.2020\\148\\models_reg\\17_cheek_blowing.obj",
+            "1.1.2020\\148\\models_reg\\18_eye_closed.obj",
+            "1.1.2020\\148\\models_reg\\19_brow_raiser.obj",
+            "1.1.2020\\148\\models_reg\\20_brow_lower.obj",
+            "1.1.2020\\169\\models_reg\\10_dimpler.obj",
+            "1.1.2020\\169\\models_reg\\16_grin.obj",
+            "1.1.2020\\210\\models_reg\\2_smile.obj",
+            "1.1.2020\\323\\models_reg\\11_chin_raiser.obj",
+            # "1.1.2020\\433\\models_reg\\12_lip_puckerer.obj",
+            "1.1.2020\\452\\models_reg\\18_eye_closed.obj",
+            "1.1.2020\\488\\models_reg\\8_mouth_left.obj",
+            # "1.1.2020\\501\\models_reg\\10_dimpler.obj",
+            "1.1.2020\\510\\models_reg\\8_mouth_left.obj",
+            "1.1.2020\\522\\models_reg\\3_mouth_stretch.obj",
+            "1.1.2020\\554\\models_reg\\7_jaw_forward.obj",
+            "1.1.2020\\554\\models_reg\\18_eye_closed.obj",
+            "1.1.2020\\655\\models_reg\\13_lip_funneler.obj",
+            "1.1.2020\\655\\models_reg\\20_brow_lower.obj",
+            "1.1.2020\\657\\models_reg\\9_mouth_right.obj",
+            "1.1.2020\\696\\models_reg\\5_jaw_left.obj",
+            "1.1.2020\\726\\models_reg\\16_grin.obj",
+            "1.1.2020\\730\\models_reg\\10_dimpler.obj",
+            "1.1.2020\\730\\models_reg\\16_grin.obj",
+            "1.1.2020\\730\\models_reg\\18_eye_closed.obj",
+            "1.1.2020\\731\\models_reg\\5_jaw_left.obj",
+            "1.1.2020\\733\\models_reg\\5_jaw_left.obj",
+            "1.1.2020\\834\\models_reg\\2_smile.obj",
+        }
+
         headscans_paths = []
         for root, _, files in os.walk(self.root_directory):
             for file in files:
                 if file.endswith('.obj'):
                     obj_file_path = os.path.join(root, file)
+
+                    rel_path = os.path.relpath(obj_file_path, self.root_directory)
+
+                    if rel_path in excluded_paths:
+                        continue
+
                     splited_path = Path(obj_file_path).parts
                     headscans = {'date': splited_path[-4],
                                  'user': splited_path[-3],
