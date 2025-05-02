@@ -5,6 +5,7 @@ import shutil
 
 from tqdm import tqdm
 
+
 def sanity_check(folder_path, views):
     """
        Checks if the number of files in the given folder is a multiple of `multiple_of`.
