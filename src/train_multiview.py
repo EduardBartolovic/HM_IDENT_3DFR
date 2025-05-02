@@ -225,11 +225,11 @@ if __name__ == '__main__':
             #    weights_log[i].append(agg.get_weights())
 
             #  ======= perform validation =======
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus", epoch, (112, 112), BATCH_SIZE * 4, False, disable_bar=True)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_bellus", epoch, (112, 112), BATCH_SIZE * 4, False, disable_bar=True)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_bff", epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112),BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=True)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112),BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+            #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             print("=" * 60)
 
             BACKBONE_reg.eval()
