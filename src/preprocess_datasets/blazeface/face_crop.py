@@ -64,67 +64,6 @@ def plot_detections(img, detections, with_keypoints=True):
     plt.show()
 
 
-def better_face_crop_voxceleb(input_folder, output_folder, model_root):
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    back_net = BlazeFace(back_model=True).to(device)
-    back_net.load_weights(os.path.join(model_root, "blazefaceback.pth"))
-    back_net.load_anchors(os.path.join(model_root, "anchorsback.npy"))
-
-    back_net.min_score_thresh = 0.6
-    back_net.min_suppression_threshold = 0.3
-
-    os.makedirs(output_folder, exist_ok=True)
-
-    class_names = os.listdir(input_folder)
-    missing_faces = 0
-    more_faces = 0
-    total_faces = 0
-    for class_name in tqdm(class_names, desc="Processing Classes"):
-        class_path = os.path.join(input_folder, class_name)
-        target_class_path = os.path.join(output_folder, class_name)
-
-        os.makedirs(target_class_path, exist_ok=True)
-        for filename in os.listdir(class_path):
-            if filename.endswith((".jpg", ".png", ".jpeg")):
-
-                face_crop_path = os.path.join(target_class_path, filename)
-                if os.path.exists(face_crop_path):
-                    continue  # Skip already cropped images
-
-                image = cv2.imread(os.path.join(class_path, filename), cv2.COLOR_BGR2RGB)
-
-                # Add padding using cv2.copyMakeBorder
-                pad_size = 16  # Since (256-224)/2 = 16
-                padded_image = cv2.cvtColor(cv2.copyMakeBorder(image, pad_size, pad_size, pad_size, pad_size, cv2.BORDER_CONSTANT, value=[0, 0, 0]), cv2.COLOR_BGR2RGB)
-
-                detections = back_net.predict_on_image(padded_image).cpu().numpy()
-
-                if detections.shape[0] == 0:
-                    missing_faces += 1
-                    continue
-                elif detections.shape[0] > 1:
-                    # plot_detections(padded_image, detections)
-                    more_faces += 1
-                    detections = max(detections, key=lambda det: (det[2] - det[0]) * (det[3] - det[1]))
-                else:
-                    detections = detections[0]
-                total_faces += 1
-
-                y_min = int(detections[0] * image.shape[0])
-                x_min = int(detections[1] * image.shape[1])
-                y_max = int(detections[2] * image.shape[0])
-                x_max = int(detections[3] * image.shape[1])
-
-                x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max, factor=0.3)
-                assert (x_max-x_min) == (y_max-y_min)
-
-                face_crop = padded_image[y_min:y_max, x_min:x_max]
-                face_crop_resized = cv2.cvtColor(cv2.resize(face_crop, (112, 112)), cv2.COLOR_BGR2RGB)
-                cv2.imwrite(str(face_crop_path), face_crop_resized)
-    print(f"Done. total_faces: {total_faces}, missing_faces: {missing_faces}, more_faces: {more_faces}")
-
-
 def resize_with_padding(image, target_size=(256, 256), pad_color=(0, 0, 0)):
     h, w = image.shape[:2]
 
@@ -179,53 +118,34 @@ def face_crop_full_frame(input_folder, output_folder, model_root):
                 image = cv2.imread(image_path)
                 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-                original_h, original_w = image_rgb.shape[:2]
-
                 # Resize for BlazeFace detection
-                resized_image, scale, pad_left, pad_top = resize_with_padding(image_rgb)
+                resized_image, (h, w), (top, bottom, left, right) = resize_with_padding(image_rgb)
                 detections = back_net.predict_on_image(resized_image).cpu().numpy()
 
                 if detections.shape[0] == 0:
                     missing_faces += 1
-                    print("Missing face:", face_crop_path)
-                    continue
+                    print("Missing face for", filename)
                 elif detections.shape[0] > 1:
+                    # plot_detections(padded_image, detections)
                     more_faces += 1
-                    detections = max(detections, key=lambda det: (det[2] - det[0]) * (det[3] - det[1]))
+                    detections = max(detections, key=lambda d: (d[2] - d[0]) * (d[3] - d[1]))
                 else:
                     detections = detections[0]
-
                 total_faces += 1
 
-                # Undo normalization and padding
-                y_min = int((detections[0] * 256 - pad_top) / scale)
-                x_min = int((detections[1] * 256 - pad_left) / scale)
-                y_max = int((detections[2] * 256 - pad_top) / scale)
-                x_max = int((detections[3] * 256 - pad_left) / scale)
+                y_min = int(detections[0] * resized_image.shape[0])
+                x_min = int(detections[1] * resized_image.shape[1])
+                y_max = int(detections[2] * resized_image.shape[0])
+                x_max = int(detections[3] * resized_image.shape[1])
 
                 x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max, factor=0.1)
+                assert (x_max - x_min) == (y_max - y_min)
+                min_accepted_face_size = 112
+                if x_max - x_min < min_accepted_face_size:
+                    print("Too small face for", filename)
 
-                # Make sure the bounding box is square
-                box_w = x_max - x_min
-                box_h = y_max - y_min
-                side = max(box_w, box_h)
-                center_x = (x_min + x_max) // 2
-                center_y = (y_min + y_max) // 2
-                x_min = max(center_x - side // 2, 0)
-                y_min = max(center_y - side // 2, 0)
-                x_max = min(x_min + side, original_w)
-                y_max = min(y_min + side, original_h)
-
-                face_crop = image_rgb[y_min:y_max, x_min:x_max]
+                face_crop = resized_image[y_min:y_max, x_min:x_max]
                 face_crop_resized = cv2.resize(face_crop, (112, 112))
                 final_image = cv2.cvtColor(face_crop_resized, cv2.COLOR_RGB2BGR)
                 cv2.imwrite(str(face_crop_path), final_image)
     print(f"Done! Total_faces: {total_faces}, missing_faces: {missing_faces}, more_faces: {more_faces}")
-
-
-if __name__ == '__main__':
-    dataset_folder = "E:\\Download\\vox2test_out"
-    dataset_output_folder_crop = "E:\\Download\\vox2test_out_crop"
-    face_detect_model = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\det_10g.onnx"
-
-    better_face_crop_voxceleb(dataset_folder, dataset_output_folder_crop, face_detect_model)
