@@ -91,9 +91,11 @@ class MultiviewDataset(Dataset):
         # Load all perspectives
         perspectives = [os.path.basename(img_path)[40:-10] for img_path in img_paths]
 
+        # Load Scan ids
+        scan_id = os.path.basename(img_paths[0])[:40]
+
         # Apply the transform if any
         if self.transform:
             images = [self.transform(img) for img in images]
 
-        # Return images as a tensor batch along with additional data
-        return images, class_name, perspectives, facial_corr
+        return images, class_name, perspectives, facial_corr, scan_id

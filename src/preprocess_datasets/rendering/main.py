@@ -38,7 +38,7 @@ def main():
         directory_path = Path(r'H:\\Maurer\\Bellus')
         output_dir = Path(r"F:\Face\data\tmp\3D_bellus")
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        obj_reader.render_obj_files("Bellus")
+        #obj_reader.render_obj_files("Bellus")
 
         # Photos for 2D
         #directory_path = Path('H:\\Maurer\\Bellus\\')
@@ -82,7 +82,7 @@ def main():
         directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
         output_dir = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        obj_reader.render_obj_files('facescape')
+        #obj_reader.render_obj_files('facescape')
 
         # Prepare Dataset Depth:
         #input_path = Path('F:\\Face\\data\\tmp\\3D_facescape')

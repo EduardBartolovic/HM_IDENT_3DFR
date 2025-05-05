@@ -90,21 +90,37 @@ def write_metrics_and_config(output_path, acc_val, acc5_val, prec_val, rec_val, 
         json.dump(hyperparameters, file, indent=4)
 
 
-def error_rate_per_class(true_labels, pred_labels, filename):
+def error_rate_per_class(true_labels, pred_labels, dataset, query_scan_ids, filename):
     # Find the unique classes
     classes = np.unique(true_labels)
 
+    class_to_idx = dataset.class_to_idx
+    idx_to_class = {v: k for k, v in class_to_idx.items()}
+
     # Initialize a dictionary to store error rates per class
     error_rates = defaultdict(float)
+
+    # List to store misclassified scans
+    misclassified_scans = []
 
     # Calculate error rates for each class
     for cls in classes:
         # Get all indices of the current class in the true labels
         class_indices = np.where(true_labels == cls)[0]
 
-        # Get the corresponding predictions for this class
+        # Get the corresponding predictions and scan ids for this class
         class_true = true_labels[class_indices]
         class_pred = pred_labels[class_indices]
+        class_scan_ids = [query_scan_ids[i] for i in class_indices]
+
+        # Track misclassified scans
+        for true, pred, scan_id in zip(class_true, class_pred, class_scan_ids):
+            if true != pred:
+                misclassified_scans.append({
+                    "Scan ID": scan_id,
+                    "True Class": idx_to_class[true],
+                    "Predicted Class": idx_to_class[pred]
+                })
 
         # Calculate the number of misclassified instances
         errors = np.sum(class_true != class_pred)
@@ -113,31 +129,26 @@ def error_rate_per_class(true_labels, pred_labels, filename):
         error_rate = errors / len(class_true)
         error_rates[cls] = error_rate
 
-    df = pd.DataFrame(list(error_rates.items()), columns=['Class', 'Error Rate'])
+    df_classes = pd.DataFrame(list(error_rates.items()), columns=['Class', 'Error Rate'])
+    df_scans = pd.DataFrame(misclassified_scans)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
-        # Save to CSV
-        df.to_csv(os.path.join(tmp_dir, filename+'error_rate_per_class.csv'), index=False)
+
+        df_classes.to_csv(os.path.join(tmp_dir, filename+'_error_rate_per_class.csv'), index=False)
+        df_scans.to_csv(tmp_dir / f'{filename}_misclassified_scans.csv', index=False)
 
         classes = list(error_rates.keys())
         error_values = list(error_rates.values())
 
-        # Create the plot
         plt.figure(figsize=(20, 5))
         plt.bar(classes, error_values, color='skyblue')
-
-        # Add labels and title
         plt.xlabel('Class', fontsize=12)
         plt.ylabel('Error Rate', fontsize=12)
         plt.title('Error Rate per Class', fontsize=14)
-
-        # Add gridlines
         plt.grid(True, linestyle='--', alpha=0.7)
-
-        # Show plot
         plt.tight_layout()
-        plt.savefig(os.path.join(tmp_dir, filename+'error_rate_per_class.jpg'), format='jpg', dpi=300)
+        plt.savefig(os.path.join(tmp_dir, filename+'_error_rate_per_class.jpg'), format='jpg', dpi=300)
         plt.close()
 
         mlflow.log_artifacts(tmp_dir, artifact_path="error_rate_per_class")
