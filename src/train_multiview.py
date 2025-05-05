@@ -47,7 +47,8 @@ if __name__ == '__main__':
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
 
     BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
-    AGG_NAME = cfg['AGG_NAME']
+    AGG_NAME = cfg['AGG']['AGG_NAME']
+    AGG_CONFIG = cfg['AGG']['AGG_CONFIG']
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
     TRAIN_ALL = cfg['TRAIN_ALL']  # Train whole Network
@@ -139,7 +140,7 @@ if __name__ == '__main__':
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
         print("=" * 60)
 
-        AGG_DICT = {'WeightedSumAggregator': make_weighted_sum_aggregator([(25, 0), (26, 2), (26, 2), (26, 2), (26, 2)]),
+        AGG_DICT = {'WeightedSumAggregator': make_weighted_sum_aggregator(AGG_CONFIG),
                     'MeanAggregator': make_mean_aggregator([25, 25, 25, 25, 25]),
                     'SEAggregator': make_se_aggregator([64, 64, 128, 256, 512])}
         aggregators = AGG_DICT[AGG_NAME]
@@ -242,7 +243,7 @@ if __name__ == '__main__':
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
-            for inputs, labels, perspectives, face_corrs in tqdm(iter(train_loader)):
+            for inputs, labels, perspectives, face_corrs, _ in tqdm(iter(train_loader)):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (
                         batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
