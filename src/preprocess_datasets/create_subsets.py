@@ -52,12 +52,13 @@ def filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives):
         dst_id_path = os.path.join(dst_dir, identity)
         os.makedirs(dst_id_path, exist_ok=True)
 
+        allowed_set = set(allowed_perspectives)
         for file in os.listdir(src_id_path):
             if not file.lower().endswith(('.jpg', '.jpeg', '.png')):
                 continue
 
             perspective = os.path.basename(file)[40:-10]
-            if perspective in allowed_perspectives:
+            if perspective in allowed_set:
                 shutil.copy2(
                     os.path.join(src_id_path, file),
                     os.path.join(dst_id_path, file)
