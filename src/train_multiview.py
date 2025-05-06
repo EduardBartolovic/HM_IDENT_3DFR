@@ -28,33 +28,32 @@ import argparse
 
 
 def main(cfg):
-    # ======= Read config =======#
-    SEED = cfg['SEED']  # random seed for reproduce results
+    SEED = cfg['SEED']
     torch.manual_seed(SEED)
 
     RUN_NAME = cfg['RUN_NAME']
-    DATA_ROOT = cfg['DATA_ROOT']  # the parent root where your train/val/test data are stored
+    DATA_ROOT = cfg['DATA_ROOT']  # the parent root where the datasets are stored
     TRAIN_SET = cfg['TRAIN_SET']
     MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
-    LOG_ROOT = cfg['LOG_ROOT']  # the root to log your train/val status
+    LOG_ROOT = cfg['LOG_ROOT']
     BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']  # the root to resume training from a saved checkpoint
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
 
     BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
-    AGG_NAME = cfg['AGG']['AGG_NAME']
-    AGG_CONFIG = cfg['AGG']['AGG_CONFIG']
+    AGG_NAME = cfg['AGG']['AGG_NAME']  # support: ['WeightedSumAggregator', 'MeanAggregator', 'SEAggregator']
+    AGG_CONFIG = cfg['AGG']['AGG_CONFIG']  # Aggregator Config
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
-    TRAIN_ALL = cfg['TRAIN_ALL']  # Train whole Network
+    TRAIN_ALL = cfg['TRAIN_ALL']  # Train all parts of the network
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
 
     INPUT_SIZE = cfg['INPUT_SIZE']
-    NUM_VIEWS = cfg['NUM_VIEWS']
+    NUM_VIEWS = cfg['NUM_VIEWS']  # Number of views
     RGB_MEAN = cfg['RGB_MEAN']  # for normalize inputs
-    RGB_STD = cfg['RGB_STD']
+    RGB_STD = cfg['RGB_STD']  # for normalize inputs
     use_face_corr = cfg['USE_FACE_CORR']
-    EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']  # feature dimension
-    BATCH_SIZE = cfg['BATCH_SIZE']
+    EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']  # embedding dimension
+    BATCH_SIZE = cfg['BATCH_SIZE']  # Batch size in training
     DROP_LAST = cfg['DROP_LAST']  # whether drop the last batch to ensure consistent batch_norm statistics
     LR = cfg['LR']  # initial LR
     NUM_EPOCH = cfg['NUM_EPOCH']
@@ -138,7 +137,6 @@ def main(cfg):
 
         LOSS_DICT = {'Focal': FocalLoss(), 'Softmax': nn.CrossEntropyLoss()}
         LOSS = LOSS_DICT[LOSS_NAME]
-        print(colorstr('magenta', LOSS))
         print(colorstr('blue', f"{LOSS_NAME} Loss Generated"))
         print("=" * 60)
 
@@ -168,7 +166,6 @@ def main(cfg):
 
         OPTIMIZER = OPTIMIZER_DICT[OPTIMIZER_NAME]
         print(colorstr('magenta', OPTIMIZER))
-        print(colorstr('blue', f"{OPTIMIZER_NAME} Optimizer Generated"))
         print("=" * 60)
 
         load_checkpoint(BACKBONE_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
