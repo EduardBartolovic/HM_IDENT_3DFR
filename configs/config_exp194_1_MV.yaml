@@ -11,7 +11,9 @@ HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 TRAIN_ALL: False
 USE_FACE_CORR: False
 BACKBONE_NAME: 'IR_MV_50'
-AGG_NAME: 'SEAggregator' # 'WeightedSumAggregator'
+AGG:
+  AGG_NAME: 'SEAggregator'
+  AGG_CONFIG: []
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 DISTANCE_METRIC: 'cosine'  # support: ['euclidean', 'cosine']
