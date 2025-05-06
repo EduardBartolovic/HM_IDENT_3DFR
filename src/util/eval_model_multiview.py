@@ -87,18 +87,19 @@ def load_data(data_dir, max_batch_size: int) -> (torchvision.datasets.ImageFolde
     return dataset, data_loader
 
 
-def load_data_mv(data_dir, max_batch_size: int, transform, use_face_corr: bool) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
+def load_data_mv(data_dir, max_batch_size: int, num_views: int, transform, use_face_corr: bool) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
     """
      Load Dataset and sets that batch size so that large batch is always greater then 1
     Args:
         data_dir: directory of dataset
         max_batch_size: target batch size
+        num_views: num of views for mv
         transform: pytorch data transformer
         use_face_corr: Should face correspondences getting loaded
 
     Returns: dataset, data_loader
     """
-    dataset = MultiviewDataset(data_dir, num_views=25, transform=transform, use_face_corr=use_face_corr)
+    dataset = MultiviewDataset(data_dir, num_views=num_views, transform=transform, use_face_corr=use_face_corr)
     dataset_size = len(dataset)
     batch_size = max_batch_size  # Ensure the last batch is always larger than 1
     while (dataset_size % batch_size == 1) and (batch_size > 2):
@@ -107,14 +108,14 @@ def load_data_mv(data_dir, max_batch_size: int, transform, use_face_corr: bool) 
     return dataset, data_loader
 
 
-def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, use_face_corr: bool, disable_bar: bool):
+def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
     dataset_enrolled_path = os.path.join(test_path, 'train')
     dataset_query_path = os.path.join(test_path, 'validation')
-    dataset_enrolled, enrolled_loader = load_data_mv(dataset_enrolled_path, batch_size, test_transform, use_face_corr)
-    dataset_query, query_loader = load_data_mv(dataset_query_path, batch_size, test_transform, use_face_corr)
+    dataset_enrolled, enrolled_loader = load_data_mv(dataset_enrolled_path, batch_size, num_views, test_transform, use_face_corr)
+    dataset_query, query_loader = load_data_mv(dataset_query_path, batch_size, num_views, test_transform, use_face_corr)
 
     time.sleep(0.1)
 
@@ -139,7 +140,7 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
     return result_metrics, metrics_front, metrics_concat, embedding_library, dataset_enrolled, dataset_query
 
 
-def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, use_face_corr: bool, disable_bar: bool):
+def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool):
 
     test_transform = transforms.Compose([
         transforms.Resize(test_transform_sizes),
@@ -149,7 +150,7 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {test_transform_sizes} and face_corr: {use_face_corr}"))
-    metrics, metrics_front, metrics_concat, embedding_library, dataset_enrolled, dataset_query = evaluate_mv(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, use_face_corr, disable_bar)
+    metrics, metrics_front, metrics_concat, embedding_library, dataset_enrolled, dataset_query = evaluate_mv(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, num_views, use_face_corr, disable_bar)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 

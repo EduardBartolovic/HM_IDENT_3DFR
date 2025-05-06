@@ -47,7 +47,7 @@ def filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives):
     src_dir = os.path.join(SOURCE_DIR, split)
     dst_dir = os.path.join(DEST_DIR, split)
 
-    for identity in tqdm(os.listdir(src_dir), desc=f"[{split}] Filtering"):
+    for identity in os.listdir(src_dir):
         src_id_path = os.path.join(src_dir, identity)
         dst_id_path = os.path.join(dst_dir, identity)
         os.makedirs(dst_id_path, exist_ok=True)
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     print(f"✅ Using {len(allowed)} unique perspectives")
 
     for num_perspectives in allowed:
-        for allowed_perspectives in num_perspectives:
+        for allowed_perspectives in tqdm(num_perspectives):
 
             DEST_DIR = f'F:\\Face\\data\\datasets9\\test_rgb_bff_crop_new_{allowed_perspectives}'
             for split in ['train', 'validation']:

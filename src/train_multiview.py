@@ -26,8 +26,8 @@ import mlflow
 import yaml
 import argparse
 
-if __name__ == '__main__':
 
+def main():
     # ======= Read config =======#
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, help='Path to the config file', default='config_exp_X.yaml')
@@ -53,9 +53,9 @@ if __name__ == '__main__':
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
     TRAIN_ALL = cfg['TRAIN_ALL']  # Train whole Network
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
-    DISTANCE_METRIC = cfg['DISTANCE_METRIC']  # support: ['euclidian', 'cosine']
 
     INPUT_SIZE = cfg['INPUT_SIZE']
+    NUM_VIEWS = cfg['NUM_VIEWS']
     RGB_MEAN = cfg['RGB_MEAN']  # for normalize inputs
     RGB_STD = cfg['RGB_STD']
     use_face_corr = cfg['USE_FACE_CORR']
@@ -79,17 +79,6 @@ if __name__ == '__main__':
     print(cfg)
     print("=" * 60)
 
-    # ===== Test set naming ============
-    test_bellus = 'test_rgb_bellus'
-    test_bellus_fc = 'test_rgb_bellus_fc'
-    test_facescape = 'test_rgb_facescape'
-    test_faceverse = 'test_rgb_faceverse'
-    test_texas = 'test_rgb_texas'
-    test_bff = 'test_rgb_bff'
-    test_bff_fc = 'test_rgb_bff_fc'
-    test_vox2test = "test_vox2test"
-    test_vox2train = "test_vox2train"
-
     # ===== ML FLOW Set up ============
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
     mlflow.set_experiment(RUN_NAME)
@@ -106,7 +95,6 @@ if __name__ == '__main__':
 
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
-        log_dir = f'{LOG_ROOT}/tensorboard/{RUN_NAME}'
 
         train_transform = transforms.Compose([
             transforms.Resize((150, 150)),
@@ -226,11 +214,14 @@ if __name__ == '__main__':
             #    weights_log[i].append(agg.get_weights())
 
             #  ======= perform validation =======
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", epoch, (112, 112), BATCH_SIZE * 4, False, disable_bar=True)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=True)
-            exit()
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, False, disable_bar=True)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
+
+            for i in os.listdir(DATA_ROOT):
+                evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, i, epoch, (112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=True)
+
             #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112),BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             print("=" * 60)
@@ -310,3 +301,7 @@ if __name__ == '__main__':
             #     torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
 
     plot_weight_evolution(weights_log, save_dir="weights_logs")
+
+
+if __name__ == '__main__':
+    main()
