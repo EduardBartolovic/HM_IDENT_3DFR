@@ -27,14 +27,8 @@ import yaml
 import argparse
 
 
-def main():
+def main(cfg):
     # ======= Read config =======#
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, help='Path to the config file', default='config_exp_X.yaml')
-    args = parser.parse_args()
-    with open(args.config, 'r') as file:
-        cfg = yaml.safe_load(file)
-
     SEED = cfg['SEED']  # random seed for reproduce results
     torch.manual_seed(SEED)
 
@@ -129,7 +123,7 @@ def main():
         print("=" * 60)
 
         AGG_DICT = {'WeightedSumAggregator': make_weighted_sum_aggregator(AGG_CONFIG),
-                    'MeanAggregator': make_mean_aggregator([25, 25, 25, 25, 25]),
+                    'MeanAggregator': make_mean_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
                     'SEAggregator': make_se_aggregator([64, 64, 128, 256, 512])}
         aggregators = AGG_DICT[AGG_NAME]
 
@@ -215,13 +209,9 @@ def main():
 
             #  ======= perform validation =======
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, False, disable_bar=True)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
-
-            for i in os.listdir(DATA_ROOT):
-                if "test_" in i:
-                    evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, i, epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
 
             #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112),BATCH_SIZE * 4, use_face_corr, disable_bar=False)
             #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
@@ -305,4 +295,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=str, help='Path to the config file', default='config_exp_X.yaml')
+    args = parser.parse_args()
+    with open(args.config, 'r') as file:
+        cfg_yaml = yaml.safe_load(file)
+    main(cfg_yaml)
