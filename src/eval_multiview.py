@@ -42,7 +42,6 @@ def main(cfg, test):
     BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
     AGG_NAME = cfg['AGG']['AGG_NAME']
     AGG_CONFIG = cfg['AGG']['AGG_CONFIG']
-    HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
 
     INPUT_SIZE = cfg['INPUT_SIZE']
     NUM_VIEWS = cfg['NUM_VIEWS']

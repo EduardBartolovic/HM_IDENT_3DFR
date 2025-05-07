@@ -1,3 +1,5 @@
+import hashlib
+
 import os
 import time
 from collections import defaultdict
@@ -26,6 +28,21 @@ def sanity_check(folder_path, views):
     except Exception as e:
         print(f"Error: {e}")
         return False
+
+
+def unique_views_score(file_paths):
+    """
+    Counts the number of unique images based on file content.
+    """
+    def hash_file(path):
+        hasher = hashlib.sha256()
+        with open(path, 'rb') as f:
+            while chunk := f.read(8192):
+                hasher.update(chunk)
+        return hasher.hexdigest()
+
+    unique_hashes = {hash_file(f) for f in file_paths}
+    return len(unique_hashes)
 
 
 def create_train_test_split(input_folder, output_folder, filter_strings=None, poses=25, ignore_face_corr=True):
@@ -58,7 +75,6 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
     os.makedirs(test_folder, exist_ok=True)
     ignored = 0
 
-    # Iterate over class subfolders
     for class_name in tqdm(os.listdir(input_folder), desc="Copy files"):
         class_path = os.path.join(input_folder, class_name)
         if not os.path.isdir(class_path):
@@ -84,14 +100,15 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
         # Sort groups to ensure deterministic order
         sorted_groups = sorted(groups.items())
 
-        # Not enough groups
         if len(sorted_groups) < 2:
             print("Not enough groups", sorted_groups[:2])
             continue
 
-        # Use the first group for training and the rest for testing
-        # TODO: Change this: dont use first but use the "best" as reference
-        for idx, (hash_prefix, file_paths) in enumerate(sorted_groups):
+        scored_groups = [(hash_prefix, file_paths, unique_views_score(file_paths)) for hash_prefix, file_paths in sorted_groups]
+        scored_groups.sort(key=lambda x: x[2], reverse=True)
+
+        # Use the best group for train and the rest for testing
+        for idx, (hash_prefix, file_paths, _) in enumerate(scored_groups):
             if len(file_paths) != poses:
                 assert f"views {len(file_paths)} dont match required {poses} poses"
 
@@ -107,10 +124,3 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
     print(f"Train-test split created in {output_folder}. {ignored} ignored groups in {counter} files in", round(elapsed_time/60, 2), "minutes")
     sanity_check(output_folder, views=poses)
     print("Sanity Check completed successfully")
-
-
-if __name__ == '__main__':
-    input_dir = "E:\\Download\\test_out"  # input folder path
-    output_dir = "E:\\Download\\test_out_TEST"  # output folder path
-    filter_angles = ["-25_0", "-15_0", "0_0", "15_0" "25_0"]  # which angles should be included
-    create_train_test_split(input_dir, output_dir, filter_angles)
