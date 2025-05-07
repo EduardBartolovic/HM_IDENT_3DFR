@@ -1,0 +1,145 @@
+import time
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torchvision.transforms as transforms
+
+from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
+from loss.focal import FocalLoss
+from src.aggregator.MeanAggregator import make_mean_aggregator
+from src.aggregator.SEAggregator import make_se_aggregator
+from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
+from src.backbone.model_multiview_irse import IR_MV_50, execute_model
+from src.util.Plotter import plot_weight_evolution
+from src.util.datapipeline.MultiviewDataset import MultiviewDataset
+from src.util.eval_model_multiview import evaluate_and_log_mv
+from src.util.load_checkpoint import load_checkpoint
+from src.util.misc import colorstr
+from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
+    separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
+
+from torchinfo import summary
+from tqdm import tqdm
+import os
+import mlflow
+import yaml
+import argparse
+
+
+def main(cfg, test):
+    # ======= Read config =======#
+    SEED = cfg['SEED']  # random seed for reproduce results
+    torch.manual_seed(SEED)
+
+    RUN_NAME = cfg['RUN_NAME']
+    DATA_ROOT = cfg['DATA_ROOT']  # the parent root where your train/val/test data are stored
+    TRAIN_SET = cfg['TRAIN_SET']
+    LOG_ROOT = cfg['LOG_ROOT']  # the root to log your train/val status
+    BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']  # the root to resume training from a saved checkpoint
+    HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
+
+    BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
+    AGG_NAME = cfg['AGG']['AGG_NAME']
+    AGG_CONFIG = cfg['AGG']['AGG_CONFIG']
+    HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
+
+    INPUT_SIZE = cfg['INPUT_SIZE']
+    NUM_VIEWS = cfg['NUM_VIEWS']
+    RGB_MEAN = cfg['RGB_MEAN']  # for normalize inputs
+    RGB_STD = cfg['RGB_STD']
+    use_face_corr = cfg['USE_FACE_CORR']
+    EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']  # feature dimension
+    BATCH_SIZE = cfg['BATCH_SIZE']
+
+    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    MULTI_GPU = cfg['MULTI_GPU']  # flag to use multiple GPUs
+    GPU_ID = cfg['GPU_ID']  # specify your GPU ids
+    #print("=" * 60)
+    #print("Overall Configurations:")
+    #print(cfg)
+    #print("=" * 60)
+
+    # ===== ML FLOW Set up ============
+    mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
+    mlflow.set_experiment(RUN_NAME)
+
+    client = mlflow.tracking.MlflowClient()
+    experiment = client.get_experiment_by_name(RUN_NAME)
+    if experiment:
+        runs = client.search_runs(experiment_ids=[experiment.experiment_id])
+        run_count = len(runs)
+    else:
+        run_count = 0  # No runs if the experiment does not exist yet
+
+    with mlflow.start_run(run_name=f"{RUN_NAME}_[{run_count + 1}]") as run:
+
+        mlflow.log_param('config', cfg)
+        print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
+
+        # ======= model & loss & optimizer =======
+        BACKBONE_DICT = {'IR_MV_50': IR_MV_50(INPUT_SIZE, EMBEDDING_SIZE)}
+        BACKBONE_reg = BACKBONE_DICT[BACKBONE_NAME]
+        BACKBONE_agg = BACKBONE_DICT[BACKBONE_NAME]
+        #model_stats = summary(BACKBONE_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
+        #print(colorstr('magenta', str(model_stats)))
+        #print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
+        #print("=" * 60)
+
+        AGG_DICT = {'WeightedSumAggregator': make_weighted_sum_aggregator(AGG_CONFIG),
+                    'MeanAggregator': make_mean_aggregator([25, 25, 25, 25, 25]),
+                    'SEAggregator': make_se_aggregator([64, 64, 128, 256, 512])}
+        aggregators = AGG_DICT[AGG_NAME]
+
+        HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
+                     'CosFace': CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
+                     'SphereFace': SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
+                     'Am_softmax': Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
+        HEAD = HEAD_DICT[HEAD_NAME]
+        #print(colorstr('magenta', HEAD))
+        #print(colorstr('blue', f"{HEAD_NAME} Head Generated"))
+        #print("=" * 60)
+
+        load_checkpoint(BACKBONE_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
+        load_checkpoint(BACKBONE_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
+        print("=" * 60)
+
+        print(colorstr('magenta', f"Using face correspondences: {use_face_corr}"))
+        print("=" * 60)
+
+        # ======= GPU Settings =======
+        if MULTI_GPU:
+            BACKBONE_reg = nn.DataParallel(BACKBONE_reg, device_ids=GPU_ID)
+            BACKBONE_agg = nn.DataParallel(BACKBONE_agg, device_ids=GPU_ID)
+        BACKBONE_reg = BACKBONE_reg.to(DEVICE)
+        BACKBONE_agg = BACKBONE_agg.to(DEVICE)
+        for agg in aggregators:
+            agg.to(DEVICE)
+
+        #  ======= perform validation =======
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, False, disable_bar=True)
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
+
+        evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test, epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
+
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112),BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+        print("=" * 60)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=str, help='Path to the config file', default='config_exp_X.yaml')
+    args = parser.parse_args()
+    with open(args.config, 'r') as file:
+        yaml_cfg = yaml.safe_load(file)
+
+    for i in os.listdir(yaml_cfg['DATA_ROOT']):
+        if "test_" in i:
+            views = i.count("_")-4
+            print("################ RUNNING: ", i, "with views: ", views)
+            yaml_cfg["AGG"]["AGG_CONFIG"] = [[views, 0], [views+1, 2], [views+1, 2], [views+1, 2], [views+1, 2]]
+            yaml_cfg['NUM_VIEWS'] = views
+            main(yaml_cfg, i)
