@@ -61,7 +61,7 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
     return similarity_matrix
 
 
-def concat(embedding_library, disable_bar:bool, pre_sorted=False):
+def concat(embedding_library, disable_bar:bool, pre_sorted=False, reduce_with_pca=False):
 
     if pre_sorted:
         enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
@@ -76,48 +76,15 @@ def concat(embedding_library, disable_bar:bool, pre_sorted=False):
             embedding_library.query_scan_ids, embedding_library.query_embeddings,
             embedding_library.query_labels, embedding_library.query_perspectives)
 
-    similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar=disable_bar)
-
-    top_indices, top_values = compute_ranking_matrices(similarity_matrix)
-    result = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
-    predicted_labels = enrolled_label[top_indices[:, 0]]
-    return result, predicted_labels, query_label
-
-
-def concat_reduced(embedding_library, disable_bar:bool, pre_sorted=False, method='PCA'):
-
-    if pre_sorted:
-        enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
-        enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
-        query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
-        query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
-    else:
-        enrolled_embedding, enrolled_label = process_unsorted_embeddings(
-            embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
-            embedding_library.enrolled_labels, embedding_library.enrolled_perspectives)
-        query_embedding, query_label = process_unsorted_embeddings(
-            embedding_library.query_scan_ids, embedding_library.query_embeddings,
-            embedding_library.query_labels, embedding_library.query_perspectives)
-
-    if method == 'PCA':
-        if enrolled_embedding.shape[0] <= 512:
-            return {}, None, None
+    if reduce_with_pca:
+        assert enrolled_embedding.shape[0] > 512
         pca = PCA(n_components=512)
         pca = pca.fit(enrolled_embedding)
-        enrolled_embedding_reduced = normalize(pca.transform(enrolled_embedding))
-        query_embedding_reduced = normalize(pca.transform(query_embedding))
-    elif method =='LDA':
-        if enrolled_embedding.shape[0] <= 512:
-            return {}, None, None
-        lda = LinearDiscriminantAnalysis(n_components=512)
-        lda.fit(enrolled_embedding, enrolled_label)
+        enrolled_embedding = normalize(pca.transform(enrolled_embedding))
+        query_embedding = normalize(pca.transform(query_embedding))
 
-        enrolled_embedding_reduced = normalize(lda.transform(enrolled_embedding))
-        query_embedding_reduced = normalize(lda.transform(query_embedding))
-    else:
-        raise InputError("Given reduction method doesnt exist")
 
-    similarity_matrix = calculate_embedding_similarity(query_embedding_reduced, enrolled_embedding_reduced, disable_bar=disable_bar)
+    similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar=disable_bar)
 
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)

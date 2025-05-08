@@ -137,11 +137,12 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
 
     # Concat
     metrics_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True)
-    metrics_concat_pca, y_true_concat, y_pred_concat = concat_reduced(embedding_library, disable_bar, pre_sorted=True, method="PCA")
-    metrics_concat_lda, y_true_concat, y_pred_concat = concat_reduced(embedding_library, disable_bar, pre_sorted=True, method="LDA")
-    print(metrics_concat, metrics_concat_pca, metrics_concat_lda)
+    if embedding_library.enrolled_embeddings.shape[0] > 512:
+        metrics_concat_pca, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with_pca=True)
+    else:
+        metrics_concat_pca = {}
 
-    return result_metrics, metrics_front, metrics_concat, embedding_library, dataset_enrolled, dataset_query
+    return result_metrics, metrics_front, metrics_concat, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
 
 
 def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool):
@@ -154,7 +155,7 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {test_transform_sizes} and face_corr: {use_face_corr}"))
-    metrics, metrics_front, metrics_concat, embedding_library, dataset_enrolled, dataset_query = evaluate_mv(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, num_views, use_face_corr, disable_bar)
+    metrics, metrics_front, metrics_concat, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query = evaluate_mv(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, num_views, use_face_corr, disable_bar)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
@@ -164,6 +165,8 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     mlflow.log_metric(f'{neutral_dataset}_Front-RR5', metrics_front['Rank-5 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_Concat-RR1', metrics_concat['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_Concat-RR5', metrics_concat['Rank-5 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR1', metrics_concat_pca['Rank-1 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR5', metrics_concat_pca['Rank-5 Rate'], step=epoch)
 
     #if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
@@ -174,12 +177,15 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     rank_5_front = metrics_front.get('Rank-5 Rate', 'N/A')
     rank_1_concat = metrics_concat.get('Rank-1 Rate', 'N/A')
     rank_5_concat = metrics_concat.get('Rank-5 Rate', 'N/A')
+    rank_1_concat_pca = metrics_concat_pca.get('Rank-1 Rate', 'N/A')
+    rank_5_concat_pca = metrics_concat_pca.get('Rank-5 Rate', 'N/A')
 
     print(colorstr(
         'bright_green',
         f"{neutral_dataset}: C{len(dataset_enrolled.classes)} E{len(dataset_enrolled)} Q{len(dataset_query)} ; Evaluation: "
         f"Front-RR1: {rank_1_front} Front-RR5: {rank_5_front} "
         f"Concat-RR1: {rank_1_concat} Concat-RR5: {rank_5_concat} "
+        f"Concat_PCA-RR1: {rank_1_concat_pca} Concat_PCA-RR5: {rank_5_concat_pca} "
         f"MV-RR1: {rank_1} MV-RR5: {rank_5} "
     ))
 
