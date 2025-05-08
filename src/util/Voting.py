@@ -100,7 +100,7 @@ def concat_reduced(embedding_library, disable_bar:bool, pre_sorted=False, method
             embedding_library.query_labels, embedding_library.query_perspectives)
 
     if method == 'PCA':
-        if all_embeddings.shape[0] <= 512:
+        if enrolled_embedding.shape[0] <= 512:
             return {}, None, None
         pca = PCA(n_components=512)
         pca = pca.fit(enrolled_embedding)
