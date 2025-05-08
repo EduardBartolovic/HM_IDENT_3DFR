@@ -3,26 +3,27 @@ import itertools
 import numpy as np
 import torch
 
+from src.preprocess_datasets.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_nersemble_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
 from src.preprocess_datasets.preprocess_video import analyse_video_nersemble
 
 if __name__ == '__main__':
 
-    root = "F:\\Face\\nersemble\\"
+    root = "C:\\Users\\Eduard\\Downloads\\"
     folder_root = root + "data"
     dataset_output_folder = root + "data_out"
     output_test_dataset = root + "test_data"
-    model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
-    face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
-    batch_size = 48 # 256 for 24GB  # 48 for 8 GB VRAM
+    model_path_hpe = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
+    face_detect_model_root = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
+    batch_size = 8 # 256 for 24GB  # 48 for 8 GB VRAM
     poses = 25  # Number of poses
     device = torch.device("cuda")
 
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    analyse_video_nersemble(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=False)
+    analyse_video_nersemble(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=True)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
@@ -36,9 +37,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##### GEN DATASET ################")
     print("##################################")
-    generate_nersemble_dataset_from_video(folder_root, dataset_output_folder, keep=False)
-
-    exit()
+    generate_nersemble_dataset_from_video(folder_root, dataset_output_folder, keep=True)
 
     #print("##################################")
     #print("######face_correspondences########")
@@ -49,5 +48,4 @@ if __name__ == '__main__':
     print("##################################")
     print("###########GEN TEST DATASET############")
     print("##################################")
-    create_train_test_split(dataset_output_folder_crop, output_test_dataset, ignore_face_corr=False)
-    print("######face_correspondences########")
+    create_train_test_split(dataset_output_folder, output_test_dataset, ignore_face_corr=True)

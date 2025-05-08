@@ -92,7 +92,7 @@ def generate_nersemble_dataset_from_video(folder_root, dataset_output_folder, ke
                     video_folder_path = os.path.join(root, "..")
 
                     sample_name = os.path.abspath(os.path.join(root, os.pardir))
-                    id_name = os.path.abspath(os.path.join(sample_name, os.pardir))
+                    id_name = os.path.abspath(os.path.join(sample_name, os.pardir, os.pardir))
                     sample_name = os.path.basename(sample_name)
                     id_name = os.path.basename(id_name)
 
