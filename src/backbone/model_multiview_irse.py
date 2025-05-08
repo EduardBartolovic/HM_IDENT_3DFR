@@ -5,7 +5,7 @@ from torch.nn import Module, Sequential, Conv2d, BatchNorm2d, PReLU, Dropout, Li
 import torch.nn.functional as F
 
 from src.backbone.model_irse import Bottleneck, bottleneck_IR, Flatten
-from src.util.visualize_feature_maps import visualize_feature_maps
+from src.util.visualize_feature_maps import visualize_feature_maps, visualize_all_views_and_pooled
 
 
 def get_block(in_channel, depth, num_units, stride=2):
@@ -174,6 +174,8 @@ def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr
             all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
 
     views_pooled_stage = aggregators[stage_index](all_view_stage)
+
+    #visualize_all_views_and_pooled(all_view_stage, views_pooled_stage, output_dir=f"feature_map_outputs_{stage_index}")
 
     # ========== Global Context Pooling ==========
     # global_descriptor = all_view_stage.mean(dim=(1, 3, 4), keepdim=True)  # [batch, view, c, 1, 1]

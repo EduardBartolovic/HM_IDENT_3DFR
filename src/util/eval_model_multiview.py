@@ -13,7 +13,8 @@ from tqdm import tqdm
 from src.backbone.model_multiview_irse import execute_model
 from src.util.Metrics import error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix
-from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, accuracy_front_perspective
+from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, \
+    accuracy_front_perspective, concat_reduced
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.datapipeline.FakeMultiviewDataset import FakeMultiviewDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
@@ -136,6 +137,9 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
 
     # Concat
     metrics_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True)
+    metrics_concat_pca, y_true_concat, y_pred_concat = concat_reduced(embedding_library, disable_bar, pre_sorted=True, method="PCA")
+    metrics_concat_lda, y_true_concat, y_pred_concat = concat_reduced(embedding_library, disable_bar, pre_sorted=True, method="LDA")
+    print(metrics_concat, metrics_concat_pca, metrics_concat_lda)
 
     return result_metrics, metrics_front, metrics_concat, embedding_library, dataset_enrolled, dataset_query
 

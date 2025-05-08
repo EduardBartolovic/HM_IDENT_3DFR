@@ -1,13 +1,18 @@
 import os
-import time
 from collections import defaultdict
 
 import faiss
 import numpy as np
 from sklearn import neighbors
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import numba
 from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import normalize
+from torch.utils.hipify.hipify_python import InputError
 from tqdm import tqdm
+
+from src.util.EmbeddingsUtils import process_unsorted_embeddings
 
 # Set environment variables to avoid OpenBLAS conflicts
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -58,34 +63,28 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
 
 def concat(embedding_library, disable_bar:bool, pre_sorted=False):
 
-    def process_embeddings(scan_ids, embeddings, labels, perspectives):
-        scan_to_data = {}
-        for scan_id, embedding, label, perspective in zip(scan_ids, embeddings, labels, perspectives):
-            if scan_id not in scan_to_data:
-                scan_to_data[scan_id] = {'embeddings': [], 'perspectives': [], 'label': label}
-            scan_to_data[scan_id]['embeddings'].append(embedding)
-            scan_to_data[scan_id]['perspectives'].append(perspective)
+    if pre_sorted:
+        enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
+        enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+        query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
+        query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+    else:
+        enrolled_embedding, enrolled_label = process_unsorted_embeddings(
+            embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
+            embedding_library.enrolled_labels, embedding_library.enrolled_perspectives)
+        query_embedding, query_label = process_unsorted_embeddings(
+            embedding_library.query_scan_ids, embedding_library.query_embeddings,
+            embedding_library.query_labels, embedding_library.query_perspectives)
 
-        embeddings_shape = None
-        num_scans = len(scan_to_data)
-        concatenated_embeddings = None
-        concatenated_labels = np.empty(num_scans, dtype=np.int64)
-        for i, (scan_id, data) in enumerate(scan_to_data.items()):
-            sorted_embs = np.array([emb for _, emb in sorted(zip(data['perspectives'], data['embeddings']), key=lambda x: x[0])])
-            concatenated_embedding = np.concatenate(sorted_embs, axis=0)
+    similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar=disable_bar)
 
-            if embeddings_shape is None:
-                embeddings_shape = concatenated_embedding.shape[0]
-                concatenated_embeddings = np.empty((num_scans, embeddings_shape), dtype=np.float32)
+    top_indices, top_values = compute_ranking_matrices(similarity_matrix)
+    result = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
+    predicted_labels = enrolled_label[top_indices[:, 0]]
+    return result, predicted_labels, query_label
 
-            assert concatenated_embedding.shape[0] == embeddings_shape, (
-                f"Embedding sizes are not correct: {embeddings_shape} != {concatenated_embedding.shape[0]} for {scan_id}. Check Dataset!"
-            )
 
-            concatenated_embeddings[i] = concatenated_embedding
-            concatenated_labels[i] = data['label']
-
-        return concatenated_embeddings, concatenated_labels
+def concat_reduced(embedding_library, disable_bar:bool, pre_sorted=False, method='PCA'):
 
     if pre_sorted:
         enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
@@ -93,14 +92,32 @@ def concat(embedding_library, disable_bar:bool, pre_sorted=False):
         query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
         query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
     else:
-        enrolled_embedding, enrolled_label = process_embeddings(
+        enrolled_embedding, enrolled_label = process_unsorted_embeddings(
             embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
             embedding_library.enrolled_labels, embedding_library.enrolled_perspectives)
-        query_embedding, query_label = process_embeddings(
+        query_embedding, query_label = process_unsorted_embeddings(
             embedding_library.query_scan_ids, embedding_library.query_embeddings,
             embedding_library.query_labels, embedding_library.query_perspectives)
 
-    similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar=disable_bar)
+    if method == 'PCA':
+        if all_embeddings.shape[0] <= 512:
+            return {}, None, None
+        pca = PCA(n_components=512)
+        pca = pca.fit(enrolled_embedding)
+        enrolled_embedding_reduced = normalize(pca.transform(enrolled_embedding))
+        query_embedding_reduced = normalize(pca.transform(query_embedding))
+    elif method =='LDA':
+        if enrolled_embedding.shape[0] <= 512:
+            return {}, None, None
+        lda = LinearDiscriminantAnalysis(n_components=512)
+        lda.fit(enrolled_embedding, enrolled_label)
+
+        enrolled_embedding_reduced = normalize(lda.transform(enrolled_embedding))
+        query_embedding_reduced = normalize(lda.transform(query_embedding))
+    else:
+        raise InputError("Given reduction method doesnt exist")
+
+    similarity_matrix = calculate_embedding_similarity(query_embedding_reduced, enrolled_embedding_reduced, disable_bar=disable_bar)
 
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
