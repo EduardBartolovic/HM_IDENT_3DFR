@@ -34,8 +34,8 @@ def generate_allowed_perspectives(ref_angles):
     # Print max 24 combos from each level
     sampled_subsets = []
     for i, level in enumerate(nested_subsets, start=1):
-        print(f"\nLevel {i} - Showing up to 24 from {len(level)} combinations:")
-        to_show = random.sample(level, 24) if len(level) > 24 else level
+        print(f"\nLevel {i} - Sample {min(30, len(level))} from {len(level)} combinations:")
+        to_show = random.sample(level, min(30, len(level))) if len(level) > 24 else level
         sampled_subsets.append(to_show)
         for combo in to_show:
             print(combo)
@@ -69,11 +69,22 @@ if __name__ == '__main__':
     # --------------------------- CONFIG --------------------------- #
     SOURCE_DIR = 'F:\\Face\\data\\datasets9\\test_rgb_bff_crop'
     ANGLES = [-25, -10, 0, 10, 25]
-    MAX_SAMPLES_PER_LEVEL = 24
+    MAX_SAMPLES_PER_LEVEL = 25
     # -------------------------------------------------------------- #
     allowed = generate_allowed_perspectives(ANGLES)
     print(f"✅ Using {len(allowed)} unique perspectives")
-
+    extras = [['0_0', '-25_0', '-10_0', '25_0', '10_0'],  # Azimuth axis
+              ['0_0', '0_-25', '0_-10', '0_10', '0_25'],  # Alitude axis
+              ['0_0', '-25_-25', '-10_-10', '10_10', '25_25'],  # diagonal
+              ['0_0', '-25_25', '-10_10', '10_-10', '25_-25'],  # diagonal
+              ['0_0', '-25_-25', '-25_25', '25_-25', '25_25'],  # Only corners
+              ['0_0', '-10_-10', '-10_10', '10_-10', '10_10'],  # Only middle
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25'],  # Top row
+              ['0_0', '10_-25', '10_-10', '10_0', '10_10', '10_25'],  # 2 Top row
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25'],  # Tops All
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25', '0_-25', '0_-10', '0_10', '0_25'],  # Tops All + Middle
+              ]
+    allowed.append(extras)
     for num_perspectives in allowed:
         for allowed_perspectives in tqdm(num_perspectives):
 
