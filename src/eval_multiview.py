@@ -134,6 +134,6 @@ if __name__ == '__main__':
         if "test_" in i:
             views = i.count("_")-4
             print("################ RUNNING: ", i, "with views: ", views)
-            yaml_cfg["AGG"]["AGG_CONFIG"] = [[views, 0], [views+1, 2], [views+1, 2], [views+1, 2], [views+1, 2]]
+            yaml_cfg["AGG"]["AGG_CONFIG"] = [[views, 0], [views+1, 0], [views+1, 0], [views+1, 0], [views+1, 0]]
             yaml_cfg['NUM_VIEWS'] = views
             main(yaml_cfg, i)
