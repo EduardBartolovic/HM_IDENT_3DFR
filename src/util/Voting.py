@@ -37,9 +37,22 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
     top_k_matches = reference_ids[top_indices[:, :top_k_acc_k]]
     top_k_accuracy = np.mean([ground_truth_ids[i] in top_k_matches[i] for i in range(num_inferences)])
 
+    true_match_scores = np.array([similarity_matrix[i, np.where(reference_ids == ground_truth_ids[i])[0][0]] for i in range(num_inferences)])
+    mean_true_match_similarity = np.mean(true_match_scores)
+
+    false_match_scores = []
+    for i in range(num_inferences):
+        top1_ref_idx = top_indices[i, 0]
+        predicted_label = reference_ids[top1_ref_idx]
+        if predicted_label != ground_truth_ids[i]:
+            false_match_scores.append(similarity_matrix[i, top1_ref_idx])
+    mean_false_match_similarity = np.mean(false_match_scores) if false_match_scores else 0
+
     return {
         "Rank-1 Rate": round(top_1_accuracy * 100, 2),
         f"Rank-{top_k_acc_k} Rate": round(top_k_accuracy * 100, 2),
+        "mean_true_match_similarity": mean_true_match_similarity,
+        "mean_false_match_similarity": mean_false_match_similarity
     }
 
 
@@ -61,7 +74,7 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
     return similarity_matrix
 
 
-def concat(embedding_library, disable_bar:bool, pre_sorted=False, reduce_with_pca=False):
+def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with_pca=False):
 
     if pre_sorted:
         enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
@@ -77,15 +90,14 @@ def concat(embedding_library, disable_bar:bool, pre_sorted=False, reduce_with_pc
             embedding_library.query_labels, embedding_library.query_perspectives)
 
     if reduce_with_pca:
-        assert enrolled_embedding.shape[0] > 512
+        if enrolled_embedding.shape[0] <= 512:
+            return {}, None, None
         pca = PCA(n_components=512)
         pca = pca.fit(enrolled_embedding)
         enrolled_embedding = normalize(pca.transform(enrolled_embedding))
         query_embedding = normalize(pca.transform(query_embedding))
 
-
     similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar=disable_bar)
-
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
     predicted_labels = enrolled_label[top_indices[:, 0]]

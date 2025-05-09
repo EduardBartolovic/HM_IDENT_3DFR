@@ -13,12 +13,10 @@ from tqdm import tqdm
 from src.backbone.model_multiview_irse import execute_model
 from src.util.Metrics import error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix
-from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, \
-    accuracy_front_perspective, concat_reduced
+from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, accuracy_front_perspective
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
-from src.util.datapipeline.FakeMultiviewDataset import FakeMultiviewDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
-from src.util.misc import colorstr
+from src.util.misc import colorstr, bold, underscore, safe_round
 
 
 @torch.no_grad()
@@ -76,7 +74,6 @@ def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_
 
 
 def load_data(data_dir, max_batch_size: int) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
-
     dataset = EmbeddingDataset(data_dir)
     dataset_size = len(dataset)
     # Ensure the last batch is always larger than 1
@@ -130,17 +127,15 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
     plot_confusion_matrix(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
-    error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path))
+    error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path), "_mv")
 
     # Single Front View
     metrics_front = accuracy_front_perspective(embedding_library, pre_sorted=True)
+    error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path), "_front")
 
     # Concat
     metrics_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True)
-    if embedding_library.enrolled_embeddings.shape[0] > 512:
-        metrics_concat_pca, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with_pca=True)
-    else:
-        metrics_concat_pca = {}
+    metrics_concat_pca, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with_pca=True)
 
     return result_metrics, metrics_front, metrics_concat, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
 
@@ -155,37 +150,69 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {test_transform_sizes} and face_corr: {use_face_corr}"))
-    metrics, metrics_front, metrics_concat, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query = evaluate_mv(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, num_views, use_face_corr, disable_bar)
+    metrics_mv, metrics_front, metrics_concat, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query = evaluate_mv(
+        device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size,
+        num_views, use_face_corr, disable_bar)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
-    mlflow.log_metric(f'{neutral_dataset}_MV-RR1', metrics['Rank-1 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_MV-RR5', metrics['Rank-5 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_MV-RR1', metrics_mv['Rank-1 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_MV-RR5', metrics_mv['Rank-5 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_MV-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_MV-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
+
     mlflow.log_metric(f'{neutral_dataset}_Front-RR1', metrics_front['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_Front-RR5', metrics_front['Rank-5 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_Front-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_Front-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
+
     mlflow.log_metric(f'{neutral_dataset}_Concat-RR1', metrics_concat['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_Concat-RR5', metrics_concat['Rank-5 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR1', metrics_concat_pca['Rank-1 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR5', metrics_concat_pca['Rank-5 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_Concat-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_Concat-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
 
-    #if 'bellus' in dataset:
+    if metrics_concat_pca:
+        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR1', metrics_concat_pca['Rank-1 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR5', metrics_concat_pca['Rank-5 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-mean_true_match_similarity',  metrics_concat_pca['mean_true_match_similarity'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-mean_false_match_similarity', metrics_concat_pca['mean_false_match_similarity'], step=epoch)
+
+    # if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
 
-    rank_1 = metrics.get('Rank-1 Rate', 'N/A')
-    rank_5 = metrics.get('Rank-5 Rate', 'N/A')
+    print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_front, metrics_concat, metrics_concat_pca,
+                  metrics_mv)
+
+
+def print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_front, metrics_concat, metrics_concat_pca, metrics_mv):
     rank_1_front = metrics_front.get('Rank-1 Rate', 'N/A')
     rank_5_front = metrics_front.get('Rank-5 Rate', 'N/A')
+    mean_true_match_similarity_front = metrics_front.get('mean_true_match_similarity', 'N/A')
+    mean_false_match_similarity_front = metrics_front.get('mean_false_match_similarity', 'N/A')
+
     rank_1_concat = metrics_concat.get('Rank-1 Rate', 'N/A')
     rank_5_concat = metrics_concat.get('Rank-5 Rate', 'N/A')
+    mean_true_match_similarity_concat = metrics_concat.get('mean_true_match_similarity', 'N/A')
+    mean_false_match_similarity_concat = metrics_concat.get('mean_false_match_similarity', 'N/A')
+
     rank_1_concat_pca = metrics_concat_pca.get('Rank-1 Rate', 'N/A')
     rank_5_concat_pca = metrics_concat_pca.get('Rank-5 Rate', 'N/A')
+    mean_true_match_similarity_concat_pca = metrics_concat_pca.get('mean_true_match_similarity', 'N/A')
+    mean_false_match_similarity_concat_pca = metrics_concat_pca.get('mean_false_match_similarity', 'N/A')
 
-    print(colorstr(
-        'bright_green',
-        f"{neutral_dataset}: C{len(dataset_enrolled.classes)} E{len(dataset_enrolled)} Q{len(dataset_query)} ; Evaluation: "
-        f"Front-RR1: {rank_1_front} Front-RR5: {rank_5_front} "
-        f"Concat-RR1: {rank_1_concat} Concat-RR5: {rank_5_concat} "
-        f"Concat_PCA-RR1: {rank_1_concat_pca} Concat_PCA-RR5: {rank_5_concat_pca} "
-        f"MV-RR1: {rank_1} MV-RR5: {rank_5} "
-    ))
+    rank_1_mv = metrics_mv.get('Rank-1 Rate', 'N/A')
+    rank_5_mv = metrics_mv.get('Rank-5 Rate', 'N/A')
+    mean_true_match_similarity_mv = metrics_mv.get('mean_true_match_similarity', 'N/A')
+    mean_false_match_similarity_mv = metrics_mv.get('mean_false_match_similarity', 'N/A')
 
+    string = (colorstr('bright_green', f"{neutral_dataset}: C{len(dataset_enrolled.classes)} E{len(dataset_enrolled)} Q{len(dataset_query)} ; Evaluation: ") +
+              f"{bold('Front-RR1')}: {underscore(rank_1_front)} {bold('Front-RR5')}: {rank_5_front} "
+              # f"{bold('Front-TMS')}: {safe_round(mean_true_match_similarity_front * 100, 2)} {bold('Front-FMS')}: {safe_round(mean_false_match_similarity_front * 100, 2)} "
+              f"{bold('Concat-RR1')}: {underscore(rank_1_concat)} {bold('Concat-RR5')}: {rank_5_concat} "
+              # f"{bold('Concat-TMS')}: {safe_round(mean_true_match_similarity_concat * 100, 2)} {bold('Concat-FMS')}: {safe_round(mean_false_match_similarity_concat * 100, 2)} "
+              f"{bold('Concat_PCA-RR1')}: {underscore(rank_1_concat_pca)} {bold('Concat_PCA-RR5')}: {rank_5_concat_pca} "
+              # f"{bold('Concat_PCA-TMS')}: {safe_round(mean_true_match_similarity_concat_pca * 100, 2)} {bold('Concat_PCA-FMS')}: {safe_round(mean_false_match_similarity_concat_pca * 100, 2)} "
+              f"{bold('MV-RR1')}: {underscore(rank_1_mv)} {bold('MV-RR5')}: {rank_5_mv} "
+              # f"{bold('MV-TMS')}: {safe_round(mean_true_match_similarity_mv * 100, 2)} {bold('MV-FMS')}: {safe_round(mean_false_match_similarity_mv * 100, 2)}"
+              )
+    print(string)

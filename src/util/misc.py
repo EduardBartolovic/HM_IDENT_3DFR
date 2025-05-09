@@ -35,3 +35,15 @@ def colorstr(*inp):
         "underline": "\033[4m",
     }
     return "".join(colors[x] for x in args) + f"{string}" + colors["end"]
+
+
+def bold(text):
+    return f"\033[1m{text}\033[0m"
+
+
+def underscore(text):
+    return f"\033[4m{text}\033[0m"
+
+
+def safe_round(value, digits=2):
+    return round(value, digits) if isinstance(value, (int, float)) else 'N/A'

@@ -57,8 +57,7 @@ def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matpl
             classes = dataset.classes
             cm = confusion_matrix(true_labels, pred_labels)
             row_sums = cm.sum(axis=1)
-            # To avoid division by zero, set the zero elements to 1 (or a very small number)
-            # The corresponding normalized row will be all zeros later on
+            # To avoid division by zero, set the zero elements to 1. The corresponding normalized row will be all zeros later on
             row_sums[row_sums == 0] = 1
             cm_normalized = cm.astype('float') / row_sums[:, np.newaxis]
             plt.figure(figsize=(20, 20))

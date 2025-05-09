@@ -90,7 +90,7 @@ def write_metrics_and_config(output_path, acc_val, acc5_val, prec_val, rec_val, 
         json.dump(hyperparameters, file, indent=4)
 
 
-def error_rate_per_class(true_labels, pred_labels, dataset, query_scan_ids, filename):
+def error_rate_per_class(true_labels, pred_labels, dataset, query_scan_ids, filename, method_appendix=""):
     # Find the unique classes
     classes = np.unique(true_labels)
 
@@ -135,8 +135,8 @@ def error_rate_per_class(true_labels, pred_labels, dataset, query_scan_ids, file
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
 
-        df_classes.to_csv(os.path.join(tmp_dir, filename+'_error_rate_per_class.csv'), index=False)
-        df_scans.to_csv(tmp_dir / f'{filename}_misclassified_scans.csv', index=False)
+        df_classes.to_csv(os.path.join(tmp_dir, f'{filename}{method_appendix}_error_rate_per_class.csv'), index=False)
+        df_scans.to_csv(tmp_dir / f'{filename}{method_appendix}_misclassified_scans.csv', index=False)
 
         classes = list(error_rates.keys())
         error_values = list(error_rates.values())
@@ -148,7 +148,7 @@ def error_rate_per_class(true_labels, pred_labels, dataset, query_scan_ids, file
         plt.title('Error Rate per Class', fontsize=14)
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.savefig(os.path.join(tmp_dir, filename+'_error_rate_per_class.jpg'), format='jpg', dpi=300)
+        plt.savefig(os.path.join(tmp_dir, f'{filename}{method_appendix}_error_rate_per_class.jpg'), format='jpg', dpi=300)
         plt.close()
 
         mlflow.log_artifacts(tmp_dir, artifact_path="error_rate_per_class")
