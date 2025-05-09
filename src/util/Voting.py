@@ -91,7 +91,7 @@ def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with_p
 
     if reduce_with_pca:
         if enrolled_embedding.shape[0] <= 512:
-            return {}, None, None
+            return {}, None, None, None
         pca = PCA(n_components=512)
         pca = pca.fit(enrolled_embedding)
         enrolled_embedding = normalize(pca.transform(enrolled_embedding))
