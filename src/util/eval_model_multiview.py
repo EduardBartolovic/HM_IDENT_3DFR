@@ -130,12 +130,13 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
     error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path), "_mv")
 
     # Single Front View
-    metrics_front = accuracy_front_perspective(embedding_library, pre_sorted=True)
-    error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path), "_front")
+    metrics_front, top_indices_front, y_true_front, y_pred_front = accuracy_front_perspective(embedding_library, pre_sorted=True)
+    error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices_front[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path), "_front")
 
     # Concat
-    metrics_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True)
-    metrics_concat_pca, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with_pca=True)
+    metrics_concat, top_indices_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True)
+    metrics_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with_pca=True)
+    error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices_concat[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path), "_concat")
 
     return result_metrics, metrics_front, metrics_concat, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
 

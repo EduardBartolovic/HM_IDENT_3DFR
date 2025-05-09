@@ -101,7 +101,7 @@ def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with_p
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
     predicted_labels = enrolled_label[top_indices[:, 0]]
-    return result, predicted_labels, query_label
+    return result, top_indices, predicted_labels, query_label
 
 
 def multidatabase_voting(embedding_library):
@@ -338,5 +338,6 @@ def accuracy_front_perspective(embedding_library, distance_metric=None, pre_sort
 
     similarity_matrix = calculate_embedding_similarity(query_embeddings, enrolled_embeddings)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
-    result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
-    return result_metrics
+    result = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
+    predicted_labels = enrolled_labels[top_indices[:, 0]]
+    return result, top_indices, predicted_labels, query_labels
