@@ -88,7 +88,7 @@ if __name__ == '__main__':
     for num_perspectives in allowed:
         for allowed_perspectives in tqdm(num_perspectives):
 
-            DEST_DIR = f'F:\\Face\\data\\datasets9\\test_rgb_bff_crop_new_{allowed_perspectives}'
+            DEST_DIR = f'F:\\Face\\data\\datasets9\\test_rgb_bff_crop_new_{allowed_perspectives}'.replace("[", "").replace("]", "").replace("\'", "")
             for split in ['train', 'validation']:
                 filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives)
 
