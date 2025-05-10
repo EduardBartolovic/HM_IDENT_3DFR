@@ -59,7 +59,11 @@ def filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives):
 
             perspective = os.path.basename(file)[40:-10]
             if perspective in allowed_set:
-                shutil.copy2(
+                #shutil.copy2(
+                #    os.path.join(src_id_path, file),
+                #    os.path.join(dst_id_path, file)
+                #)
+                os.symlink(
                     os.path.join(src_id_path, file),
                     os.path.join(dst_id_path, file)
                 )
@@ -86,6 +90,7 @@ if __name__ == '__main__':
               ]
     allowed.append(extras)
     for num_perspectives in allowed:
+        print(len(num_perspectives))
         for allowed_perspectives in tqdm(num_perspectives):
 
             DEST_DIR = f'F:\\Face\\data\\datasets9\\test_rgb_bff_crop_new_{allowed_perspectives}'.replace("[", "").replace("]", "").replace("\'", "").replace(",", "")
@@ -93,3 +98,5 @@ if __name__ == '__main__':
                 filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives)
 
     print("🎉 Filtering complete. New dataset at:", DEST_DIR)
+
+    # Deleting later : find . -type l -delete
