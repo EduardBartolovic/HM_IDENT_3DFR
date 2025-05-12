@@ -91,7 +91,7 @@ def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with_p
 
     if reduce_with_pca:
         if enrolled_embedding.shape[0] <= 512:
-            return {}, None, None, None
+            return {}, None, None, None, None
         pca = PCA(n_components=512)
         pca = pca.fit(enrolled_embedding)
         enrolled_embedding = normalize(pca.transform(enrolled_embedding))
@@ -101,7 +101,7 @@ def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with_p
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
     predicted_labels = enrolled_label[top_indices[:, 0]]
-    return result, top_indices, predicted_labels, query_label
+    return result, similarity_matrix, top_indices, predicted_labels, query_label
 
 
 def multidatabase_voting(embedding_library):
@@ -340,4 +340,4 @@ def accuracy_front_perspective(embedding_library, distance_metric=None, pre_sort
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
     predicted_labels = enrolled_labels[top_indices[:, 0]]
-    return result, top_indices, predicted_labels, query_labels
+    return result, similarity_matrix, top_indices, predicted_labels, query_labels

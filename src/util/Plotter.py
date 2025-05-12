@@ -27,6 +27,51 @@ def plot_metric(output_path, epochs, metric_values: List[float], metric_name: st
     plt.close('all')
 
 
+def plot_rrk_histogram(true_labels, pred_labels, similarity_matrix, dataset_name, method_appendix=""):
+    """
+    Plots a histogram of the ranks where the correct match was found in the similarity matrix,
+    always showing ranks 1–30, with an extra category for ranks beyond 30.
+
+    Args:
+        true_labels: List or array of true class labels for query embeddings.
+        pred_labels: List or array of enrolled labels.
+        similarity_matrix: 2D numpy array with shape (n_queries, n_enrolled) representing cosine similarity.
+        dataset_name: Name of the dataset for title/saving.
+        method_appendix: Optional string to append to the method name or title.
+    """
+    if true_labels is None or pred_labels is None or similarity_matrix is None:
+        return
+    ranks = []
+    for i, true_label in enumerate(true_labels):
+        similarities = similarity_matrix[i]
+        sorted_indices = np.argsort(similarities)[::-1]
+        sorted_labels = pred_labels[sorted_indices]
+        correct_rank = np.where(sorted_labels == true_label)[0]
+        if len(correct_rank) > 0:
+            rank = correct_rank[0] + 1
+            ranks.append(rank if rank <= 30 else 31)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = Path(tmp_dir)
+
+        plt.figure(figsize=(10, 6))
+        bins = np.arange(1, 33) - 0.5  # Bin edges from 0.5 to 31.5 to center bins on integers 1–31
+        plt.hist(ranks, bins=bins, edgecolor='black', color='skyblue')
+
+        plt.xlabel("Rank of First Correct Match")
+        plt.ylabel("Number of Queries")
+        plt.title(f"Histogram of Matching Ranks - {dataset_name} {method_appendix}")
+
+        xticks = list(range(1, 31)) + [31]
+        xtick_labels = [str(x) for x in range(1, 31)] + ["31+"]
+        plt.xticks(xticks, xtick_labels, rotation=45)
+
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(os.path.join(tmp_dir, 'RRK-Histogram' +dataset_name + '_' + method_appendix + '.jpg'))
+        mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
+
+
 def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matplotlib=True):
 
     assert len(true_labels) == len(pred_labels)
