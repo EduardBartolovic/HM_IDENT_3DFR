@@ -24,7 +24,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    analyse_video_nersemble(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=False, frame_skip=frame_skip)
+    analyse_video_nersemble(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=True, frame_skip=frame_skip)
 
     print("##################################")
     print("##### FIND MATCHES ###############")

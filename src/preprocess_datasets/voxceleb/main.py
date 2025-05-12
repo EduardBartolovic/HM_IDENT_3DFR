@@ -15,14 +15,14 @@ def preprocessing():
     output_test_dataset = root+"test_vox2test"
     model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
-    batch_size = 48 # 128  # 48 for 8 GB VRAM
+    batch_size = 256 # 256 for 24GB  # 48 for 8 GB VRAM
     poses = 25  # Number of poses
     device = torch.device("cuda")
 
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    #analyse_video_vox(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=False)
+    analyse_video_vox(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=False)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
@@ -31,13 +31,13 @@ def preprocessing():
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
     print("number of permutations:", len(permutations))
     print(permutations)
-    #find_matches(folder_root, permutations, txt_name="analysis.txt")
+    find_matches(folder_root, permutations, txt_name="analysis.txt")
     # evaluate_gaze_coverage(folder_root)
 
     print("##################################")
     print("##### GEN DATASET ################")
     print("##################################")
-    #generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, keep=False)
+    generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, keep=False)
 
     print("##################################")
     print("###### face_correspondences ######")
