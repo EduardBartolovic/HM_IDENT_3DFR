@@ -16,14 +16,15 @@ if __name__ == '__main__':
     output_test_dataset = root + "test_data"
     model_path_hpe = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     face_detect_model_root = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
-    batch_size = 8 # 256 for 24GB  # 48 for 8 GB VRAM
+    batch_size = 8 # 512 for 48GB # 256 for 24GB  # 48 for 8 GB VRAM
+    frame_skip = 8 # 8 which is ~10FPS
     poses = 25  # Number of poses
     device = torch.device("cuda")
 
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    analyse_video_nersemble(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=True)
+    analyse_video_nersemble(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=False, frame_skip=frame_skip)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
@@ -37,7 +38,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##### GEN DATASET ################")
     print("##################################")
-    generate_nersemble_dataset_from_video(folder_root, dataset_output_folder, keep=True)
+    generate_nersemble_dataset_from_video(folder_root, dataset_output_folder, keep=False)
 
     #print("##################################")
     #print("######face_correspondences########")

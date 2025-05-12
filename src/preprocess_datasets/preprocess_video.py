@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 import cv2
 import numpy as np
 import os
@@ -9,10 +11,11 @@ from tqdm import tqdm
 from src.preprocess_datasets.blazeface.blazeface import BlazeFace
 from src.preprocess_datasets.blazeface.face_crop import resize_with_padding
 from src.preprocess_datasets.detect_face import expand_bbox
-from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_model, get_frames, process_hpe_batch
+from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_model, get_frames, process_hpe_batch, \
+    process_video
 
 
-def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, filter=None, keep=True, min_accepted_face_size=112):
+def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, filter=None, keep=True, min_accepted_face_size=112, frame_skip=2):
     start_time = time.time()
 
     head_pose_model = get_model("resnet50", num_classes=6)
@@ -52,19 +55,16 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
         video_names = []
         for video in files:
             if ".mp4" in video:
-                if filter is not None:
-                    if filter not in video:
-                        continue
                 os.makedirs(output_analysis_folder, exist_ok=True)
-                imgs = get_frames(os.path.join(root, video))
+                video_path = os.path.join(root, video)
+                frames, names = get_frames(os.path.join(root, video), frame_skip=frame_skip)
 
-                for counter, img in enumerate(imgs):
-                    if img is not None:
-                        video_frames.append(img)
-                        video_names.append(video + "#" + str(counter))
+                if not frames:
+                    print("Error processing", video_path)
+                    continue
 
-                if not video_frames:
-                    print("Error for", os.path.join(root, output_folder))
+                video_frames.extend(frames)
+                video_names.extend(names)
 
         if not video_frames:
             continue
@@ -82,12 +82,11 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
                     padded_batch.append(padded_image)
 
                 padded_batch = np.array(padded_batch)
-
                 detections = back_net.predict_on_batch(padded_batch)
 
                 cropped_batch = []
-                for det, img in zip(detections, padded_batch):
-
+                valid_names_batch = []
+                for det, img, name in zip(detections, padded_batch, name_batch):  # Iterate over batch
                     if det.shape[0] == 0:
                         missing_faces += 1
                         continue
@@ -114,6 +113,7 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
                     face_crop_resized = cv2.resize(face_crop, (224, 224))
                     cropped_batch.append(face_crop_resized)
                     frame_dets.append(np.array([x_min, y_min, x_max, y_max]))
+                    valid_names_batch.append(name)
 
                 if len(cropped_batch) == 0:
                     continue
@@ -123,7 +123,7 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
                 # +++++++++++++++++++  HPE ++++++++++++++++++++
                 batch_infos = process_hpe_batch(cropped_batch, device, head_pose_model)
                 for j, info in enumerate(batch_infos):
-                    info.append(name_batch[j] + "#" + str(i + j))
+                    info.append(valid_names_batch[j])
                     frame_hpe.append(info)
 
             assert len(frame_hpe) == len(frame_dets)
@@ -147,7 +147,7 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
     print("Video Analysis for ", num_folders, " in", round(elapsed_time / 60, 2), "minutes, missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces+more_faces+found_one_face, ", too_small:", too_small, "hpe on", hpe_counter, "frames")
 
 
-def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=4):
+def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8):
     start_time = time.time()
 
     head_pose_model = get_model("resnet50", num_classes=6)
@@ -186,15 +186,15 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
         for video in files:
             if ".mp4" in video:
                 os.makedirs(output_analysis_folder, exist_ok=True)
-                imgs = get_frames(os.path.join(root, video), frame_skip=frame_skip)
+                video_path = os.path.join(root, video)
+                frames, names = get_frames(os.path.join(root, video), frame_skip=frame_skip)
 
-                for counter, img in enumerate(imgs):
-                    if img is not None:
-                        video_frames.append(img)
-                        video_names.append(video + "#" + str(counter*frame_skip))
+                if not frames:
+                    print("Error processing", video_path)
+                    continue
 
-                if not video_frames:
-                    print("Error for", os.path.join(root, output_folder))
+                video_frames.extend(frames)
+                video_names.extend(names)
 
         if not video_frames:
             continue
@@ -214,7 +214,8 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
                 detections = back_net.predict_on_batch(padded_batch)
 
                 cropped_batch = []
-                for det, img in zip(detections, padded_batch):
+                valid_names_batch = []
+                for det, img, name in zip(detections, padded_batch, name_batch): # Iterate over batch
 
                     if det.shape[0] == 0:
                         missing_faces += 1
@@ -242,6 +243,7 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
                     face_crop_resized = cv2.resize(face_crop, (224, 224))
                     cropped_batch.append(face_crop_resized)
                     frame_dets.append(np.array([x_min, y_min, x_max, y_max]))
+                    valid_names_batch.append(name)
 
                 if len(cropped_batch) == 0:
                     continue
@@ -251,7 +253,7 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
                 # +++++++++++++++++++  HPE ++++++++++++++++++++
                 batch_infos = process_hpe_batch(cropped_batch, device, head_pose_model)
                 for j, info in enumerate(batch_infos):
-                    info.append(name_batch[j] + "#" + str(i + j))
+                    info.append(valid_names_batch[j])
                     frame_hpe.append(info)
 
         assert len(frame_hpe) == len(frame_dets)

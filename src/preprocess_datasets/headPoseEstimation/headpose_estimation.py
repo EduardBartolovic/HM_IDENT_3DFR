@@ -155,22 +155,30 @@ def headpose_estimation(input_folder, image_folder, output_folder, model_path_hp
     print(f"HPE for {counter} frames")
 
 
+def process_video(video_path, frame_skip):
+    frames = get_frames(video_path, frame_skip)
+    return video_path, frames
+
+
 def get_frames(video_path, frame_skip=1):
     cap = cv2.VideoCapture(video_path)
-    counter = 0
-    frame_list = []
-    while cap.isOpened():
+    frames = []
+    names = []
+    video_filename = os.path.basename(video_path)
+
+    frame_index = 0
+    while True:
         ret, frame = cap.read()
         if not ret:
             break
-        if counter % frame_skip == 0:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_list.append(frame)
-        counter += 1
+        if frame_index % frame_skip == 0:
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frames.append(frame_rgb)
+            names.append(f"{video_filename}#{frame_index}")
+        frame_index += 1
 
     cap.release()
-    cv2.destroyAllWindows()
-    return frame_list
+    return frames, names
 
 
 def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, device, batch_size=64, filter=None):
