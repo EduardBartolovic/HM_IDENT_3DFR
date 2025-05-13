@@ -15,7 +15,7 @@ from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_m
     process_video
 
 
-def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, filter=None, keep=True, min_accepted_face_size=112, frame_skip=2, max_workers=8):
+def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, filter=None, keep=True, min_accepted_face_size=112, frame_skip=2, max_workers=8, face_confidence=0.6):
     start_time = time.time()
 
     head_pose_model = get_model("resnet50", num_classes=6)
@@ -85,7 +85,7 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
                 cropped_batch = []
                 valid_names_batch = []
                 for det, img, name in zip(detections, padded_batch, name_batch):  # Iterate over batch
-                    det = np.array([d for d in det.cpu().numpy() if d[-1] >= 0.5])  # Remove det below a 0.5 confidence
+                    det = np.array([d for d in det.cpu().numpy() if d[-1] >= face_confidence])  # Remove det below a 0.5 confidence
                     if det.shape[0] == 0:
                         missing_faces += 1
                         continue
