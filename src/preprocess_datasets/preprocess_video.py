@@ -15,7 +15,7 @@ from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_m
     process_video
 
 
-def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, filter=None, keep=True, min_accepted_face_size=112, frame_skip=2):
+def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, filter=None, keep=True, min_accepted_face_size=112, frame_skip=2, max_workers=8):
     start_time = time.time()
 
     head_pose_model = get_model("resnet50", num_classes=6)
@@ -53,18 +53,16 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
 
         video_frames = []
         video_names = []
-        for video in files:
-            if ".mp4" in video:
-                os.makedirs(output_analysis_folder, exist_ok=True)
-                video_path = os.path.join(root, video)
-                frames, names = get_frames(os.path.join(root, video), frame_skip=frame_skip)
-
-                if not frames:
-                    print("Error processing", video_path)
-                    continue
-
-                video_frames.extend(frames)
-                video_names.extend(names)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
+            for video in files:
+                if video.endswith(".mp4"):
+                    video_path = os.path.join(root, video)
+                    futures.append(executor.submit(process_video, video_path, frame_skip, output_analysis_folder))
+        for future in futures:
+            frames, names = future.result()
+            video_frames.extend(frames)
+            video_names.extend(names)
 
         if not video_frames:
             continue
@@ -87,6 +85,7 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
                 cropped_batch = []
                 valid_names_batch = []
                 for det, img, name in zip(detections, padded_batch, name_batch):  # Iterate over batch
+                    det = np.array([d for d in det.cpu().numpy() if d[-1] >= 0.5])  # Remove det below a 0.5 confidence
                     if det.shape[0] == 0:
                         missing_faces += 1
                         continue
@@ -95,6 +94,8 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
                         more_faces += 1
                         det = max(det, key=lambda d: (d[2] - d[0]) * (d[3] - d[1]))
                     else:
+                        if det[0][-1] < 0.5:
+                            print(det)
                         found_one_face += 1
                         det = det[0]
 
@@ -147,7 +148,7 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
     print("Video Analysis for ", num_folders, " in", round(elapsed_time / 60, 2), "minutes, missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces+more_faces+found_one_face, ", too_small:", too_small, "hpe on", hpe_counter, "frames")
 
 
-def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8):
+def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, max_workers=8):
     start_time = time.time()
 
     head_pose_model = get_model("resnet50", num_classes=6)
@@ -183,18 +184,16 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
 
         video_frames = []
         video_names = []
-        for video in files:
-            if ".mp4" in video:
-                os.makedirs(output_analysis_folder, exist_ok=True)
-                video_path = os.path.join(root, video)
-                frames, names = get_frames(os.path.join(root, video), frame_skip=frame_skip)
-
-                if not frames:
-                    print("Error processing", video_path)
-                    continue
-
-                video_frames.extend(frames)
-                video_names.extend(names)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
+            for video in files:
+                if video.endswith(".mp4"):
+                    video_path = os.path.join(root, video)
+                    futures.append(executor.submit(process_video, video_path, frame_skip, output_analysis_folder))
+        for future in futures:
+            frames, names = future.result()
+            video_frames.extend(frames)
+            video_names.extend(names)
 
         if not video_frames:
             continue
@@ -216,7 +215,7 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
                 cropped_batch = []
                 valid_names_batch = []
                 for det, img, name in zip(detections, padded_batch, name_batch): # Iterate over batch
-
+                    det = np.array([d for d in det.cpu().numpy() if d[-1] >= 0.5])  # Remove det below a 0.5 confidence
                     if det.shape[0] == 0:
                         missing_faces += 1
                         continue

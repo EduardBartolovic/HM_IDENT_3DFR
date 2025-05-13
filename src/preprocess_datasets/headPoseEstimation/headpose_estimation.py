@@ -155,9 +155,15 @@ def headpose_estimation(input_folder, image_folder, output_folder, model_path_hp
     print(f"HPE for {counter} frames")
 
 
-def process_video(video_path, frame_skip):
-    frames = get_frames(video_path, frame_skip)
-    return video_path, frames
+def process_video(video_path, frame_skip, output_analysis_folder):
+    os.makedirs(output_analysis_folder, exist_ok=True)
+    frames, names = get_frames(video_path, frame_skip=frame_skip)
+
+    if not frames:
+        print("Error processing", video_path)
+        return [], []
+
+    return frames, names
 
 
 def get_frames(video_path, frame_skip=1):
