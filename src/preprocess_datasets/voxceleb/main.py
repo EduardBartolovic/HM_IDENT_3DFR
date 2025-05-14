@@ -22,7 +22,7 @@ def preprocessing():
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    analyse_video_vox(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=False, max_workers=16, face_confidence=0.6)
+    analyse_video_vox(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=True, max_workers=16, face_confidence=0.6)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
