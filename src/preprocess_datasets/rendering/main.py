@@ -252,13 +252,14 @@ def main():
 
     if bff:
         print("################# BFF #################")
-        input_paths = [Path(root+'test_rgb_bellus'), Path(root+'test_rgb_facescape'), Path(root+'test_rgb_faceverse')]
-        output_dir = Path(root + 'test_rgb_bff')
-        PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
-
-        #input_paths = [Path('F:\\Face\\data\\datasets7\\test_rgbd_bellus'), Path('F:\\Face\\data\\datasets7\\test_rgbd_facescape'), Path('F:\\Face\\data\\datasets7\\test_rgbd_faceverse')]
-        #output_dir = Path(root + 'test_rgbd_bff')
+        #input_paths = [Path(root+'test_rgb_bellus'), Path(root+'test_rgb_facescape'), Path(root+'test_rgb_faceverse')]
+        #output_dir = Path(root + 'test_rgb_bff')
         #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
+
+        #calculate_face_landmarks_dataset(root+'test_rgb_bff_crop/train')
+        #calculate_face_landmarks_dataset(root + 'test_rgb_bff_crop/validation')
+        #calculate_face_correspondences_dataset(root+'test_rgb_bff_crop/train', keep=True, processes=19)
+        calculate_face_correspondences_dataset(root+'test_rgb_bff_crop/validation', keep=True, processes=19)
 
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)

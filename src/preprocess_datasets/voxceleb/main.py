@@ -3,6 +3,7 @@ import numpy as np
 import torch
 
 from src.preprocess_datasets.create_test_dataset import create_train_test_split
+from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_landmarks_dataset, calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_voxceleb_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
 from src.preprocess_datasets.preprocess_video import analyse_video_vox
@@ -42,8 +43,8 @@ def preprocessing():
     print("##################################")
     print("###### face_correspondences ######")
     print("##################################")
-    #calculate_face_landmarks_dataset(dataset_output_folder_crop)
-    #calculate_face_correspondences_dataset(dataset_output_folder_crop, keep=True)
+    calculate_face_landmarks_dataset(dataset_output_folder)
+    calculate_face_correspondences_dataset(dataset_output_folder, keep=True)
 
     print("##################################")
     print("###### Create Test Dataset #######")
