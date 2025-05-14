@@ -63,7 +63,7 @@ class MultiviewDataset(Dataset):
                 # Append each grouped data point to the dataset
                 for sha_hash, file_paths in sha_groups.items():
                     if len(file_paths) == self.num_views:
-                        file_paths.sort() # Sort the data so perspectives are always at the same position
+                        file_paths.sort()  # Sort the data so perspectives are always at the same position
                         data.append((file_paths, class_idx))
                     else:
                         raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}: number of views doesnt match with {self.num_views}")

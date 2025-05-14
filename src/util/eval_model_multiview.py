@@ -114,6 +114,8 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
     dataset_query_path = os.path.join(test_path, 'validation')
     dataset_enrolled, enrolled_loader = load_data_mv(dataset_enrolled_path, batch_size, num_views, test_transform, use_face_corr)
     dataset_query, query_loader = load_data_mv(dataset_query_path, batch_size, num_views, test_transform, use_face_corr)
+    if len(dataset_enrolled.classes) != len(dataset_enrolled):
+        raise Exception(f"len(dataset_enrolled.classes): {len(dataset_enrolled.classes)} doesnt match len(dataset_enrolled.samples): {len(dataset_enrolled)} -> Check your dataset: {test_path}")
 
     time.sleep(0.1)
 
