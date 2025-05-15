@@ -4,6 +4,8 @@ import numpy as np
 import torch
 
 from src.preprocess_datasets.create_test_dataset import create_train_test_split
+from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_landmarks_dataset, \
+    calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_nersemble_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
 from src.preprocess_datasets.preprocess_video import analyse_video_nersemble
@@ -40,13 +42,14 @@ if __name__ == '__main__':
     print("##################################")
     generate_nersemble_dataset_from_video(folder_root, dataset_output_folder, keep=False)
 
-    #print("##################################")
-    #print("######face_correspondences########")
-    #print("##################################")
-    #calculate_face_landmarks_dataset(dataset_output_folder_crop)
-    #calculate_face_correspondences_dataset(dataset_output_folder_crop, keep=True)
+    print("##################################")
+    print("##### FACE CORRESPONDENCES #######")
+    print("##################################")
+    calculate_face_landmarks_dataset(dataset_output_folder)
+    perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
+    calculate_face_correspondences_dataset(dataset_output_folder, keep=True, filter_keywords=perspective_filter, target_views=len(perspective_filter))
 
     print("##################################")
-    print("###########GEN TEST DATASET############")
+    print("##### GEN TEST DATASET ###########")
     print("##################################")
     create_train_test_split(dataset_output_folder, output_test_dataset, ignore_face_corr=True)

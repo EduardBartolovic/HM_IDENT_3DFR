@@ -182,7 +182,7 @@ def process_file_paths(file_paths, draw=False):
     return 0
 
 
-def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=8, filter_keywords=None):
+def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=8, filter_keywords=None, target_views=25):
     start_time = time.time()
     data = []
     for class_name in os.listdir(dataset_folder):
@@ -194,9 +194,8 @@ def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=
                     continue
 
                 # Apply filter if keywords are provided
-                if filter_keywords and not any(keyword in filename for keyword in filter_keywords):
+                if filter_keywords and not any(keyword == filename[40:-10] for keyword in filter_keywords):
                     continue
-
                 # Skip if correspondence already exists
                 corr_path = os.path.join(class_path, filename.replace("_image.npz", "_corr.npz"))
                 if keep and os.path.exists(corr_path):
@@ -211,7 +210,7 @@ def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=
 
             # Append each grouped data point to the dataset
             for sha_hash, file_paths in sha_groups.items():
-                if len(file_paths) == 25:
+                if len(file_paths) == target_views:
                     data.append(file_paths)
 
     with Pool(processes=processes) as p, tqdm(total=len(data), desc="Creating Face Correspondences") as pbar:

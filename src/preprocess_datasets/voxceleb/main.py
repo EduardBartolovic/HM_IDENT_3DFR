@@ -44,7 +44,8 @@ def preprocessing():
     print("###### face_correspondences ######")
     print("##################################")
     calculate_face_landmarks_dataset(dataset_output_folder)
-    calculate_face_correspondences_dataset(dataset_output_folder, keep=True)
+    perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
+    calculate_face_correspondences_dataset(dataset_output_folder, keep=True, filter_keywords=perspective_filter, target_views=len(perspective_filter))
 
     print("##################################")
     print("###### Create Test Dataset #######")
