@@ -259,7 +259,8 @@ def main():
         #calculate_face_landmarks_dataset(root+'test_rgb_bff_crop/train')
         #calculate_face_landmarks_dataset(root + 'test_rgb_bff_crop/validation')
         #calculate_face_correspondences_dataset(root+'test_rgb_bff_crop/train', keep=True, processes=19)
-        calculate_face_correspondences_dataset(root+'test_rgb_bff_crop/validation', keep=True, processes=19)
+        perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
+        calculate_face_correspondences_dataset(root+'test_rgb_bff_crop/validation', keep=True, processes=19, filter_keywords=perspective_filter)
 
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)
