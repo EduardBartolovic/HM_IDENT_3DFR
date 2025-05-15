@@ -182,7 +182,7 @@ def process_file_paths(file_paths, draw=False):
     return 0
 
 
-def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=8):
+def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=8, filter_keywords=None):
     start_time = time.time()
     data = []
     for class_name in os.listdir(dataset_folder):
@@ -190,16 +190,24 @@ def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=
         if os.path.isdir(class_path):
             sha_groups = {}
             for filename in os.listdir(class_path):
-                if filename.endswith("_image.npz"):
-                    corr_path = os.path.join(class_path, filename.replace("_image.npz", "_corr.npz"))
-                    if keep and os.path.exists(corr_path):
-                        continue  # Skip if correspondence already exists
-                    file_path = os.path.join(class_path, filename)
-                    if os.path.isfile(file_path):
-                        sha_hash = filename[:40]  # Extract SHA hash from filename
-                        if sha_hash not in sha_groups:
-                            sha_groups[sha_hash] = []
-                        sha_groups[sha_hash].append(file_path)
+                if not filename.endswith("_image.npz"):
+                    continue
+
+                # Apply filter if keywords are provided
+                if filter_keywords and not any(keyword in filename for keyword in filter_keywords):
+                    continue
+
+                # Skip if correspondence already exists
+                corr_path = os.path.join(class_path, filename.replace("_image.npz", "_corr.npz"))
+                if keep and os.path.exists(corr_path):
+                    continue
+
+                file_path = os.path.join(class_path, filename)
+                if os.path.isfile(file_path):
+                    sha_hash = filename[:40]  # Extract SHA hash from filename
+                    if sha_hash not in sha_groups:
+                        sha_groups[sha_hash] = []
+                    sha_groups[sha_hash].append(file_path)
 
             # Append each grouped data point to the dataset
             for sha_hash, file_paths in sha_groups.items():
@@ -253,10 +261,10 @@ def calculate_face_landmarks_dataset(dataset_folder, keep=True):
 
 if __name__ == '__main__':
 
-    dataset = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\validation"
+    #dataset = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\validation"
     #calculate_face_landmarks_dataset(dataset)
     #calculate_face_correspondences_dataset(dataset)
-    dataset = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\train"
+    #dataset = "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\VoxCeleb1_test_dataset_TEST\\train"
     #calculate_face_landmarks_dataset(dataset)
     #calculate_face_correspondences_dataset(dataset)
 
