@@ -1,3 +1,5 @@
+import random
+
 import time
 
 import torch
@@ -96,10 +98,10 @@ def main(cfg, test):
 
         load_checkpoint(BACKBONE_reg, None, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         load_checkpoint(BACKBONE_agg, None, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
-        print("=" * 60)
+        #print("=" * 60)
 
-        print(colorstr('magenta', f"Using face correspondences: {use_face_corr}"))
-        print("=" * 60)
+        #print(colorstr('magenta', f"Using face correspondences: {use_face_corr}"))
+        #print("=" * 60)
 
         # ======= GPU Settings =======
         if MULTI_GPU:
@@ -111,15 +113,15 @@ def main(cfg, test):
             agg.to(DEVICE)
 
         #  ======= perform validation =======
-        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, False, disable_bar=True)
-        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
-        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
-        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, False, disable_bar=True)
+        evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", 0, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
+        evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
 
-        evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test, 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test, 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
 
-        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112),BATCH_SIZE * 4, use_face_corr, disable_bar=False)
-        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", 0, (112, 112),BATCH_SIZE * 4, use_face_corr, disable_bar=False)
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", 0,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
         print("=" * 60)
 
 
@@ -130,10 +132,28 @@ if __name__ == '__main__':
     with open(args.config, 'r') as file:
         yaml_cfg = yaml.safe_load(file)
 
-    for i in os.listdir(yaml_cfg['DATA_ROOT']):
-        if "test_" in i:
-            views = i.count("_")-4
-            print("################ RUNNING: ", i, "with views: ", views)
-            yaml_cfg["AGG"]["AGG_CONFIG"] = [[views, 0], [views+1, 0], [views+1, 0], [views+1, 0], [views+1, 0]]
+    mass_dataset_eval = False
+    mass_config_test = True
+
+    if mass_dataset_eval:
+        for i in os.listdir(yaml_cfg['DATA_ROOT']):
+            if "test_" in i:
+                views = i.count("_")-4
+                print("################ RUNNING: ", i, "with views: ", views)
+                yaml_cfg["AGG"]["AGG_CONFIG"] = [[views, 0], [views+1, 0], [views+1, 0], [views+1, 0], [views+1, 0]]
+                yaml_cfg['NUM_VIEWS'] = views
+                main(yaml_cfg, i)
+
+    if mass_config_test:
+        for i in range(0, 100):
+            views = 25
+            yaml_cfg["AGG"]["AGG_CONFIG"] = [
+                [views, random.randint(0, 5)],
+                [views + 1, random.randint(0, 5)],
+                [views + 1, random.randint(0, 5)],
+                [views + 1, random.randint(0, 5)],
+                [views + 1, random.randint(0, 5)],
+            ]
             yaml_cfg['NUM_VIEWS'] = views
+            print("################ RUNNING: ", yaml_cfg["AGG"]["AGG_CONFIG"])
             main(yaml_cfg, i)

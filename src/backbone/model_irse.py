@@ -10,7 +10,7 @@ from collections import namedtuple
 
 class Flatten(Module):
     def forward(self, input):
-        return input.view(input.size(0), -1)
+        return input.reshape(input.size(0), -1)
 
 
 def l2_norm(input, axis=1):

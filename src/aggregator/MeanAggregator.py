@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+
 class MeanAggregator(nn.Module):
     def __init__(self):
         """
@@ -8,7 +9,6 @@ class MeanAggregator(nn.Module):
 
         """
         super(MeanAggregator, self).__init__()
-
 
     def forward(self, all_view_stage):
         """
@@ -21,7 +21,6 @@ class MeanAggregator(nn.Module):
             torch.Tensor: Aggregated tensor of shape [batch, c, w, h].
         """
         return all_view_stage.mean(dim=1)
-
 
 
 def make_mean_aggregator(view_list):
