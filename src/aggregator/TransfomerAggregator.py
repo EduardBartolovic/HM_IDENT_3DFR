@@ -82,5 +82,4 @@ def make_stt_aggregator(channels_list):
         else:
             aggregators.append(TransfomerAggregator(num_views=26))
 
-    print(summary(aggregators[-1],  (8, 26, 512, 7, 7)))
     return aggregators

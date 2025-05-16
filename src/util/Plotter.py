@@ -69,6 +69,7 @@ def plot_rrk_histogram(true_labels, pred_labels, similarity_matrix, dataset_name
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
         plt.savefig(os.path.join(tmp_dir, 'RRK-Histogram' +dataset_name + '_' + method_appendix + '.jpg'))
+        plt.close()
         mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
 
 

@@ -1,7 +1,7 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP193-MVS-ASIA-enc_512-ArcFace-FocalLoss-112_112-epochs50-IR_50'  # experiment_name
-DATA_ROOT: '/home/gustav/dataset8'  # the parent root
+DATA_ROOT: '/home/gustav/dataset9'  # the parent root
 TRAIN_SET: 'rgb_bellus'  # where your train/val/test data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
