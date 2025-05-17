@@ -77,9 +77,9 @@ class TransfomerAggregator(nn.Module):
 def make_stt_aggregator(channels_list):
     aggregators = []
     for channels in channels_list:
-        if channels != 512:
-            aggregators.append(MeanAggregator())
-        else:
+        if channels == 512 or 256:
             aggregators.append(TransfomerAggregator(num_views=26))
+        else:
+            aggregators.append(MeanAggregator())
 
     return aggregators
