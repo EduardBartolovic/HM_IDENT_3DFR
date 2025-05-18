@@ -5,6 +5,7 @@ import random
 import time
 
 import numpy as np
+from tqdm import tqdm
 
 
 def match_hpe_angles_to_references(data, references, ignore_roll=False):
@@ -33,7 +34,7 @@ def find_matches(input_folder, references, txt_name="analysis.txt"):
     start_time = time.time()
     counter = 0
     all_errors = []
-    for root, _, files in os.walk(input_folder):
+    for root, _, files in tqdm(os.walk(input_folder), desc="Find Matches"):
         if "analysis" in root:
             for txt_file in files:
                 if txt_file.endswith(txt_name):
@@ -85,7 +86,7 @@ def find_matches(input_folder, references, txt_name="analysis.txt"):
 
 if __name__ == '__main__':
 
-    input_dir = "E:\\Download\\face\\VoxCeleb1_test"  # Folder containing original preprocessed files
+    input_dir = "VoxCeleb2_test"  # Folder containing original preprocessed files
     references_angles = [-25, -10, 0, 10, 25]
     permutations = np.array([(x, y, 0) for x, y in itertools.product(references_angles, repeat=2)])
     print(len(permutations))
