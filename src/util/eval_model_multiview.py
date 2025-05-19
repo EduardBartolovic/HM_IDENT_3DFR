@@ -212,7 +212,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_fron
     mean_true_match_similarity_mv = metrics_mv.get('mean_true_match_similarity', 'N/A')
     mean_false_match_similarity_mv = metrics_mv.get('mean_false_match_similarity', 'N/A')
 
-    string = (colorstr('bright_green', f"{neutral_dataset}: C{len(dataset_enrolled.classes)} E{len(dataset_enrolled)} Q{len(dataset_query)} ; Evaluation: ") +
+    string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)} Q{len(dataset_query)} Evaluation: ") +
               f"{bold('Front-RR1')}: {underscore(rank_1_front)} {bold('Front-RR5')}: {rank_5_front} "
               # f"{bold('Front-TMS')}: {safe_round(mean_true_match_similarity_front * 100, 2)} {bold('Front-FMS')}: {safe_round(mean_false_match_similarity_front * 100, 2)} "
               f"{bold('Concat-RR1')}: {underscore(rank_1_concat)} {bold('Concat-RR5')}: {rank_5_concat} "
