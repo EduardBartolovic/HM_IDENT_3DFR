@@ -80,7 +80,7 @@ def make_stt_aggregator(channels_list):
         if channels == 512:
             aggregators.append(TransfomerAggregator(num_views=26, spatial_size=7, transformer_dim=512, feature_dim=512))
         elif channels == 256:
-            aggregators.append(TransfomerAggregator(num_views=26, spatial_size=14, transformer_dim=256, feature_dim=512))
+            aggregators.append(TransfomerAggregator(num_views=26, spatial_size=14, transformer_dim=256, feature_dim=256))
         else:
             aggregators.append(MeanAggregator())
 
