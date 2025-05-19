@@ -25,7 +25,7 @@ EMBEDDING_SIZE: 512  # feature dimension
 BATCH_SIZE: 8  # batch size
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
 LR: 0.001  # initial LR
-NUM_EPOCH: 0  # total epoch number (use the first 1/25 epochs to warm up)
+NUM_EPOCH: 1  # total epoch number (use the first 1/25 epochs to warm up)
 PATIENCE: 100  # patience for early stopping
 WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
 MOMENTUM: 0.3

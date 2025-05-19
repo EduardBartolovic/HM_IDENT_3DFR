@@ -296,7 +296,7 @@ def main(cfg):
             #     torch.save(BACKBONE.state_dict(), os.path.join(MODEL_ROOT, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(BACKBONE_NAME, epoch + 1, batch, get_time())))
             #     torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
 
-    plot_weight_evolution(weights_log, save_dir="weights_logs")
+    #plot_weight_evolution(weights_log, save_dir="weights_logs")
 
 
 if __name__ == '__main__':
