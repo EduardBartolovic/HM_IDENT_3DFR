@@ -165,24 +165,24 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
 
     mlflow.log_metric(f'{neutral_dataset}_MV-RR1', metrics_mv['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_MV-RR5', metrics_mv['Rank-5 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_MV-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_MV-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
+    #mlflow.log_metric(f'{neutral_dataset}_MV-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
+    #mlflow.log_metric(f'{neutral_dataset}_MV-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
 
     mlflow.log_metric(f'{neutral_dataset}_Front-RR1', metrics_front['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_Front-RR5', metrics_front['Rank-5 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Front-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Front-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
+    #mlflow.log_metric(f'{neutral_dataset}_Front-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
+    #mlflow.log_metric(f'{neutral_dataset}_Front-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
 
     mlflow.log_metric(f'{neutral_dataset}_Concat-RR1', metrics_concat['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_Concat-RR5', metrics_concat['Rank-5 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Concat-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Concat-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
+    #mlflow.log_metric(f'{neutral_dataset}_Concat-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
+    #mlflow.log_metric(f'{neutral_dataset}_Concat-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
 
     if metrics_concat_pca:
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR1', metrics_concat_pca['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR5', metrics_concat_pca['Rank-5 Rate'], step=epoch)
-        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-mean_true_match_similarity',  metrics_concat_pca['mean_true_match_similarity'], step=epoch)
-        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-mean_false_match_similarity', metrics_concat_pca['mean_false_match_similarity'], step=epoch)
+        #mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-mean_true_match_similarity',  metrics_concat_pca['mean_true_match_similarity'], step=epoch)
+        #mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-mean_false_match_similarity', metrics_concat_pca['mean_false_match_similarity'], step=epoch)
 
     # if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
