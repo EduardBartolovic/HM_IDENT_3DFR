@@ -4,7 +4,7 @@ from collections import defaultdict
 import faiss
 import numpy as np
 from sklearn import neighbors
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, IncrementalPCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import numba
 from sklearn.metrics import accuracy_score
@@ -92,7 +92,8 @@ def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with_p
     if reduce_with_pca:
         if enrolled_embedding.shape[0] <= 512:
             return {}, None, None, None, None
-        pca = PCA(n_components=512)
+        #pca = PCA(n_components=512)
+        pca = IncrementalPCA(n_components=512, batch_size=256)
         pca = pca.fit(enrolled_embedding)
         enrolled_embedding = normalize(pca.transform(enrolled_embedding))
         query_embedding = normalize(pca.transform(query_embedding))
