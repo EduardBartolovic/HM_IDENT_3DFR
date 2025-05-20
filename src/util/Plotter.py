@@ -58,6 +58,11 @@ def plot_rrk_histogram(true_labels, pred_labels, similarity_matrix, dataset_name
         bins = np.arange(1, 33) - 0.5  # Bin edges from 0.5 to 31.5 to center bins on integers 1–31
         plt.hist(ranks, bins=bins, edgecolor='black', color='skyblue')
 
+        counts, bins_edges = np.histogram(ranks, bins=bins)
+        for i, count in enumerate(counts):
+            if count > 0:
+                plt.text(i + 1, count + 5, str(count), ha='center', fontsize=8)
+
         plt.xlabel("Rank of First Correct Match")
         plt.ylabel("Number of Queries")
         plt.title(f"Histogram of Matching Ranks - {dataset_name} {method_appendix}")
@@ -68,7 +73,33 @@ def plot_rrk_histogram(true_labels, pred_labels, similarity_matrix, dataset_name
 
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.savefig(os.path.join(tmp_dir, 'RRK-Histogram' +dataset_name + '_' + method_appendix + '.jpg'))
+        plt.savefig(os.path.join(tmp_dir, 'RRK_Histogram-' +dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.close()
+        mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
+
+        # Log scale
+
+        plt.figure(figsize=(10, 6))
+        bins = np.arange(1, 33) - 0.5  # Bin edges from 0.5 to 31.5 to center bins on integers 1–31
+        plt.hist(ranks, bins=bins, edgecolor='black', color='skyblue')
+
+        counts, bins_edges = np.histogram(ranks, bins=bins)
+        for i, count in enumerate(counts):
+            if count > 0:
+                plt.text(i + 1, count + 5, str(count), ha='center', fontsize=8)
+
+        plt.xlabel("Rank of First Correct Match")
+        plt.yscale('log')
+        plt.ylabel("Number of Queries (log scale)")
+        plt.title(f"Histogram of Matching Ranks - {dataset_name} {method_appendix}")
+
+        xticks = list(range(1, 31)) + [31]
+        xtick_labels = [str(x) for x in range(1, 31)] + ["31+"]
+        plt.xticks(xticks, xtick_labels, rotation=45)
+
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(os.path.join(tmp_dir, 'RRK_Histogram_log_scale-' +dataset_name + '_' + method_appendix + '.svg'), format='svg')
         plt.close()
         mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
 

@@ -36,6 +36,10 @@ class TransformerAggregator(nn.Module):
         )
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
+        # Learnable fusion layer across views (e.g., X views → 1 aggregated vector)
+        self.fusion_layer = nn.Linear(num_views, 1)
+        #self.fusion_layer = nn.Sequential(Linear(num_views, H), GELU(), Linear(H, 1))
+
 
     def forward(self, x):
         """
@@ -61,8 +65,12 @@ class TransformerAggregator(nn.Module):
         # Reshape back to (B, V, H*W, C)
         x = x.view(B, self.num_views, self.tokens_per_view, self.feature_dim)
 
-        # Fuse across views
-        x = x.mean(dim=1)  # (B, H*W, C) mean pooling
+        # Fuse views together
+        x = x.permute(0, 2, 3, 1)  # (B, H*W, C, V)
+        x = self.fusion_layer(x)  # (B, H*W, C, 1)
+        x = x.squeeze(-1)  # (B, H*W, C)
+
+        #x = x.mean(dim=1)  # (B, H*W, C) mean pooling
         # x, _ = x.max(dim=1)  # (B, H*W, C) max pooling
 
         # Reshape to (B, C, H, W)

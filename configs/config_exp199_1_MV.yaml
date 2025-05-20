@@ -22,7 +22,7 @@ NUM_VIEWS: 25
 RGB_MEAN: [0.5, 0.5, 0.5]  # for normalize inputs to [-1, 1]
 RGB_STD: [0.5, 0.5, 0.5]
 EMBEDDING_SIZE: 512  # feature dimension
-BATCH_SIZE: 8  # batch size
+BATCH_SIZE: 16  # batch size
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
 LR: 0.001  # initial LR
 NUM_EPOCH: 1  # total epoch number (use the first 1/25 epochs to warm up)

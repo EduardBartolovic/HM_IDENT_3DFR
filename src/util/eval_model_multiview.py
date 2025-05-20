@@ -16,7 +16,7 @@ from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram
 from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, accuracy_front_perspective
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
-from src.util.misc import colorstr, bold, underscore, safe_round
+from src.util.misc import colorstr, bold, underscore, safe_round, smart_round
 
 
 @torch.no_grad()
@@ -106,7 +106,7 @@ def load_data_mv(data_dir, max_batch_size: int, num_views: int, transform, use_f
     return dataset, data_loader
 
 
-def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool):
+def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
@@ -132,6 +132,9 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
     plot_confusion_matrix(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path), "_mv")
 
+    if not eval_all:
+        return result_metrics, {}, {}, {}, {}, embedding_library, dataset_enrolled, dataset_query
+
     # Single Front View
     metrics_front, similarity_matrix_front, top_indices_front, y_true_front, y_pred_front = accuracy_front_perspective(embedding_library, pre_sorted=True)
     plot_rrk_histogram(embedding_library.query_labels, embedding_library.enrolled_labels, similarity_matrix_front, os.path.basename(test_path), "front")
@@ -148,7 +151,7 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
     return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
 
 
-def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool):
+def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
 
     test_transform = transforms.Compose([
         transforms.Resize(test_transform_sizes),
@@ -160,7 +163,7 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {test_transform_sizes} and face_corr: {use_face_corr}"))
     metrics_mv, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query = evaluate_mv(
         device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size,
-        num_views, use_face_corr, disable_bar)
+        num_views, use_face_corr, disable_bar, eval_all)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
@@ -169,17 +172,19 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     #mlflow.log_metric(f'{neutral_dataset}_MV-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
     #mlflow.log_metric(f'{neutral_dataset}_MV-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
 
-    mlflow.log_metric(f'{neutral_dataset}_Front-RR1', metrics_front['Rank-1 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Front-RR5', metrics_front['Rank-5 Rate'], step=epoch)
-    #mlflow.log_metric(f'{neutral_dataset}_Front-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
-    #mlflow.log_metric(f'{neutral_dataset}_Front-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
+    if metrics_front:
+        mlflow.log_metric(f'{neutral_dataset}_Front-RR1', metrics_front['Rank-1 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Front-RR5', metrics_front['Rank-5 Rate'], step=epoch)
+        #mlflow.log_metric(f'{neutral_dataset}_Front-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
+        #mlflow.log_metric(f'{neutral_dataset}_Front-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
 
-    mlflow.log_metric(f'{neutral_dataset}_Concat-RR1', metrics_concat['Rank-1 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Concat-RR5', metrics_concat['Rank-5 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-RR1', metrics_concat_mean['Rank-1 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-RR5', metrics_concat_mean['Rank-5 Rate'], step=epoch)
-    #mlflow.log_metric(f'{neutral_dataset}_Concat-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
-    #mlflow.log_metric(f'{neutral_dataset}_Concat-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
+    if metrics_concat:
+        mlflow.log_metric(f'{neutral_dataset}_Concat-RR1', metrics_concat['Rank-1 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat-RR5', metrics_concat['Rank-5 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-RR1', metrics_concat_mean['Rank-1 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-RR5', metrics_concat_mean['Rank-5 Rate'], step=epoch)
+        #mlflow.log_metric(f'{neutral_dataset}_Concat-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
+        #mlflow.log_metric(f'{neutral_dataset}_Concat-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
 
     if metrics_concat_pca:
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR1', metrics_concat_pca['Rank-1 Rate'], step=epoch)
@@ -194,38 +199,26 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
 
 
 def print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, metrics_mv):
-    rank_1_front = metrics_front.get('Rank-1 Rate', 'N/A')
-    rank_5_front = metrics_front.get('Rank-5 Rate', 'N/A')
-    mean_true_match_similarity_front = metrics_front.get('mean_true_match_similarity', 'N/A')
-    mean_false_match_similarity_front = metrics_front.get('mean_false_match_similarity', 'N/A')
+    rank_1_front = smart_round(metrics_front.get('Rank-1 Rate', 'N/A'))
+    rank_5_front = smart_round(metrics_front.get('Rank-5 Rate', 'N/A'))
 
-    rank_1_concat = metrics_concat.get('Rank-1 Rate', 'N/A')
-    rank_5_concat = metrics_concat.get('Rank-5 Rate', 'N/A')
-    mean_true_match_similarity_concat = metrics_concat.get('mean_true_match_similarity', 'N/A')
-    mean_false_match_similarity_concat = metrics_concat.get('mean_false_match_similarity', 'N/A')
+    rank_1_concat = smart_round(metrics_concat.get('Rank-1 Rate', 'N/A'))
+    rank_5_concat = smart_round(metrics_concat.get('Rank-5 Rate', 'N/A'))
 
-    rank_1_concat_mean = metrics_concat_mean.get('Rank-1 Rate', 'N/A')
-    rank_5_concat_mean = metrics_concat_mean.get('Rank-5 Rate', 'N/A')
+    # rank_1_concat_mean = smart_round(metrics_concat_mean.get('Rank-1 Rate', 'N/A'))
+    # rank_5_concat_mean = smart_round(metrics_concat_mean.get('Rank-5 Rate', 'N/A'))
 
-    rank_1_concat_pca = metrics_concat_pca.get('Rank-1 Rate', 'N/A')
-    rank_5_concat_pca = metrics_concat_pca.get('Rank-5 Rate', 'N/A')
-    mean_true_match_similarity_concat_pca = metrics_concat_pca.get('mean_true_match_similarity', 'N/A')
-    mean_false_match_similarity_concat_pca = metrics_concat_pca.get('mean_false_match_similarity', 'N/A')
+    rank_1_concat_pca = smart_round(metrics_concat_pca.get('Rank-1 Rate', 'N/A'))
+    rank_5_concat_pca = smart_round(metrics_concat_pca.get('Rank-5 Rate', 'N/A'))
 
-    rank_1_mv = metrics_mv.get('Rank-1 Rate', 'N/A')
-    rank_5_mv = metrics_mv.get('Rank-5 Rate', 'N/A')
-    mean_true_match_similarity_mv = metrics_mv.get('mean_true_match_similarity', 'N/A')
-    mean_false_match_similarity_mv = metrics_mv.get('mean_false_match_similarity', 'N/A')
+    rank_1_mv = smart_round(metrics_mv.get('Rank-1 Rate', 'N/A'))
+    rank_5_mv = smart_round(metrics_mv.get('Rank-5 Rate', 'N/A'))
 
-    string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)} Q{len(dataset_query)} Evaluation: ") +
+    string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
               f"{bold('Front-RR1')}: {underscore(rank_1_front)} {bold('Front-RR5')}: {rank_5_front} "
-              # f"{bold('Front-TMS')}: {safe_round(mean_true_match_similarity_front * 100, 2)} {bold('Front-FMS')}: {safe_round(mean_false_match_similarity_front * 100, 2)} "
               f"{bold('Concat-RR1')}: {underscore(rank_1_concat)} {bold('Concat-RR5')}: {rank_5_concat} "
-              # f"{bold('Concat-TMS')}: {safe_round(mean_true_match_similarity_concat * 100, 2)} {bold('Concat-FMS')}: {safe_round(mean_false_match_similarity_concat * 100, 2)} "
-              f"{bold('Concat_Mean-RR1')}: {underscore(rank_1_concat_mean)} {bold('Concat_Mean-RR5')}: {rank_5_concat_mean} "
+              # f"{bold('Concat_Mean-RR1')}: {underscore(rank_1_concat_mean)} {bold('Concat_Mean-RR5')}: {rank_5_concat_mean} "
               f"{bold('Concat_PCA-RR1')}: {underscore(rank_1_concat_pca)} {bold('Concat_PCA-RR5')}: {rank_5_concat_pca} "
-              # f"{bold('Concat_PCA-TMS')}: {safe_round(mean_true_match_similarity_concat_pca * 100, 2)} {bold('Concat_PCA-FMS')}: {safe_round(mean_false_match_similarity_concat_pca * 100, 2)} "
               f"{bold('MV-RR1')}: {underscore(rank_1_mv)} {bold('MV-RR5')}: {rank_5_mv} "
-              # f"{bold('MV-TMS')}: {safe_round(mean_true_match_similarity_mv * 100, 2)} {bold('MV-FMS')}: {safe_round(mean_false_match_similarity_mv * 100, 2)}"
               )
     print(string)

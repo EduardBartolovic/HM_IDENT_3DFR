@@ -49,8 +49,8 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
     mean_false_match_similarity = np.mean(false_match_scores) if false_match_scores else 0
 
     return {
-        "Rank-1 Rate": round(top_1_accuracy * 100, 2),
-        f"Rank-{top_k_acc_k} Rate": round(top_k_accuracy * 100, 2),
+        "Rank-1 Rate": round(top_1_accuracy * 100, 4),
+        f"Rank-{top_k_acc_k} Rate": round(top_k_accuracy * 100, 4),
         "mean_true_match_similarity": mean_true_match_similarity,
         "mean_false_match_similarity": mean_false_match_similarity
     }
