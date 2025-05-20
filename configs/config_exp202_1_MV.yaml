@@ -1,6 +1,6 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP202-IR_MV_50_MSCELEB-voxtest118-MA1234TA5-ArcFace-FocalLoss-epochs15-batch8'  # experiment_name
+RUN_NAME: 'EXP202-IR_MV_50_MSCELEB-voxtest118-MA1234TA5-ArcFace-FocalLoss-epochs15-batch16'  # experiment_name
 DATA_ROOT: '/home/gustav/dataset9'  # the parent data root
 TRAIN_SET: 'vox2test'  # train dataset name
 

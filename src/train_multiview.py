@@ -1,4 +1,6 @@
+import tempfile
 import time
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -117,8 +119,8 @@ def main(cfg):
         BACKBONE_DICT = {'IR_MV_50': IR_MV_50(INPUT_SIZE, EMBEDDING_SIZE)}
         BACKBONE_reg = BACKBONE_DICT[BACKBONE_NAME]
         BACKBONE_agg = BACKBONE_DICT[BACKBONE_NAME]
-        model_stats = summary(BACKBONE_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
-        print(colorstr('magenta', str(model_stats)))
+        model_stats_backbone = summary(BACKBONE_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
+        print(colorstr('magenta', str(model_stats_backbone)))
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
         print("=" * 60)
 
@@ -129,9 +131,20 @@ def main(cfg):
         aggregators = AGG_DICT[AGG_NAME]
 
         model_arch = [(BATCH_SIZE, NUM_VIEWS, 64, 112, 112), (BATCH_SIZE, NUM_VIEWS+1, 64, 56, 56), (BATCH_SIZE, NUM_VIEWS+1, 124, 28, 28), (BATCH_SIZE, NUM_VIEWS+1, 256, 14, 14), (BATCH_SIZE, NUM_VIEWS+1, 512, 7, 7)]
+        model_stats_agg = []
         for agg, model_arch in zip(aggregators, model_arch):
-            model_stats = summary(agg, model_arch, verbose=0)
-            print(colorstr('magenta', str(model_stats)))
+            model_stat = summary(agg, model_arch, verbose=0)
+            print(colorstr('magenta', str(model_stat)))
+            model_stats_agg.append(model_stat)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = Path(tmp_dir)
+            with open(os.path.join(tmp_dir, 'Backbone_Summary.txt'), "w", encoding="utf-8") as f:
+                f.write(str(model_stats_backbone))
+            with open(os.path.join(tmp_dir, 'Aggregator_Summary.txt'), "w", encoding="utf-8") as f:
+                for i in model_stats_agg:
+                    f.write(str(i) + '\n')
+            mlflow.log_artifacts(tmp_dir, artifact_path="ModelSummary")
 
         HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'CosFace': CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
@@ -213,10 +226,10 @@ def main(cfg):
 
             #  ======= perform validation =======
             eval_all = epoch == 0
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
+            # evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
-            #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
+            # evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             print("=" * 60)

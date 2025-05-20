@@ -37,7 +37,7 @@ class TransformerAggregator(nn.Module):
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
         # Learnable fusion layer across views (e.g., X views → 1 aggregated vector)
-        self.fusion_layer = nn.Linear(num_views, 1)
+        #self.fusion_layer = nn.Linear(num_views, 1)
         #self.fusion_layer = nn.Sequential(Linear(num_views, H), GELU(), Linear(H, 1))
 
 

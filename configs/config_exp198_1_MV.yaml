@@ -1,6 +1,6 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP198-IR_MV_50_MSCELEB-BFFC1033-MA12345-ArcFace-FocalLoss-epochs0-batch8'  # experiment_name
+RUN_NAME: 'EXP198-IR_MV_50_MSCELEB-BFFC1033-MA12345-ArcFace-FocalLoss-epochs0-batch16'  # experiment_name
 DATA_ROOT: '/home/gustav/dataset9'  # the parent data root
 TRAIN_SET: 'rgb_bff_crop'  # train dataset name
 
