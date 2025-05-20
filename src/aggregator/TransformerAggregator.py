@@ -66,11 +66,11 @@ class TransformerAggregator(nn.Module):
         x = x.view(B, self.num_views, self.tokens_per_view, self.feature_dim)
 
         # Fuse views together
-        x = x.permute(0, 2, 3, 1)  # (B, H*W, C, V)
-        x = self.fusion_layer(x)  # (B, H*W, C, 1)
-        x = x.squeeze(-1)  # (B, H*W, C)
+        #x = x.permute(0, 2, 3, 1)  # (B, H*W, C, V)
+        #x = self.fusion_layer(x)  # (B, H*W, C, 1)
+        #x = x.squeeze(-1)  # (B, H*W, C)
 
-        #x = x.mean(dim=1)  # (B, H*W, C) mean pooling
+        x = x.mean(dim=1)  # (B, H*W, C) mean pooling
         # x, _ = x.max(dim=1)  # (B, H*W, C) max pooling
 
         # Reshape to (B, C, H, W)
