@@ -74,7 +74,7 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
     return similarity_matrix
 
 
-def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with_pca=False):
+def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with=""):
 
     if pre_sorted:
         enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
@@ -89,7 +89,7 @@ def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with_p
             embedding_library.query_scan_ids, embedding_library.query_embeddings,
             embedding_library.query_labels, embedding_library.query_perspectives)
 
-    if reduce_with_pca:
+    if reduce_with == "pca":
         if enrolled_embedding.shape[0] <= 512:
             return {}, None, None, None, None
         if enrolled_embedding.shape[0] > 2048:
@@ -99,6 +99,9 @@ def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with_p
         pca = pca.fit(enrolled_embedding)
         enrolled_embedding = normalize(pca.transform(enrolled_embedding))
         query_embedding = normalize(pca.transform(query_embedding))
+    elif reduce_with == "mean":
+        enrolled_embedding = enrolled_embedding.reshape(enrolled_embedding.shape[0], 512, -1).mean(axis=2)
+        query_embedding = query_embedding.reshape(query_embedding.shape[0], 512, -1).mean(axis=2)
 
     similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)

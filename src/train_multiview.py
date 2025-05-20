@@ -9,7 +9,7 @@ from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.SEAggregator import make_se_aggregator
-from src.aggregator.TransfomerAggregator import make_stt_aggregator
+from src.aggregator.TransformerAggregator import make_stt_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
 from src.backbone.model_multiview_irse import IR_MV_50, execute_model
 from src.util.Plotter import plot_weight_evolution

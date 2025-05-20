@@ -5,14 +5,14 @@ from torchinfo import summary
 from src.aggregator.MeanAggregator import MeanAggregator
 
 
-class TransfomerAggregator(nn.Module):
+class TransformerAggregator(nn.Module):
     def __init__(self,
                  feature_dim=512,
                  spatial_size=7,
                  num_views=26,
                  transformer_dim=512,
                  num_heads=8,
-                 num_layers=6,
+                 num_layers=3,
                  dropout=0.1):
         super().__init__()
 
@@ -31,12 +31,11 @@ class TransfomerAggregator(nn.Module):
             d_model=transformer_dim,
             nhead=num_heads,
             dropout=dropout,
-            batch_first=True
+            dim_feedforward=1024,
+            batch_first=True,
         )
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
-        # Final fusion projection (after averaging over views)
-        self.fusion_proj = nn.Linear(feature_dim, feature_dim)
 
     def forward(self, x):
         """
@@ -66,8 +65,6 @@ class TransfomerAggregator(nn.Module):
         x = x.mean(dim=1)  # (B, H*W, C) mean pooling
         # x, _ = x.max(dim=1)  # (B, H*W, C) max pooling
 
-        x = self.fusion_proj(x)  # (B, H*W, C)
-
         # Reshape to (B, C, H, W)
         x = x.permute(0, 2, 1).view(B, self.feature_dim, self.spatial_size, self.spatial_size)
 
@@ -78,7 +75,7 @@ def make_stt_aggregator(channels_list):
     aggregators = []
     for channels in channels_list:
         if channels == 512:
-            aggregators.append(TransfomerAggregator(num_views=26, spatial_size=7, transformer_dim=512, feature_dim=512))
+            aggregators.append(TransformerAggregator(num_views=26, spatial_size=7, transformer_dim=512, feature_dim=512))
         #elif channels == 256:
         #    aggregators.append(TransfomerAggregator(num_views=26, spatial_size=14, transformer_dim=256, feature_dim=256))
         else:
