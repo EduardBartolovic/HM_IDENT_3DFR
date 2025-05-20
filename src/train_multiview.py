@@ -217,7 +217,7 @@ def main(cfg):
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
             #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
             print("=" * 60)
 
             BACKBONE_reg.eval()

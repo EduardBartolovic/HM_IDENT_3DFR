@@ -92,11 +92,14 @@ def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with_p
     if reduce_with_pca:
         if enrolled_embedding.shape[0] <= 512:
             return {}, None, None, None, None
-        #pca = PCA(n_components=512)
-        pca = IncrementalPCA(n_components=512, batch_size=256)
+        if enrolled_embedding.shape[0] > 2048:
+            pca = IncrementalPCA(n_components=512, batch_size=2048)
+        else:
+            pca = PCA(n_components=512)
         pca = pca.fit(enrolled_embedding)
         enrolled_embedding = normalize(pca.transform(enrolled_embedding))
         query_embedding = normalize(pca.transform(query_embedding))
+    if reduce_with_pca:
 
     similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
