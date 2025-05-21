@@ -1,6 +1,6 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP205-IR_MV_50_Asia-Nersemble419-MA123TA45-ArcFace-FocalLoss-epochs15-batch16'  # experiment_name
+RUN_NAME: 'EXP205-IR_MV_50_Asia-Nersemble419-MA123TA5-ArcFace-FocalLoss-epochs15-batch16'  # experiment_name
 DATA_ROOT: '/home/gustav/dataset9'  # the parent data root
 TRAIN_SET: 'nersemble'  # train dataset name
 
