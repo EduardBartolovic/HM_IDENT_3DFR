@@ -177,10 +177,10 @@ def main(cfg):
             params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
             params_list.extend([{'params': i.parameters()} for i in aggregators])
 
-            for param in BACKBONE_reg.parameters():
-                param.requires_grad = False
             for param in BACKBONE_agg.parameters():
                 param.requires_grad = False
+        for param in BACKBONE_reg.parameters():
+            param.requires_grad = False
 
         OPTIMIZER_DICT = {'SGD': optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
                           'ADAM': torch.optim.Adam(params_list, lr=LR)}
@@ -231,12 +231,13 @@ def main(cfg):
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             # evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False, eval_all=eval_all)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             print("=" * 60)
 
             BACKBONE_reg.eval()
-            BACKBONE_agg.eval()
+            if TRAIN_ALL:
+                BACKBONE_agg.train()
             [i.train() for i in aggregators]
             HEAD.train()
 
