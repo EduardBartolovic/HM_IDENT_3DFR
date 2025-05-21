@@ -103,7 +103,7 @@ def process_file_paths(file_paths, draw=False):
                 axes[1].axis('off')
                 plt.tight_layout()
                 plt.show()
-        print('Done', file_paths)
+        # print('Done', file_paths)
     return 0
 
 
