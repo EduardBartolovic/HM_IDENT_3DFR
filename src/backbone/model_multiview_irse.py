@@ -174,18 +174,7 @@ def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr
             all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
 
     views_pooled_stage = aggregators[stage_index](all_view_stage)
-
     #visualize_all_views_and_pooled(all_view_stage, views_pooled_stage, output_dir=f"feature_map_outputs_{stage_index}")
-
-    # ========== Global Context Pooling ==========
-    # global_descriptor = all_view_stage.mean(dim=(1, 3, 4), keepdim=True)  # [batch, view, c, 1, 1]
-    # weighted_views = all_view_stage * global_descriptor
-    # views_pooled_stage = weighted_views.mean(dim=1)  # [batch, c, w, h]
-
-    # ========== Attention ==========
-    #attention_weights = torch.softmax(torch.matmul(all_view_stage.flatten(2), all_view_stage.flatten(2).transpose(-1, -2)), dim=-1)
-    #views_pooled_stage = torch.matmul(attention_weights, all_view_stage.flatten(2)).view_as(all_view_stage)
-    #views_pooled_stage = views_pooled_stage.mean(dim=1)  # [batch, c, w, h]
 
     return views_pooled_stage
 

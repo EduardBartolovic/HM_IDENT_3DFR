@@ -30,7 +30,7 @@ def create_dense_flow(src_landmarks, dst_landmarks, w, h):
     map_x = map_x.reshape((h, w)).astype(np.float32)
     map_y = map_y.reshape((h, w)).astype(np.float32)
 
-    return np.array(map_x, map_y)
+    return np.array((map_x, map_y))
 
 
 def calculate_face_correspondences_between_two_faces2(source_landmarks, target_landmarks):
@@ -79,6 +79,7 @@ def calculate_face_correspondences_between_two_faces(source_landmarks, target_la
 
     return grid
 
+
 def process_file_paths(file_paths, draw=False):
     perspectives = [os.path.basename(file_path)[40:-10] for file_path in file_paths]
     npzs = [np.load(file_path.replace(".jpg", ".npz").replace(".png", ".npz"))["landmarks"] for file_path in file_paths]
@@ -87,10 +88,10 @@ def process_file_paths(file_paths, draw=False):
 
     for v in range(len(file_paths)):
         if v == zero_position:  # Skip alignment if zero pose or merged features
-            grid = calculate_face_correspondences_between_two_faces(npzs[v], npzs[v])
+            grid = calculate_face_correspondences_between_two_faces2(npzs[v], npzs[v])
             np.savez_compressed(file_paths[v].replace("_image.npz", "_corr.npz"), corr=grid)
         else:
-            grid = calculate_face_correspondences_between_two_faces(npzs[zero_position], npzs[v])
+            grid = calculate_face_correspondences_between_two_faces2(npzs[zero_position], npzs[v])
             np.savez_compressed(file_paths[v].replace("_image.npz", "_corr.npz"), corr=grid)
             if draw:
                 fig, axes = plt.subplots(1, 2, figsize=(10, 5))
@@ -102,10 +103,11 @@ def process_file_paths(file_paths, draw=False):
                 axes[1].axis('off')
                 plt.tight_layout()
                 plt.show()
+        print('Done', file_paths)
     return 0
 
 
-def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=8, filter_keywords=None, target_views=25):
+def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=4, filter_keywords=None, target_views=25):
     start_time = time.time()
     data = []
     for class_name in os.listdir(dataset_folder):
