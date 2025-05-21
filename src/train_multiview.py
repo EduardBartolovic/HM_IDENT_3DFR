@@ -171,9 +171,11 @@ def main(cfg):
             _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
 
         if TRAIN_ALL:
-            params_list = [{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}, [{'params': i.parameters()} for i in aggregators]]
+            params_list = [{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}]
+            params_list.extend([{'params': i.parameters()} for i in aggregators])
         else:
-            params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, [{'params': i.parameters()} for i in aggregators]]
+            params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
+            params_list.extend([{'params': i.parameters()} for i in aggregators])
 
             for param in BACKBONE_reg.parameters():
                 param.requires_grad = False
