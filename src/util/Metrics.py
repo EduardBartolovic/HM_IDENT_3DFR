@@ -90,46 +90,47 @@ def write_metrics_and_config(output_path, acc_val, acc5_val, prec_val, rec_val, 
         json.dump(hyperparameters, file, indent=4)
 
 
-def error_rate_per_class(true_labels, pred_labels, dataset, query_scan_ids, filename, method_appendix=""):
-    # Find the unique classes
+def error_rate_per_class(true_labels, enrolled_labels, top_indices, dataset, query_scan_ids, similarity_matrix, filename, method_appendix=""):
+
+    pred_labels = enrolled_labels[top_indices[:, 0]]
+
     classes = np.unique(true_labels)
 
     class_to_idx = dataset.class_to_idx
     idx_to_class = {v: k for k, v in class_to_idx.items()}
 
-    # Initialize a dictionary to store error rates per class
-    error_rates = defaultdict(float)
-
-    # List to store misclassified scans
-    misclassified_scans = []
-
     # Calculate error rates for each class
+    error_rates = defaultdict(float)
     for cls in classes:
-        # Get all indices of the current class in the true labels
         class_indices = np.where(true_labels == cls)[0]
-
-        # Get the corresponding predictions and scan ids for this class
         class_true = true_labels[class_indices]
         class_pred = pred_labels[class_indices]
-        class_scan_ids = [query_scan_ids[i] for i in class_indices]
-
-        # Track misclassified scans
-        for true, pred, scan_id in zip(class_true, class_pred, class_scan_ids):
-            if true != pred:
-                misclassified_scans.append({
-                    "Scan ID": scan_id,
-                    "True Class": idx_to_class[true],
-                    "Predicted Class": idx_to_class[pred]
-                })
-
-        # Calculate the number of misclassified instances
         errors = np.sum(class_true != class_pred)
-
-        # Calculate the error rate for the class
         error_rate = errors / len(class_true)
         error_rates[cls] = error_rate
-
     df_classes = pd.DataFrame(list(error_rates.items()), columns=['Class', 'Error Rate'])
+
+    # Calculate error for each scan
+    misclassified_scans = []
+    for i, (true, pred) in enumerate(zip(true_labels, pred_labels)):
+        true_class = idx_to_class[true]
+        pred_class = idx_to_class[pred]
+
+        if true != pred:
+
+            similarities = similarity_matrix[i]
+            sorted_indices = np.argsort(similarities)[::-1]
+            sorted_labels = enrolled_labels[sorted_indices]
+            correct_rank = np.where(sorted_labels == true)[0]
+            rank = correct_rank[0] + 1
+
+            misclassified_scans.append({
+                "Scan ID": query_scan_ids[i],
+                "True Class": true_class,
+                "Predicted Class": pred_class,
+                "Rank": rank
+            })
+
     df_scans = pd.DataFrame(misclassified_scans)
 
     with tempfile.TemporaryDirectory() as tmp_dir:

@@ -27,25 +27,25 @@ def plot_metric(output_path, epochs, metric_values: List[float], metric_name: st
     plt.close('all')
 
 
-def plot_rrk_histogram(true_labels, pred_labels, similarity_matrix, dataset_name, method_appendix=""):
+def plot_rrk_histogram(true_labels, enrolled_labels, similarity_matrix, dataset_name, method_appendix=""):
     """
     Plots a histogram of the ranks where the correct match was found in the similarity matrix,
     always showing ranks 1–30, with an extra category for ranks beyond 30.
 
     Args:
         true_labels: List or array of true class labels for query embeddings.
-        pred_labels: List or array of enrolled labels.
+        enrolled_labels: List or array of enrolled labels.
         similarity_matrix: 2D numpy array with shape (n_queries, n_enrolled) representing cosine similarity.
         dataset_name: Name of the dataset for title/saving.
         method_appendix: Optional string to append to the method name or title.
     """
-    if true_labels is None or pred_labels is None or similarity_matrix is None:
+    if true_labels is None or enrolled_labels is None or similarity_matrix is None:
         return
     ranks = []
     for i, true_label in enumerate(true_labels):
         similarities = similarity_matrix[i]
         sorted_indices = np.argsort(similarities)[::-1]
-        sorted_labels = pred_labels[sorted_indices]
+        sorted_labels = enrolled_labels[sorted_indices]
         correct_rank = np.where(sorted_labels == true_label)[0]
         if len(correct_rank) > 0:
             rank = correct_rank[0] + 1

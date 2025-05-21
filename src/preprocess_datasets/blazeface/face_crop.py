@@ -124,7 +124,7 @@ def face_crop_full_frame(input_folder, output_folder, model_root):
 
                 if detections.shape[0] == 0:
                     missing_faces += 1
-                    print("Missing face for", filename)
+                    print("Missing face for", class_path, filename)
                 elif detections.shape[0] > 1:
                     # plot_detections(padded_image, detections)
                     more_faces += 1

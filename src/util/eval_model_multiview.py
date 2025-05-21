@@ -121,32 +121,32 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
 
     embedding_library = get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr, disable_bar)
 
-    enrolled_label = embedding_library.enrolled_labels
-    query_label = embedding_library.query_labels
+    enrolled_labels = embedding_library.enrolled_labels
+    query_labels = embedding_library.query_labels
 
     # Multi View evaluation
     similarity_matrix = calculate_embedding_similarity(embedding_library.query_embeddings_agg, embedding_library.enrolled_embeddings_agg, chunk_size=batch_size, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
-    result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
-    plot_rrk_histogram(embedding_library.query_labels, embedding_library.enrolled_labels, similarity_matrix, os.path.basename(test_path), "mv")
-    plot_confusion_matrix(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
-    error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path), "_mv")
+    result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix, os.path.basename(test_path), "mv")
+    plot_confusion_matrix(query_labels, enrolled_labels[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
+    error_rate_per_class(query_labels, enrolled_labels, top_indices, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix, os.path.basename(test_path), "_mv")
 
     if not eval_all:
         return result_metrics, {}, {}, {}, {}, embedding_library, dataset_enrolled, dataset_query
 
     # Single Front View
     metrics_front, similarity_matrix_front, top_indices_front, y_true_front, y_pred_front = accuracy_front_perspective(embedding_library, pre_sorted=True)
-    plot_rrk_histogram(embedding_library.query_labels, embedding_library.enrolled_labels, similarity_matrix_front, os.path.basename(test_path), "front")
-    error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices_front[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path), "_front")
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_front, os.path.basename(test_path), "front")
+    error_rate_per_class(query_labels, enrolled_labels, top_indices_front, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix, os.path.basename(test_path), "_front")
 
     # Concat
     metrics_concat, similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True)
     metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with="mean")
     metrics_concat_pca, similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with="pca")
-    plot_rrk_histogram(embedding_library.query_labels, embedding_library.enrolled_labels, similarity_matrix_concat,os.path.basename(test_path), "concat")
-    plot_rrk_histogram(embedding_library.query_labels, embedding_library.enrolled_labels, similarity_matrix_concat_pca, os.path.basename(test_path), "concat_pca")
-    error_rate_per_class(embedding_library.query_labels, enrolled_label[top_indices_concat[:, 0]], dataset_enrolled, embedding_library.query_scan_ids, os.path.basename(test_path), "_concat")
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat, os.path.basename(test_path), "concat")
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_pca, os.path.basename(test_path), "concat_pca")
+    error_rate_per_class(query_labels, enrolled_labels, top_indices_concat, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix, os.path.basename(test_path), "_concat")
 
     return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
 

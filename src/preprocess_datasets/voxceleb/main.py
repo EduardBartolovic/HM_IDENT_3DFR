@@ -38,7 +38,7 @@ def preprocessing():
     print("##################################")
     print("##### GEN DATASET ################")
     print("##################################")
-    generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, keep=False)
+    generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, keep=True)
 
     print("##################################")
     print("###### face_correspondences ######")
