@@ -10,9 +10,9 @@ from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 def main():
 
-    bellus = True
-    facescape = True
-    faceverse = True
+    bellus = False
+    facescape = False
+    faceverse = False
     texas = False
     nphm = False
     facewarehouse = False
@@ -172,24 +172,26 @@ def main():
         # Image Rendering facescape
         directory_path = Path('H:\\Maurer\\FFHQ-MonoNPHM')
         output_dir = Path('F:\\Face\\data\\tmp\\3D_FFHQMonoNPHM\\')
-        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        #obj_reader.render_obj_files("mononphm")
+        # obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+        # obj_reader.render_obj_files("mononphm")
 
         # Prepare Dataset Depth Facescape:
         input_path = Path('F:\\Face\\data\\tmp\\3D_FFHQMonoNPHM')
         output_dir = Path(root+'test_depth_monoffhq')
-        PrepareDataset.prepare_dataset_depth(input_path, output_dir, )
+        # PrepareDataset.prepare_dataset_depth(input_path, output_dir, )
 
         # Prepare Dataset RGB Facescape:
         input_path = Path('F:\\Face\\data\\tmp\\3D_FFHQMonoNPHM\\')
         output_dir = Path(root+'test_rgb_monoffhq')
-        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        # PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+
+        face_crop_full_frame(root+'rgb_monoffhq12000', root+'rgb_monoffhq12000_crop', face_detect_model_root)
 
         # Prepare Dataset RGB + Depth Facescape:
-        input_path = Path(root+'test_rgb_monoffhq')
-        input_path2 = Path(root+'test_depth_monoffhq')
-        output_dir = Path(root+'test_rgbd_monoffhq')
-        #PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
+        # input_path = Path(root+'test_rgb_monoffhq')
+        # input_path2 = Path(root+'test_depth_monoffhq')
+        # output_dir = Path(root+'test_rgbd_monoffhq')
+        # PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
     if facewarehouse:
 
