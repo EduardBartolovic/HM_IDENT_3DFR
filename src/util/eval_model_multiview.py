@@ -35,8 +35,8 @@ def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_
     enrolled_perspectives = 0
     for inputs, labels, perspectives, face_corr, scan_id in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
 
-        if use_face_corr:
-            assert face_corr.shape[1] > 0
+        if use_face_corr and face_corr.shape[1] == 0:
+            raise ValueError("Please provide face correspondences if use_face_corr is True")
 
         embeddings_reg, embeddings_agg = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr)
         enrolled_embeddings_agg.extend(embeddings_agg.cpu().numpy())

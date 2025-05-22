@@ -117,18 +117,56 @@ def align_featuremap(featuremap, grid):
     """
     Align a single feature map using transformation grid
     """
-    grid = grid.to("cuda")
+    #grid = grid.to("cuda")
 
-    if grid.shape[:2] != featuremap.shape[1:]:
-        _, target_height, target_width = featuremap.shape
-        grid = grid.permute(2, 0, 1)  # [2, H, W]
-        grid = F.interpolate(grid.unsqueeze(0), size=(target_height, target_width), mode='bilinear', align_corners=True)
-        grid = grid.squeeze(0).permute(1, 2, 0)  # [H, W, 2]
+    #if grid.shape[:2] != featuremap.shape[1:]:
+    #    _, target_height, target_width = featuremap.shape
+    #    grid = grid.permute(2, 0, 1)  # [2, H, W]
+    #    grid = F.interpolate(grid.unsqueeze(0), size=(target_height, target_width), mode='bilinear', align_corners=True)
+    #    grid = grid.squeeze(0).permute(1, 2, 0)  # [H, W, 2]
 
-    warped_featuremap = F.grid_sample(featuremap.unsqueeze(0), grid.unsqueeze(0), mode='bilinear', align_corners=True)
+    #warped_featuremap = F.grid_sample(featuremap.unsqueeze(0), grid.unsqueeze(0), mode='bilinear', align_corners=True)
+    #return warped_featuremap.squeeze(0)
+    map_x, map_y = np.array(grid)
 
-    return warped_featuremap.squeeze(0)
+    #grid_x = 2.0 * map_x / (112 - 1) - 1.0
+    #grid_y = 2.0 * map_y / (112 - 1) - 1.0
+    #grid = torch.stack((grid_x, grid_y), dim=2)  # (H, W, 2)
+    #grid = grid.unsqueeze(0)  # (1, H, W, 2)
+    #warped = F.grid_sample(featuremap, grid, mode='bilinear', padding_mode='zeros', align_corners=True)
 
+
+    #featuremap_np = featuremap.cpu().numpy()  # Convert to numpy: shape (C, H, W)
+    #remapped = np.zeros_like(featuremap_np)
+    #for i in range(featuremap_np.shape[0]):
+    #    remapped[i] = cv2.remap(
+    #        featuremap_np[i],
+    #        map_x, map_y,
+    #        interpolation=cv2.INTER_LINEAR,
+    #        borderMode=cv2.BORDER_CONSTANT,
+    #        borderValue=0
+    #    )
+    #return torch.from_numpy(remapped)
+
+    C, H, W = featuremap.shape
+    # Stack the maps to create a grid: shape [H, W, 2]
+    grid = np.stack((map_y, map_x), axis=-1)
+    # Convert to torch tensor, normalize grid from pixel coords to [-1, 1]
+    grid = torch.from_numpy(grid).unsqueeze(0)  # [1, H, W, 2]
+    grid = grid * 2 / torch.tensor([W - 1, H - 1]) - 1  # Normalize to [-1, 1]
+
+    # Resize grid to match featuremap shape (H, W)
+    grid = F.interpolate(grid.permute(0, 3, 1, 2), size=(H, W), mode='bilinear', align_corners=True)
+    grid = grid.permute(0, 2, 3, 1)  # [1, H, W, 2]
+
+    grid = grid.to(featuremap.device).float()
+    # grid_sample needs [N, C, H, W] input, and [N, H, W, 2] grid
+    input_tensor = featuremap.unsqueeze(0)  # [1, C, H, W]
+    # grid is in (x, y) order, but PyTorch wants (y, x)
+    grid = grid[..., [1, 0]]  # swap last dimension
+    # Use grid_sample to warp
+    remapped = F.grid_sample(input_tensor, grid, mode='bilinear', padding_mode='zeros', align_corners=True)
+    return remapped.squeeze(0)  # back to [C, H, W]
 
 def align_featuremaps(featuremaps, face_corr, zero_position, device="cuda"):
     """
