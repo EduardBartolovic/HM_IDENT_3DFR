@@ -27,7 +27,6 @@ class SEAggregator(nn.Module):
         Returns:
             torch.Tensor: Aggregated tensor of shape [B, C, H, W].
         """
-
         # Squeeze: average spatial dimensions (H, W)
         pooled = all_view_stage.mean(dim=[3, 4])  # [B, V, C]
 
