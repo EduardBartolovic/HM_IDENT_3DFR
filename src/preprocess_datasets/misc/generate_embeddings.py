@@ -3,6 +3,7 @@ from collections import defaultdict
 import numpy as np
 import torch
 from torchvision import transforms
+from tqdm import tqdm
 
 from src.backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
 from src.backbone.model_resnet import ResNet_50, ResNet_101, ResNet_152
@@ -31,7 +32,6 @@ def main(cfg):
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     OUTPUT_FOLDER = cfg['OUTPUT_FOLDER']
-    TEST_TRANSFORM_SIZES = cfg['TEST_TRANSFORM_SIZES']
     print("=" * 60)
     print("Overall Configurations:", cfg)
     print("=" * 60)
@@ -66,7 +66,7 @@ def main(cfg):
     BACKBONE = BACKBONE.to(DEVICE)
 
     transform = transforms.Compose([
-        transforms.Resize(TEST_TRANSFORM_SIZES),
+        transforms.Resize(INPUT_SIZE),
         transforms.CenterCrop([112, 112]),
         transforms.ToTensor(),
         transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
@@ -75,40 +75,18 @@ def main(cfg):
     dataset_enrolled_path = os.path.join(DATA_ROOT)
     _, data_loader = load_data(dataset_enrolled_path, transform, BATCH_SIZE, shuffle=False)
 
-    embedding_library = build_embedding_library(DEVICE, BACKBONE, data_loader)
+    BACKBONE.eval()
+    with torch.no_grad():
+        for data in tqdm(data_loader, desc="Generating Embeddings"):
+            imgs, classes, scan_ids, perspectives = data
+            imgs = imgs.to(DEVICE)
+            embeddings = BACKBONE(imgs).cpu().numpy()
 
-    # Initialize dictionaries to aggregate embeddings and perspectives
-    unique_labels = {}
-    aggregated_embeddings = defaultdict(list)
-    aggregated_perspectives = defaultdict(list)
-
-    # Iterate through the scan_ids and aggregate data
-    for i, scan_id in enumerate(embedding_library.scan_ids):
-        unique_labels[scan_id] = embedding_library.labels[i]  # Store unique label for each scan_id
-        aggregated_embeddings[scan_id].append(embedding_library.embeddings[i])
-        aggregated_perspectives[scan_id].append(embedding_library.perspectives[i])
-
-    # Filter entries with exactly 5 or 25 perspectives
-    filtered_data = []
-    for scan_id in unique_labels.keys():
-        if len(aggregated_perspectives[scan_id]) in {5, 25}:
-            filtered_data.append({
-                "scan_id": scan_id,
-                "label": unique_labels[scan_id],
-                "embeddings": aggregated_embeddings[scan_id],
-                "perspectives": aggregated_perspectives[scan_id]
-            })
-
-    for data in filtered_data:
-        person_folder = os.path.join(OUTPUT_FOLDER, str(data["label"]))
-        os.makedirs(person_folder, exist_ok=True)
-
-        embedding_file = os.path.join(person_folder, f"{data["scan_id"]}_embedding.npz")
-        np.savez_compressed(embedding_file, data["embeddings"])
-        perspective_file = os.path.join(person_folder, f"{data["scan_id"]}_perspective.npz")
-        np.savez_compressed(perspective_file, data["perspectives"])
-
-    print(f"Data saved to {OUTPUT_FOLDER}")
+            for emb, c, s, p in zip(embeddings, classes, scan_ids, perspectives):
+                img_name = f"{s}{p}_emb.npy"
+                output_path = os.path.join(OUTPUT_FOLDER, str(c.item()), img_name)
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                np.save(output_path, emb)
 
 
 if __name__ == '__main__':
@@ -119,8 +97,8 @@ if __name__ == '__main__':
     #     config = yaml.safe_load(file)
 
     config = {"SEED": 42,
-              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_photo_bellus\\train",
-              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
+              "DATA_ROOT": "/home/gustav/datasets9/rgb_bff_crop",
+              "BACKBONE_RESUME_ROOT": "/home/gustav/HM_IDENT_3DFR/pretrained/backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -128,13 +106,12 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_photo_bellus\\train",
-              "TEST_TRANSFORM_SIZES": (200, 150)}
+              "OUTPUT_FOLDER": "/home/gustav/datasets9/rgb_bff_crop_emb"}
     main(config)
 
     config = {"SEED": 42,
-              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_photo_bellus\\validation",
-              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
+              "DATA_ROOT": "/home/gustav/datasets9/test_rgb_bff_crop/train",
+              "BACKBONE_RESUME_ROOT": "/home/gustav/HM_IDENT_3DFR/pretrained/backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -142,13 +119,24 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_photo_bellus\\validation",
-              "TEST_TRANSFORM_SIZES": (200, 150)}
+              "OUTPUT_FOLDER": "/home/gustav/datasets9/test_rgb_bff_crop_emb/train"}
+    main(config)
+    config = {"SEED": 42,
+              "DATA_ROOT": "/home/gustav/datasets9/test_rgb_bff_crop/validation",
+              "BACKBONE_RESUME_ROOT": "/home/gustav/HM_IDENT_3DFR/pretrained/backbone_ir50_asia.pth",
+              "BACKBONE_NAME": "IR_50",
+              "INPUT_SIZE": [112, 112],
+              "RGB_MEAN": [0.5, 0.5, 0.5],
+              "RGB_STD": [0.5, 0.5, 0.5],
+              "EMBEDDING_SIZE": 512,
+              "BATCH_SIZE": 128,
+              "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+              "OUTPUT_FOLDER": "/home/gustav/datasets9/test_rgb_bff_crop_emb/validation"}
     main(config)
 
     config = {"SEED": 42,
-              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_rgb_bellus\\train",
-              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
+              "DATA_ROOT": "/home/gustav/datasets9/test_vox2test/train",
+              "BACKBONE_RESUME_ROOT": "/home/gustav/HM_IDENT_3DFR/pretrained/backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -156,12 +144,11 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_rgb_bellus\\train",
-              "TEST_TRANSFORM_SIZES": (150, 150)}
+              "OUTPUT_FOLDER": "/home/gustav/datasets9/test_vox2test_emb/train"}
     main(config)
     config = {"SEED": 42,
-              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_rgb_bellus\\validation",
-              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
+              "DATA_ROOT": "/home/gustav/datasets9/test_vox2test/validation",
+              "BACKBONE_RESUME_ROOT": "/home/gustav/HM_IDENT_3DFR/pretrained/backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -169,13 +156,12 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_rgb_bellus\\validation",
-              "TEST_TRANSFORM_SIZES": (150, 150)}
+              "OUTPUT_FOLDER": "/home/gustav/datasets9/test_vox2test_emb/validation"}
     main(config)
 
     config = {"SEED": 42,
-              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_rgb_bff\\train",
-              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
+              "DATA_ROOT": "/home/gustav/datasets9/test_vox2train/train",
+              "BACKBONE_RESUME_ROOT": "/home/gustav/HM_IDENT_3DFR/pretrained/backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -183,12 +169,11 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_rgb_bff\\train",
-              "TEST_TRANSFORM_SIZES": (150, 150)}
+              "OUTPUT_FOLDER": "/home/gustav/datasets9/test_vox2train_emb/train"}
     main(config)
     config = {"SEED": 42,
-              "DATA_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_rgb_bff\\validation",
-              "BACKBONE_RESUME_ROOT": "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_asia.pth",
+              "DATA_ROOT": "/home/gustav/datasets9/test_vox2train/validation",
+              "BACKBONE_RESUME_ROOT": "/home/gustav/HM_IDENT_3DFR/pretrained/backbone_ir50_asia.pth",
               "BACKBONE_NAME": "IR_50",
               "INPUT_SIZE": [112, 112],
               "RGB_MEAN": [0.5, 0.5, 0.5],
@@ -196,6 +181,5 @@ if __name__ == '__main__':
               "EMBEDDING_SIZE": 512,
               "BATCH_SIZE": 128,
               "DEVICE": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-              "OUTPUT_FOLDER": "C:\\Users\\Eduard\\Desktop\\Face\\dataset8_embeddings\\test_rgb_bff\\validation",
-              "TEST_TRANSFORM_SIZES": (150, 150)}
+              "OUTPUT_FOLDER": "/home/gustav/datasets9/test_vox2train_emb/validation"}
     main(config)
