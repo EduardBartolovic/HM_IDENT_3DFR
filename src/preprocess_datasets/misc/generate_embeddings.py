@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 import numpy as np
 import torch
 from torchvision import transforms
@@ -8,7 +6,6 @@ from tqdm import tqdm
 from src.backbone.model_irse import IR_50, IR_101, IR_152, IR_SE_50, IR_SE_101, IR_SE_152
 from src.backbone.model_resnet import ResNet_50, ResNet_101, ResNet_152
 from src.preprocess_datasets.rendering.PrepareDataset import load_data
-from src.util.EmbeddingsUtils import build_embedding_library
 from src.util.misc import colorstr
 
 import os
