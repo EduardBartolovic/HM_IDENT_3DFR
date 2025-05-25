@@ -87,7 +87,7 @@ def load_data(data_dir, max_batch_size: int) -> (torchvision.datasets.ImageFolde
 
 def load_data_mv(data_dir, max_batch_size: int, num_views: int, transform, use_face_corr: bool) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
     """
-     Load Dataset and sets that batch size so that large batch is always greater then 1
+     Load Dataset and sets that batch size so that large batch is always greater than 1
     Args:
         data_dir: directory of dataset
         max_batch_size: target batch size
