@@ -94,7 +94,7 @@ def main(cfg):
         print("Number of Training Classes: {}".format(NUM_CLASS))
 
         # ======= model & loss & optimizer =======
-        BACKBONE = TransformerEmbeddingReducer(embedding_dim=512, seq_len=25, num_heads=8, num_layers=2, dropout=0.1)
+        BACKBONE = TransformerEmbeddingReducer(embedding_dim=512, num_heads=8, num_layers=1, dropout=0.1)
         model_stats_backbone = summary(BACKBONE, (BATCH_SIZE, 3, 512), verbose=0)
         print(colorstr('magenta', str(model_stats_backbone)))
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
@@ -124,7 +124,7 @@ def main(cfg):
         backbone_paras_only_bn, backbone_paras_wo_bn = separate_resnet_bn_paras(BACKBONE)
         _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
 
-        params_list = [{'params': backbone_paras_only_bn + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
+        params_list = [{'params': backbone_paras_wo_bn + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn}]
 
         OPTIMIZER_DICT = {'SGD': optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
                           'ADAM': torch.optim.Adam(params_list, lr=LR)}
