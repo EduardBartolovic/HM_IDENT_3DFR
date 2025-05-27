@@ -168,7 +168,7 @@ def train(cfg):
             vox2train_rr1 = evaluate_and_log_mv(DEVICE, BACKBONE, DATA_ROOT, "test_vox2train_emb", epoch, BATCH_SIZE * 8, NUM_VIEWS, disable_bar=True)
 
             total_rr1 = (bff_rr1 + vox2test_rr1 + vox2train_rr1) / 3
-            if best_rr1 < total_rr1:
+            if epoch > 0 and best_rr1 < total_rr1:
                 best_rr1 = total_rr1
 
             print("=" * 60)
