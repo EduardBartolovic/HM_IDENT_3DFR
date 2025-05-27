@@ -152,7 +152,7 @@ def train(cfg):
         # ======= Initialize early stopping parameters =======
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
-        best_bff_rr1 = 0
+        best_rr1 = 0
         for epoch in range(NUM_EPOCH):
             # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
             if epoch == STAGES[0]:
@@ -242,7 +242,7 @@ def train(cfg):
             #     torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
 
     #plot_weight_evolution(weights_log, save_dir="weights_logs")
-    return best_bff_rr1
+    return best_rr1
 
 
 def training_objective(trial):
