@@ -30,7 +30,7 @@ class Softmax(nn.Module):
         nn.init.zero_(self.bias)
 
     def forward(self, x):
-        if self.device_id == None:
+        if self.device_id is None:
             out = F.linear(x, self.weight, self.bias)
         else:
             sub_weights = torch.chunk(self.weight, len(self.device_id), dim=0)
@@ -109,8 +109,8 @@ class ArcFace(nn.Module):
                 weight = sub_weights[i].cuda(self.device_id[i])
                 cosine = torch.cat((cosine, F.linear(F.normalize(temp_x), F.normalize(weight)).cuda(self.device_id[0])),
                                    dim=1)
-        sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
-        # TODO: Check: sine = torch.sqrt(torch.clamp((1.0 - torch.pow(cosine, 2)), 1e-9, 1))
+        #sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
+        sine = torch.sqrt(torch.clamp((1.0 - torch.pow(cosine, 2)), 1e-9, 1))
         phi = cosine * self.cos_m - sine * self.sin_m
         if self.easy_margin:
             phi = torch.where(cosine > 0, phi, cosine)

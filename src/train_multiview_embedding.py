@@ -1,3 +1,4 @@
+import optuna
 import tempfile
 import time
 from pathlib import Path
@@ -23,20 +24,22 @@ import yaml
 import argparse
 
 
-def main(cfg):
+def train(cfg):
     SEED = cfg['SEED']
     torch.manual_seed(SEED)
 
     RUN_NAME = cfg['RUN_NAME']
     DATA_ROOT = cfg['DATA_ROOT']  # the parent root where the datasets are stored
-    TRAIN_SET = cfg['TRAIN_SET']
+    TRAIN_SET = "rgb_bff_crop_emb"  # cfg['TRAIN_SET']
     LOG_ROOT = cfg['LOG_ROOT']
     BACKBONE_RESUME_ROOT = ""  # cfg['BACKBONE_RESUME_ROOT']  # the root to resume training from a saved checkpoint
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
 
-    BACKBONE_NAME = "TransformerEmbeddingReducer" # cfg['BACKBONE_NAME']
+    BACKBONE_NAME = "TransformerEmbeddingReducer"  # cfg['BACKBONE_NAME']
 
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
+    ARC_S = cfg['ARC_S']
+    ARC_M = cfg['ARC_M']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
 
@@ -106,7 +109,7 @@ def main(cfg):
                 f.write(str(model_stats_backbone))
             mlflow.log_artifacts(tmp_dir, artifact_path="ModelSummary")
 
-        HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
+        HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID, s=ARC_S, m=ARC_M),
                      'CosFace': CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'SphereFace': SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'Am_softmax': Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
@@ -149,6 +152,7 @@ def main(cfg):
         # ======= Initialize early stopping parameters =======
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
+        best_bff_rr1 = 0
         for epoch in range(NUM_EPOCH):
             # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
             if epoch == STAGES[0]:
@@ -159,9 +163,14 @@ def main(cfg):
                 schedule_lr(OPTIMIZER)
 
             #  ======= perform validation =======
-            evaluate_and_log_mv(DEVICE, BACKBONE, DATA_ROOT, "test_rgb_bff_crop_emb", epoch, BATCH_SIZE * 8, NUM_VIEWS, disable_bar=True)
-            #evaluate_and_log_mv(DEVICE, BACKBONE, DATA_ROOT, "test_vox2test_emb", epoch, BATCH_SIZE * 8, NUM_VIEWS, disable_bar=True)
-            #evaluate_and_log_mv(DEVICE, BACKBONE, DATA_ROOT, "test_vox2train_emb", epoch, BATCH_SIZE * 8, NUM_VIEWS, disable_bar=True)
+            bff_rr1 = evaluate_and_log_mv(DEVICE, BACKBONE, DATA_ROOT, "test_rgb_bff_crop_emb", epoch, BATCH_SIZE * 8, NUM_VIEWS, disable_bar=True)
+            vox2test_rr1 = evaluate_and_log_mv(DEVICE, BACKBONE, DATA_ROOT, "test_vox2test_emb", epoch, BATCH_SIZE * 8, NUM_VIEWS, disable_bar=True)
+            vox2train_rr1 = evaluate_and_log_mv(DEVICE, BACKBONE, DATA_ROOT, "test_vox2train_emb", epoch, BATCH_SIZE * 8, NUM_VIEWS, disable_bar=True)
+
+            total_rr1 = (bff_rr1 + vox2test_rr1 + vox2train_rr1) / 3
+            if best_rr1 < total_rr1:
+                best_rr1 = total_rr1
+
             print("=" * 60)
 
             BACKBONE.train()
@@ -233,6 +242,17 @@ def main(cfg):
             #     torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
 
     #plot_weight_evolution(weights_log, save_dir="weights_logs")
+    return best_bff_rr1
+
+
+def training_objective(trial):
+
+    cfg = cfg_yaml
+    cfg['ARC_S'] = trial.suggest_float('ARC_S', 20, 100, log=True)
+    cfg['ARC_M'] = trial.suggest_float('ARC_M', 0.1, 0.8, log=True)
+
+    rr1 = train(cfg)
+    return rr1
 
 
 if __name__ == '__main__':
@@ -241,4 +261,19 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config, 'r') as file:
         cfg_yaml = yaml.safe_load(file)
-    main(cfg_yaml)
+    #train(cfg_yaml)
+
+    study = optuna.create_study(direction="maximize")
+    study.optimize(training_objective, n_trials=100)
+
+    print("Best trial:")
+    best_trial = study.best_trial
+
+    print(f"  Value: {best_trial.value}")
+    print("  Params:")
+    for key, value in best_trial.params.items():
+        print(f"    {key}: {value}")
+
+    top_trials = study.best_trials[:5]
+    for i, t in enumerate(top_trials):
+        print(f"Trial {i + 1}: Accuracy={t.value}, Params={t.params}")

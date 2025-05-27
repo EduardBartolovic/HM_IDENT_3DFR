@@ -130,6 +130,7 @@ def evaluate_and_log_mv(device, backbone, data_root, dataset, epoch, batch_size,
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
 
     print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_mv)
+    return metrics_mv['Rank-1 Rate']
 
 
 def print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_mv):
