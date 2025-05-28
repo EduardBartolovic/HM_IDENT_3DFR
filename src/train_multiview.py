@@ -146,12 +146,12 @@ def main(cfg):
                     f.write(str(i) + '\n')
             mlflow.log_artifacts(tmp_dir, artifact_path="ModelSummary")
 
+        print("=" * 60)
         HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'CosFace': CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'SphereFace': SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'Am_softmax': Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
         HEAD = HEAD_DICT[HEAD_NAME]
-        print(colorstr('magenta', HEAD))
         print(colorstr('blue', f"{HEAD_NAME} Head Generated"))
         print("=" * 60)
 

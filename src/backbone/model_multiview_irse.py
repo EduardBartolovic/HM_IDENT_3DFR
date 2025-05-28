@@ -191,12 +191,12 @@ def aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr
 
 def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr):
 
-    x_1 = None
-    x_2 = None
-    x_3 = None
-    x_4 = None
+    x_1 = None  # 56
+    x_2 = None  # 28
+    x_3 = None  # 14
+    x_4 = None  # 7
     for stage_index, stage_features in enumerate(all_views_stage_features):
-        # Stack features from all views
+
         all_view_stage = torch.stack(stage_features, dim=0)  # [view, batch, c, w, h]
         all_view_stage = all_view_stage.permute(1, 0, 2, 3, 4)  # [batch, view, c, w, h]
 
