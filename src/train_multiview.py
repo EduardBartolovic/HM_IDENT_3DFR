@@ -229,10 +229,10 @@ def main(cfg):
             eval_all = epoch == 0
             #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
-            #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch,(112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
+            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
             print("=" * 60)
 
             BACKBONE_reg.eval()

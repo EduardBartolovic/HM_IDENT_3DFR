@@ -151,16 +151,16 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
     return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
 
 
-def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, test_transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
 
     test_transform = transforms.Compose([
-        transforms.Resize(test_transform_sizes),
+        transforms.Resize(transform_sizes),
         transforms.CenterCrop([112, 112]),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ])
 
-    print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {test_transform_sizes} and face_corr: {use_face_corr}"))
+    print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {transform_sizes} and face_corr: {use_face_corr}"))
     metrics_mv, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query = evaluate_mv(
         device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size,
         num_views, use_face_corr, disable_bar, eval_all)
@@ -197,6 +197,8 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
 
     print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, metrics_mv)
 
+    return metrics_mv
+
 
 def print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, metrics_mv):
     rank_1_front = smart_round(metrics_front.get('Rank-1 Rate', 'N/A'))
@@ -205,8 +207,8 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_fron
     rank_1_concat = smart_round(metrics_concat.get('Rank-1 Rate', 'N/A'))
     rank_5_concat = smart_round(metrics_concat.get('Rank-5 Rate', 'N/A'))
 
-    # rank_1_concat_mean = smart_round(metrics_concat_mean.get('Rank-1 Rate', 'N/A'))
-    # rank_5_concat_mean = smart_round(metrics_concat_mean.get('Rank-5 Rate', 'N/A'))
+    rank_1_concat_mean = smart_round(metrics_concat_mean.get('Rank-1 Rate', 'N/A'))
+    rank_5_concat_mean = smart_round(metrics_concat_mean.get('Rank-5 Rate', 'N/A'))
 
     rank_1_concat_pca = smart_round(metrics_concat_pca.get('Rank-1 Rate', 'N/A'))
     rank_5_concat_pca = smart_round(metrics_concat_pca.get('Rank-5 Rate', 'N/A'))
@@ -217,7 +219,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_fron
     string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
               f"{bold('Front-RR1')}: {underscore(rank_1_front)} {bold('Front-RR5')}: {rank_5_front} "
               f"{bold('Concat-RR1')}: {underscore(rank_1_concat)} {bold('Concat-RR5')}: {rank_5_concat} "
-              # f"{bold('Concat_Mean-RR1')}: {underscore(rank_1_concat_mean)} {bold('Concat_Mean-RR5')}: {rank_5_concat_mean} "
+              f"{bold('Concat_Mean-RR1')}: {underscore(rank_1_concat_mean)} {bold('Concat_Mean-RR5')}: {rank_5_concat_mean} "
               f"{bold('Concat_PCA-RR1')}: {underscore(rank_1_concat_pca)} {bold('Concat_PCA-RR5')}: {rank_5_concat_pca} "
               f"{bold('MV-RR1')}: {underscore(rank_1_mv)} {bold('MV-RR5')}: {rank_5_mv} "
               )
