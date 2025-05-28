@@ -30,6 +30,15 @@ import yaml
 import argparse
 
 
+def eval_loop(device, backbone_reg, backbone_agg, aggregators, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
+    # evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bellus_crop", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    # evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff", epoch, (150, 150), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_nersemble", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2test", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2train", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+
+
 def main(cfg):
     SEED = cfg['SEED']
     torch.manual_seed(SEED)
@@ -64,6 +73,7 @@ def main(cfg):
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
+    UNFREEZE_EPOCH = cfg.get('UNFREEZE_EPOCH', 5)  # Unfreeze aggregators after X Epochs. Train Arcface Head first.
 
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     MULTI_GPU = cfg['MULTI_GPU']  # flag to use multiple GPUs
@@ -172,10 +182,10 @@ def main(cfg):
 
         if TRAIN_ALL:
             params_list = [{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}]
-            params_list.extend([{'params': i.parameters()} for i in aggregators])
+            #params_list.extend([{'params': i.parameters()} for i in aggregators])
         else:
             params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
-            params_list.extend([{'params': i.parameters()} for i in aggregators])
+            #params_list.extend([{'params': i.parameters()} for i in aggregators])
 
             for param in BACKBONE_agg.parameters():
                 param.requires_grad = False
@@ -194,6 +204,8 @@ def main(cfg):
         print("=" * 60)
 
         print(colorstr('magenta', f"Using face correspondences: {use_face_corr}"))
+        if UNFREEZE_EPOCH > 0:
+            print(colorstr('magenta', f"Unfreezing aggregators after epoch: {UNFREEZE_EPOCH}"))
         print("=" * 60)
 
         # ======= GPU Settings =======
@@ -202,17 +214,23 @@ def main(cfg):
             BACKBONE_agg = nn.DataParallel(BACKBONE_agg, device_ids=GPU_ID)
         BACKBONE_reg = BACKBONE_reg.to(DEVICE)
         BACKBONE_agg = BACKBONE_agg.to(DEVICE)
-        for i in aggregators:
-            i = i.to(DEVICE)
-        # ======= train & validation & save checkpoint =======
+        for agg in aggregators:
+            agg = agg.to(DEVICE)
+            # Initially freeze aggregators
+            for param in agg.parameters():
+                param.requires_grad = False
+
+        # ======= Validation =======
+        eval_loop(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True)
+        print("=" * 60)
+
+        # ======= train & early stopping parameters=======
         DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc # was 100
         NUM_EPOCH_WARM_UP = NUM_EPOCH // 25  # use the first 1/25 epochs to warm up
         NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP  # use the first 1/25 epochs to warm up
         batch = 0  # batch index
-        # ======= Initialize early stopping parameters =======
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
-        weights_log = [[] for _ in range(len(aggregators))]
         for epoch in range(NUM_EPOCH):
             # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
             if epoch == STAGES[0]:
@@ -223,24 +241,30 @@ def main(cfg):
                 schedule_lr(OPTIMIZER)
 
             #for i, agg in enumerate(aggregators):
+            #    print(agg.get_weights()[-1])
             #    weights_log[i].append(agg.get_weights())
 
-            #  ======= perform validation =======
-            eval_all = epoch == 0
-            #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
-            #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", epoch, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
-            evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", epoch, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True, eval_all=eval_all)
-            print("=" * 60)
+            # =========== Gradient Handling ========
+            if epoch == UNFREEZE_EPOCH:
+                print(colorstr('yellow', f"Unfreezing aggregators at epoch {epoch+1}"))
+                for agg in aggregators:
+                    for param in agg.parameters():
+                        param.requires_grad = True
+
+                params_list.extend([{'params': i.parameters()} for i in aggregators])
+                OPTIMIZER = optim.SGD(params_list, lr=LR, momentum=MOMENTUM)
+
+            if epoch >= UNFREEZE_EPOCH:
+                [agg.train() for agg in aggregators]
+            else:
+                [agg.eval() for agg in aggregators]
 
             BACKBONE_reg.eval()
             if TRAIN_ALL:
                 BACKBONE_agg.train()
-            [i.train() for i in aggregators]
             HEAD.train()
 
+            # =========== Train Loop ========
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
@@ -289,6 +313,11 @@ def main(cfg):
                                            f'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                                            f'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'))
             print("#" * 60)
+
+            #  ======= perform validation =======
+            if epoch > UNFREEZE_EPOCH:
+                eval_loop(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False)
+                print("=" * 60)
 
             if epoch_acc > best_acc:  # Early stopping check
                 best_acc = epoch_acc

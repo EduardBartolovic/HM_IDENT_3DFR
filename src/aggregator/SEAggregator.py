@@ -46,7 +46,7 @@ class SEAggregator(nn.Module):
         return output
 
     def get_weights(self):
-        return [self.fc1.weight.detach().cpu().numpy().copy(), self.relu.weight.detach().cpu().numpy().copy(), self.fc2.weight.detach().cpu().numpy().copy(), self.sigmoid.weight.detach().cpu().numpy().copy()]
+        return [self.fc1.weight.detach().cpu().numpy().copy(), self.fc2.weight.detach().cpu().numpy().copy()]
 
 
 def make_se_aggregator(channels_list):
