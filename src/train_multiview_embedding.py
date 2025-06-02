@@ -1,4 +1,3 @@
-import optuna
 import tempfile
 import time
 from pathlib import Path
@@ -97,8 +96,8 @@ def train(cfg):
         print("Number of Training Classes: {}".format(NUM_CLASS))
 
         # ======= model & loss & optimizer =======
-        BACKBONE = TransformerEmbeddingReducer(embedding_dim=512, num_heads=8, num_layers=1, dropout=0.1)
-        model_stats_backbone = summary(BACKBONE, (BATCH_SIZE, 3, 512), verbose=0)
+        BACKBONE = TransformerEmbeddingReducer(embedding_dim=512, num_heads=4, num_layers=1, dropout=0.1)
+        model_stats_backbone = summary(BACKBONE, (BATCH_SIZE, NUM_VIEWS, 512), verbose=0)
         print(colorstr('magenta', str(model_stats_backbone)))
         print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
         print("=" * 60)
@@ -152,7 +151,6 @@ def train(cfg):
         # ======= Initialize early stopping parameters =======
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
-        best_rr1 = 0
         for epoch in range(NUM_EPOCH):
             # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
             if epoch == STAGES[0]:

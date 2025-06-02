@@ -73,7 +73,7 @@ def main(cfg):
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
-    UNFREEZE_EPOCH = cfg.get('UNFREEZE_EPOCH', 5)  # Unfreeze aggregators after X Epochs. Train Arcface Head first.
+    UNFREEZE_EPOCH = cfg.get('UNFREEZE_EPOCH', 0)  # Unfreeze aggregators after X Epochs. Train Arcface Head first.
 
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     MULTI_GPU = cfg['MULTI_GPU']  # flag to use multiple GPUs
@@ -241,12 +241,15 @@ def main(cfg):
                 schedule_lr(OPTIMIZER)
 
             #for i, agg in enumerate(aggregators):
+            #    weights_fc1, weights_fc2 = agg.get_weights()
+            #    plot_weights(weights_fc1, f"fc1 Weights{i}epoch{epoch}")
+            #    plot_weights(weights_fc2, f"fc2 Weights{i}epoch{epoch}")
             #    print(agg.get_weights()[-1])
             #    weights_log[i].append(agg.get_weights())
 
             # =========== Gradient Handling ========
             if epoch == UNFREEZE_EPOCH:
-                print(colorstr('yellow', f"Unfreezing aggregators at epoch {epoch+1}"))
+                print(colorstr('yellow', f"Unfreezing aggregators at epoch {epoch}"))
                 for agg in aggregators:
                     for param in agg.parameters():
                         param.requires_grad = True
@@ -340,6 +343,19 @@ def main(cfg):
             #     torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
 
     #plot_weight_evolution(weights_log, save_dir="weights_logs")
+
+
+# Plotting function
+#def plot_weights(weights, title):
+#    plt.figure(figsize=(8, 6))
+#    plt.imshow(weights, aspect='auto', cmap='viridis')
+#    plt.colorbar()
+#    plt.title(title)
+#    plt.xlabel("Input Features")
+#    plt.ylabel("Output Neurons")
+#    plt.tight_layout()
+#    plt.savefig(title)
+#    plt.close()
 
 
 if __name__ == '__main__':
