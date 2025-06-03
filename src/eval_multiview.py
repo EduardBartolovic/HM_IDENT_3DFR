@@ -1,28 +1,14 @@
 import random
 
-import time
-
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import torchvision.transforms as transforms
 
-from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
-from loss.focal import FocalLoss
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
-from src.backbone.model_multiview_irse import IR_MV_50, execute_model
-from src.util.Plotter import plot_weight_evolution
-from src.util.datapipeline.MultiviewDataset import MultiviewDataset
+from src.backbone.model_multiview_irse import IR_MV_50
 from src.util.eval_model_multiview import evaluate_and_log_mv
 from src.util.load_checkpoint import load_checkpoint
-from src.util.misc import colorstr
-from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
-    separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
-
-from torchinfo import summary
-from tqdm import tqdm
 import os
 import mlflow
 import yaml
@@ -113,13 +99,13 @@ def main(cfg, test):
             agg.to(DEVICE)
 
         #  ======= perform validation =======
+
+        evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test, 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
+
         #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bellus_crop", 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, False, disable_bar=True)
-        evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff_crop", 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
         #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_rgb_bff", 0, (150, 150), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=False)
-        evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
-
-        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, test, 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
-
+        #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2test", 0, (112, 112), BATCH_SIZE * 4, NUM_VIEWS, use_face_corr, disable_bar=True)
         #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_nersemble", 0, (112, 112),BATCH_SIZE * 4, use_face_corr, disable_bar=False)
         #evaluate_and_log_mv(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, "test_vox2train", 0,(112, 112), BATCH_SIZE * 4, use_face_corr, disable_bar=False)
         print("=" * 60)
@@ -132,8 +118,8 @@ if __name__ == '__main__':
     with open(args.config, 'r') as file:
         yaml_cfg = yaml.safe_load(file)
 
-    mass_dataset_eval = False
-    mass_config_test = True
+    mass_dataset_eval = True
+    mass_config_test = False
 
     if mass_dataset_eval:
         for i in os.listdir(yaml_cfg['DATA_ROOT']):
