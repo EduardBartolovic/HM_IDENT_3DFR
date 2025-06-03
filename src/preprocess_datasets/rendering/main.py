@@ -20,7 +20,7 @@ def main():
     ffhq = False
     prep_data = False
     colorferet = False
-    bff = True
+    bff = False
 
     root = 'F:\\Face\\data\\datasets9\\'
 
