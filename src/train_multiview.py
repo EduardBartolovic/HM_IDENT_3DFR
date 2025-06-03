@@ -318,7 +318,7 @@ def main(cfg):
             print("#" * 60)
 
             #  ======= perform validation =======
-            if epoch > UNFREEZE_EPOCH:
+            if epoch >= UNFREEZE_EPOCH:
                 eval_loop(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False)
                 print("=" * 60)
 
