@@ -43,7 +43,7 @@ def generate_allowed_perspectives(ref_angles):
     return sampled_subsets
 
 
-def filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives):
+def filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives, real_copy):
     src_dir = os.path.join(SOURCE_DIR, split)
     dst_dir = os.path.join(DEST_DIR, split)
 
@@ -54,19 +54,21 @@ def filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives):
 
         allowed_set = set(allowed_perspectives)
         for file in os.listdir(src_id_path):
-            if not file.lower().endswith(('.jpg', '.jpeg', '.png')):
+            if not file.lower().endswith(('.jpg', '.jpeg', '.png', '.npz')):
                 continue
 
             perspective = os.path.basename(file)[40:-10]
             if perspective in allowed_set:
-                #shutil.copy2(
-                #    os.path.join(src_id_path, file),
-                #    os.path.join(dst_id_path, file)
-                #)
-                os.symlink(
-                    os.path.join(src_id_path, file),
-                    os.path.join(dst_id_path, file)
-                )
+                if real_copy:
+                    shutil.copy2(
+                        os.path.join(src_id_path, file),
+                        os.path.join(dst_id_path, file)
+                    )
+                else:
+                    os.symlink(
+                        os.path.join(src_id_path, file),
+                        os.path.join(dst_id_path, file)
+                    )
 
 
 if __name__ == '__main__':
@@ -99,9 +101,10 @@ if __name__ == '__main__':
         print(len(num_perspectives))
         for allowed_perspectives in tqdm(num_perspectives):
 
-            DEST_DIR = f'F:\\Face\\data\\datasets9\\test_rgb_bff_crop_new_{allowed_perspectives}'.replace("[", "").replace("]", "").replace("\'", "").replace(",", "")
+            DEST_DIR = f'F:\\Face\\data\\datasets9\\vox2test_new_{allowed_perspectives}'.replace("[", "").replace("]", "").replace("\'", "").replace(",", "")
+            #filter_images(SOURCE_DIR, DEST_DIR, '', allowed_perspectives, real_copy=True)
             for split in ['train', 'validation']:
-                filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives)
+                filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives, real_copy=True)
 
     print("🎉 Filtering complete. New dataset at:", DEST_DIR)
 

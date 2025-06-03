@@ -14,7 +14,6 @@ from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_stt_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
 from src.backbone.model_multiview_irse import IR_MV_50, execute_model
-from src.util.Plotter import plot_weight_evolution
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mv
 from src.util.load_checkpoint import load_checkpoint
@@ -46,7 +45,7 @@ def main(cfg):
     RUN_NAME = cfg['RUN_NAME']
     DATA_ROOT = cfg['DATA_ROOT']  # the parent root where the datasets are stored
     TRAIN_SET = cfg['TRAIN_SET']
-    MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
+    #  MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
     LOG_ROOT = cfg['LOG_ROOT']
     BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']  # the root to resume training from a saved checkpoint
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
@@ -154,7 +153,7 @@ def main(cfg):
             with open(os.path.join(tmp_dir, 'Aggregator_Summary.txt'), "w", encoding="utf-8") as f:
                 for i in model_stats_agg:
                     f.write(str(i) + '\n')
-            mlflow.log_artifacts(tmp_dir, artifact_path="ModelSummary")
+            mlflow.log_artifacts(str(tmp_dir), artifact_path="ModelSummary")
 
         print("=" * 60)
         HEAD_DICT = {'ArcFace': ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
@@ -172,20 +171,20 @@ def main(cfg):
 
         # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
         if BACKBONE_NAME.find("IR") >= 0:
-            backbone_paras_only_bn_reg, backbone_paras_wo_bn_reg = separate_irse_bn_paras(BACKBONE_reg)
+            # backbone_paras_only_bn_reg, backbone_paras_wo_bn_reg = separate_irse_bn_paras(BACKBONE_reg)
             backbone_paras_only_bn_agg, backbone_paras_wo_bn_agg = separate_irse_bn_paras(BACKBONE_agg)
             _, head_paras_wo_bn = separate_irse_bn_paras(HEAD)
         else:
-            backbone_paras_only_bn_reg, backbone_paras_wo_bn_reg = separate_resnet_bn_paras(BACKBONE_reg)
+            # backbone_paras_only_bn_reg, backbone_paras_wo_bn_reg = separate_resnet_bn_paras(BACKBONE_reg)
             backbone_paras_only_bn_agg, backbone_paras_wo_bn_agg = separate_resnet_bn_paras(BACKBONE_agg)
             _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
 
         if TRAIN_ALL:
             params_list = [{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}]
-            #params_list.extend([{'params': i.parameters()} for i in aggregators])
+            # params_list.extend([{'params': i.parameters()} for i in aggregators])
         else:
             params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
-            #params_list.extend([{'params': i.parameters()} for i in aggregators])
+            # params_list.extend([{'params': i.parameters()} for i in aggregators])
 
             for param in BACKBONE_agg.parameters():
                 param.requires_grad = False
@@ -204,8 +203,7 @@ def main(cfg):
         print("=" * 60)
 
         print(colorstr('magenta', f"Using face correspondences: {use_face_corr}"))
-        if UNFREEZE_EPOCH > 0:
-            print(colorstr('magenta', f"Unfreezing aggregators after epoch: {UNFREEZE_EPOCH}"))
+        print(colorstr('magenta', f"Unfreezing aggregators at epoch: {UNFREEZE_EPOCH}"))
         print("=" * 60)
 
         # ======= GPU Settings =======
@@ -240,16 +238,18 @@ def main(cfg):
             if epoch == STAGES[2]:
                 schedule_lr(OPTIMIZER)
 
-            #for i, agg in enumerate(aggregators):
+            # for i, agg in enumerate(aggregators):
             #    weights_fc1, weights_fc2 = agg.get_weights()
             #    plot_weights(weights_fc1, f"fc1 Weights{i}epoch{epoch}")
             #    plot_weights(weights_fc2, f"fc2 Weights{i}epoch{epoch}")
             #    print(agg.get_weights()[-1])
             #    weights_log[i].append(agg.get_weights())
+            # plot_weights(HEAD.weight.detach().numpy(), str(epoch)+"HEAD.jpg")
 
             # =========== Gradient Handling ========
             if epoch == UNFREEZE_EPOCH:
                 print(colorstr('yellow', f"Unfreezing aggregators at epoch {epoch}"))
+                print(colorstr('yellow', "=" * 60))
                 for agg in aggregators:
                     for param in agg.parameters():
                         param.requires_grad = True
@@ -306,10 +306,8 @@ def main(cfg):
                     print("=" * 60)
                 batch += 1
 
-            epoch_loss = losses.avg
-            epoch_acc = top1.avg
-            mlflow.log_metric('train_loss', epoch_loss, step=epoch + 1)
-            mlflow.log_metric('Training_Accuracy', epoch_acc, step=epoch + 1)
+            mlflow.log_metric('train_loss', losses.avg, step=epoch + 1)
+            mlflow.log_metric('Training_Accuracy', top1.avg, step=epoch + 1)
             print("#" * 60)
             print(colorstr('bright_green', f'Epoch: {epoch + 1}/{NUM_EPOCH}\t'
                                            f'Training Loss {losses.val:.4f} ({losses.avg:.4f})\t'
@@ -322,9 +320,14 @@ def main(cfg):
                 eval_loop(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False)
                 print("=" * 60)
 
-            if epoch_acc > best_acc:  # Early stopping check
-                best_acc = epoch_acc
+            if top1.avg > best_acc:  # Early stopping check
+                best_acc = top1.avg
                 counter = 0
+            elif top1.avg > 99.5:
+                print(colorstr('red', "=" * 60))
+                print(colorstr('red', "========= Training Prec@1 reached > 99.5 -> Finishing ========="))
+                print(colorstr('red', "=" * 60))
+                break
             else:
                 counter += 1
                 if counter >= PATIENCE:
@@ -342,11 +345,9 @@ def main(cfg):
             #     torch.save(BACKBONE.state_dict(), os.path.join(MODEL_ROOT, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(BACKBONE_NAME, epoch + 1, batch, get_time())))
             #     torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
 
-    #plot_weight_evolution(weights_log, save_dir="weights_logs")
+    # plot_weight_evolution(weights_log, save_dir="weights_logs")
 
-
-# Plotting function
-#def plot_weights(weights, title):
+# def plot_weights(weights, title):
 #    plt.figure(figsize=(8, 6))
 #    plt.imshow(weights, aspect='auto', cmap='viridis')
 #    plt.colorbar()

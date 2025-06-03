@@ -118,7 +118,7 @@ class ArcFace(nn.Module):
             phi = torch.where(cosine > self.th, phi, cosine - self.mm)
         # --------------------------- convert label to one-hot ---------------------------
         one_hot = torch.zeros(cosine.size())
-        if self.device_id != None:
+        if self.device_id is not None:
             one_hot = one_hot.cuda(self.device_id[0])
         one_hot.scatter_(1, label.view(-1, 1).long(), 1)
         output = torch.where(one_hot.bool(), phi, cosine)
