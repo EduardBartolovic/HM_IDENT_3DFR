@@ -229,7 +229,7 @@ def main(cfg):
         batch = 0  # batch index
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
-        for epoch in range(NUM_EPOCH):
+        for epoch in range(1,NUM_EPOCH):
             # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
             if epoch == STAGES[0]:
                 schedule_lr(OPTIMIZER)
