@@ -44,6 +44,4 @@ def rename_angles(input_dir, output_dir):
 
 
 if __name__ == '__main__':
-    #rename_angles("F:\\Face\\data\\datasets9\\test_nersemble", "F:\\Face\\data\\datasets9\\test_nersemble_fix")
-    for epoch in range(1, 100):
-        print(epoch)
+    rename_angles("F:\\Face\\data\\datasets9\\test_nersemble", "F:\\Face\\data\\datasets9\\test_nersemble_fix")
