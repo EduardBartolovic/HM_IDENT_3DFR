@@ -136,7 +136,7 @@ def main(cfg):
         AGG_DICT = {'WeightedSumAggregator': make_weighted_sum_aggregator(AGG_CONFIG),
                     'MeanAggregator': make_mean_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
                     'SEAggregator': make_se_aggregator([64, 64, 128, 256, 512]),
-                    'TransformerAggregator': make_stt_aggregator([64, 64, 124, 256, 512])}
+                    'TransformerAggregator': make_stt_aggregator([64, 64, 124, 256, 512], NUM_VIEWS)}
         aggregators = AGG_DICT[AGG_NAME]
 
         model_arch = [(BATCH_SIZE, NUM_VIEWS, 64, 112, 112), (BATCH_SIZE, NUM_VIEWS+1, 64, 56, 56), (BATCH_SIZE, NUM_VIEWS+1, 128, 28, 28), (BATCH_SIZE, NUM_VIEWS+1, 256, 14, 14), (BATCH_SIZE, NUM_VIEWS+1, 512, 7, 7)]

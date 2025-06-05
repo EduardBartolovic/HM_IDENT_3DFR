@@ -2,7 +2,7 @@ SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP219-IR_MV_50_Asia-BFF8C1033-MA1234TA5-ArcFace-FocalLoss-epochs20-batch16'  # experiment_name
 DATA_ROOT: '/home/gustav/dataset9'  # the parent data root
-TRAIN_SET: 'rgb_bff_crop'  # train dataset name
+TRAIN_SET: 'rgb_bff_crop8'  # train dataset name
 
 MODEL_ROOT: './model'  # the root to buffer checkpoints
 LOG_ROOT: './log'  # the root to log
