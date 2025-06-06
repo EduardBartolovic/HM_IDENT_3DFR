@@ -72,7 +72,7 @@ def main(cfg):
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
-    UNFREEZE_EPOCH = cfg.get('UNFREEZE_EPOCH', 0)  # Unfreeze aggregators after X Epochs. Train Arcface Head first.
+    UNFREEZE_EPOCH = cfg.get('UNFREEZE_EPOCH', 1)  # Unfreeze aggregators after X Epochs. Train Arcface Head first.
 
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     MULTI_GPU = cfg['MULTI_GPU']  # flag to use multiple GPUs
