@@ -4,7 +4,7 @@ from torchvision.models import ViT_B_16_Weights, vit_b_16
 
 class ViT_B_16(nn.Module):
     """
-    Constructs a SqueezeNet model.
+    Constructs a ViT_B_16 model.
     """
     def __init__(self, encoding_size=512, pretrained=None):
         super(ViT_B_16, self).__init__()

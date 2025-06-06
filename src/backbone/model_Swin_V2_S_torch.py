@@ -4,7 +4,7 @@ from torchvision.models import Swin_V2_S_Weights, swin_v2_s
 
 class Swin_V2_S(nn.Module):
     """
-    Constructs a SqueezeNet model.
+    Constructs a Swin_V2_S model.
     """
     def __init__(self, encoding_size=512, pretrained=None):
         super(Swin_V2_S, self).__init__()
