@@ -102,7 +102,7 @@ def main(cfg):
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
 
         train_transform = transforms.Compose([
-            transforms.Resize((INPUT_SIZE, INPUT_SIZE)),
+            transforms.Resize(INPUT_SIZE),
             transforms.RandomCrop((112, 112)),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
