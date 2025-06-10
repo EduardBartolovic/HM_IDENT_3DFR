@@ -57,12 +57,12 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
 
 
 @numba.njit(parallel=True, fastmath=True, nogil=True)
-def process_chunk_embedding_similarity(tabular_data, image_data, start_row, end_row, similarity_matrix):
+def process_chunk_embedding_similarity(query_data, enrolled_data, start_row, end_row, similarity_matrix):
     for i in numba.prange(start_row, end_row):
-        similarity_matrix[i, :] = np.dot(tabular_data[i], image_data.T)
+        similarity_matrix[i, :] = np.dot(query_data[i], enrolled_data.T)
 
 
-def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_size=100, disable_bar=True):
+def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_size=500, disable_bar=True):
     query_data = query_embeddings / np.linalg.norm(query_embeddings, axis=1, keepdims=True)
     enrolled_data = enrolled_embeddings / np.linalg.norm(enrolled_embeddings, axis=1, keepdims=True)
     similarity_matrix = np.empty((query_data.shape[0], enrolled_data.shape[0]), dtype=np.float32)
