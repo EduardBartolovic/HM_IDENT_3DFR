@@ -91,10 +91,35 @@ if __name__ == '__main__':
               #['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25'],  # 10 Top All
               #['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25', '0_-25', '0_-10', '0_10', '0_25'],  # 11 Top All + Middle
               #['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25'],  # 12 Top Corners + Sides
-              ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0'],  # 13 Top Corners + Sides + Mid  FAV?
+              # -------------------- ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0'],  # 13 Top Corners + Sides + Mid  FAV!
               #['0_0', '10_-10', '10_10', '-10_10', '-10_-10'], # Inner Corners
               #['0_0', '10_-10', '10_10', '-10_10', '-10_-10', '-10_0', '10_0', '0_10', '0_-10'],  # Inner Ring
               #['0_0', '10_-10', '10_10', '10_0', '0_10', '0_-10'],  # Inner Top Ring
+              ['-25_-25'],
+              ['-25_-10'],
+              ['-25_0'],
+              ['-25_10'],
+              ['-25_25'],
+              ['-10_-25'],
+              ['-10_-10'],
+              ['-10_0'],
+              ['-10_10'],
+              ['-10_25'],
+              ['0_-25'],
+              ['0_-10'],
+              ['0_0'],
+              ['0_10'],
+              ['0_25'],
+              ['25_-25'],
+              ['25_-10'],
+              ['25_0'],
+              ['25_10'],
+              ['25_25'],
+              ['10_-25'],
+              ['10_-10'],
+              ['10_0'],
+              ['10_10'],
+              ['10_25']
               ]
     allowed.append(extras)
     for num_perspectives in allowed:
@@ -102,7 +127,7 @@ if __name__ == '__main__':
         for allowed_perspectives in tqdm(num_perspectives):
 
             DEST_DIR = 'F:\\Face\\data\\datasets9\\vox2train8'
-            filter_images(SOURCE_DIR, DEST_DIR, '', allowed_perspectives, real_copy=True)
+            filter_images(SOURCE_DIR, DEST_DIR, '', allowed_perspectives, real_copy=False)
 
             #DEST_DIR = f'F:\\Face\\data\\datasets9\\vox2test_new_{allowed_perspectives}'.replace("[", "").replace("]", "").replace("\'", "").replace(",", "")
             #for split in ['train', 'validation']:

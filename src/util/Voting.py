@@ -9,7 +9,6 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import numba
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import normalize
-from torch.utils.hipify.hipify_python import InputError
 from tqdm import tqdm
 
 from src.util.EmbeddingsUtils import process_unsorted_embeddings
