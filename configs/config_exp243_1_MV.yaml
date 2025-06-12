@@ -13,7 +13,7 @@ USE_FACE_CORR: False
 BACKBONE_NAME: 'IR_MV_50'
 AGG:
   AGG_NAME: 'TransformerAggregator'
-  AGG_CONFIG: []
+  AGG_CONFIG: [True, True, True, True, True]
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 

@@ -79,13 +79,19 @@ class TransformerAggregator(nn.Module):
         return x
 
 
-def make_stt_aggregator(channels_list, num_views):
+def make_stt_aggregator(channels_list, num_views, activate_stages=(False, False, False, False, True)):
     aggregators = []
-    for channels in channels_list:
-        if channels == 512:
+    for idx, channels in enumerate(channels_list):
+        if idx == 4 and activate_stages[idx]:
             aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=7, transformer_dim=512, feature_dim=512))
-        #elif channels == 256:
-        #    aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=14, transformer_dim=256, feature_dim=256))
+        elif idx == 3 and activate_stages[idx]:
+            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=14, transformer_dim=256, feature_dim=256))
+        elif idx == 2 and activate_stages[idx]:
+            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=28, transformer_dim=128, feature_dim=128))
+        elif idx == 1 and activate_stages[idx]:
+            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=56, transformer_dim=64, feature_dim=64))
+        elif idx == 0 and activate_stages[idx]:
+            aggregators.append(TransformerAggregator(num_views=num_views, spatial_size=112, transformer_dim=64, feature_dim=64))
         else:
             aggregators.append(MeanAggregator())
 
