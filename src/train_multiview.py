@@ -32,11 +32,11 @@ import argparse
 
 def eval_loop(device, backbone_reg, backbone_agg, aggregators, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
     # evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bellus_crop", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     # evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff", epoch, (150, 150), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_nersemble", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2test", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2train", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2test8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2train8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
 
 def main(cfg):
