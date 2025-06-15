@@ -1,6 +1,5 @@
 import os
 import time
-from functools import partial
 
 import cv2
 import mediapipe as mp
@@ -9,9 +8,9 @@ import numpy as np
 import torch
 from scipy.interpolate import Rbf
 from scipy.interpolate import griddata
-from scipy.spatial import KDTree
 from tqdm import tqdm
 from multiprocessing import Pool
+
 
 def create_dense_flow(src_landmarks, dst_landmarks, w, h):
     """
