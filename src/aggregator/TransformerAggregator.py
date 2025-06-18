@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from torchinfo import summary
 
 from src.aggregator.MeanAggregator import MeanAggregator
 
@@ -40,7 +39,6 @@ class TransformerAggregator(nn.Module):
         #self.fusion_layer = nn.Linear(num_views, 1)
         #self.fusion_layer = nn.Sequential(Linear(num_views, H), GELU(), Linear(H, 1))
 
-
     def forward(self, x):
         """
         x: (B, V, C, H, W)
@@ -69,7 +67,6 @@ class TransformerAggregator(nn.Module):
         #x = x.permute(0, 2, 3, 1)  # (B, H*W, C, V)
         #x = self.fusion_layer(x)  # (B, H*W, C, 1)
         #x = x.squeeze(-1)  # (B, H*W, C)
-
         x = x.mean(dim=1)  # (B, H*W, C) mean pooling
         # x, _ = x.max(dim=1)  # (B, H*W, C) max pooling
 
@@ -79,19 +76,28 @@ class TransformerAggregator(nn.Module):
         return x
 
 
-def make_stt_aggregator(channels_list, num_views, activate_stages=(False, False, False, False, True)):
+def make_transformer_aggregator(channels_list, num_views, agg_config):
+    if agg_config["ACTIVE_STAGES"]:
+        activate_stages = agg_config["ACTIVE_STAGES"]
+    else:
+        activate_stages = (False, False, False, False, True)
+    if agg_config["NUM_LAYERS"]:
+        num_layers = agg_config["NUM_LAYERS"]
+    else:
+        num_layers = 3
+
     aggregators = []
     for idx, channels in enumerate(channels_list):
         if idx == 4 and activate_stages[idx]:
-            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=7, transformer_dim=512, feature_dim=512))
+            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=7, transformer_dim=512, feature_dim=512, num_layers=num_layers))
         elif idx == 3 and activate_stages[idx]:
-            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=14, transformer_dim=256, feature_dim=256))
+            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=14, transformer_dim=256, feature_dim=256, num_layers=num_layers))
         elif idx == 2 and activate_stages[idx]:
-            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=28, transformer_dim=128, feature_dim=128))
+            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=28, transformer_dim=128, feature_dim=128, num_layers=num_layers))
         elif idx == 1 and activate_stages[idx]:
-            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=56, transformer_dim=64, feature_dim=64))
+            aggregators.append(TransformerAggregator(num_views=num_views+1, spatial_size=56, transformer_dim=64, feature_dim=64, num_layers=num_layers))
         elif idx == 0 and activate_stages[idx]:
-            aggregators.append(TransformerAggregator(num_views=num_views, spatial_size=112, transformer_dim=64, feature_dim=64))
+            aggregators.append(TransformerAggregator(num_views=num_views, spatial_size=112, transformer_dim=64, feature_dim=64, num_layers=num_layers))
         else:
             aggregators.append(MeanAggregator())
 
