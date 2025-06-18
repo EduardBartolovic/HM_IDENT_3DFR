@@ -12,7 +12,8 @@ from loss.focal import FocalLoss
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.MedianAggregator import make_median_aggregator
 from src.aggregator.SEAggregator import make_se_aggregator
-from src.aggregator.TransformerAggregator import make_stt_aggregator
+from src.aggregator.TransformerAggregator import make_transformer_aggregator
+#from src.aggregator.TransformerAggregatorV2 import make_transformer_aggregatorv2
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
 from src.backbone.model_multiview_irse import IR_MV_50, execute_model
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
@@ -139,7 +140,8 @@ def main(cfg):
                     'MeanAggregator': lambda: make_mean_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
                     'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
-                    'TransformerAggregator': lambda: make_stt_aggregator([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG)}
+                    'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG),}
+                    #'TransformerAggregatorV2': lambda: make_transformer_aggregatorv2([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG)}
         aggregators = AGG_DICT[AGG_NAME]()
 
         model_arch = [(BATCH_SIZE, NUM_VIEWS, 64, 112, 112), (BATCH_SIZE, NUM_VIEWS+1, 64, 56, 56), (BATCH_SIZE, NUM_VIEWS+1, 128, 28, 28), (BATCH_SIZE, NUM_VIEWS+1, 256, 14, 14), (BATCH_SIZE, NUM_VIEWS+1, 512, 7, 7)]
