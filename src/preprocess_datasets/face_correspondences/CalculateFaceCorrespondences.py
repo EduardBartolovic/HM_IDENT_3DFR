@@ -136,6 +136,8 @@ def calculate_face_correspondences_dataset(dataset_folder, keep=True, processes=
             for sha_hash, file_paths in sha_groups.items():
                 if len(file_paths) == target_views:
                     data.append(file_paths)
+                else:
+                    print("skipped:", file_paths)
 
     with Pool(processes=processes) as p, tqdm(total=len(data), desc="Creating Face Correspondences") as pbar:
         for _ in p.imap(process_file_paths, data):
