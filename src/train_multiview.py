@@ -11,6 +11,7 @@ from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.MedianAggregator import make_median_aggregator
+from src.aggregator.RobustMeanAggregator import make_rma
 from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_transformer_aggregator
 #from src.aggregator.TransformerAggregatorV2 import make_transformer_aggregatorv2
@@ -138,6 +139,7 @@ def main(cfg):
 
         AGG_DICT = {'WeightedSumAggregator': lambda: make_weighted_sum_aggregator(AGG_CONFIG),
                     'MeanAggregator': lambda: make_mean_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
+                    'RobustMeanAggregator': lambda: make_rma([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
                     'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
                     'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG),}
