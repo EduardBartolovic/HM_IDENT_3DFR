@@ -1,8 +1,8 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP307-IR_MV_50_MSCELEB-MV_MSCELEB8-M123T45_1layers-ArcFace-FocalLoss-epochs40-fro_agg_15-batch16'  # experiment_name
+RUN_NAME: 'EXP307-IR_MV_50_MSCELEB-nersemble8-M123T45_1layers-ArcFace-FocalLoss-epochs40-fro_agg_15-batch16'  # experiment_name
 DATA_ROOT: '/home/gustav/dataset9'  # the parent data root
-TRAIN_SET: 'MV_MSCELEB8'  # train dataset name
+TRAIN_SET: 'nersemble8'  # train dataset name
 
 MODEL_ROOT: './model'  # the root to buffer checkpoints
 LOG_ROOT: './log'  # the root to log
