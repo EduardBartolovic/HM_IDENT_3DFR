@@ -35,7 +35,12 @@ def rename_images_in_class_folder(class_path):
     for leftover in leftovers:
         os.remove(os.path.join(class_path, leftover))
 
-    print(f"Processed {num_batches * batch_size} images in '{class_path}'. Deleted {len(leftovers)} leftovers.")
+    # Check if folder is now empty
+    if not any(os.scandir(class_path)):
+        os.rmdir(class_path)
+        print(f"Not enough Samples -> Deleted empty folder: '{class_path}'")
+    else:
+        print(f"Processed {num_batches * batch_size} images in '{class_path}'. Deleted {len(leftovers)} leftovers.")
 
 
 def main():
