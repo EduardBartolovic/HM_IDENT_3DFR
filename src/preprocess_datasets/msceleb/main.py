@@ -25,7 +25,7 @@ def rename_images_in_class_folder(class_path):
 
         for img_name, appendix in zip(batch, appendices):
             ext = Path(img_name).suffix
-            new_name = f"{group_hash}{appendix}{ext}"
+            new_name = f"{group_hash}{appendix}_image{ext}"
             src = os.path.join(class_path, img_name)
             dst = os.path.join(class_path, new_name)
             os.rename(src, dst)
