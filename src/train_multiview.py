@@ -77,6 +77,7 @@ def main(cfg):
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
     UNFREEZE_EPOCH = cfg.get('UNFREEZE_EPOCH', 1)  # Unfreeze aggregators after X Epochs. Train Arcface Head first.
+    STOPPING_CRITERION = cfg.get('STOPPING_CRITERION', 99.75)
 
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     MULTI_GPU = cfg['MULTI_GPU']  # flag to use multiple GPUs
@@ -329,9 +330,9 @@ def main(cfg):
             if top1.avg > best_acc:  # Early stopping check
                 best_acc = top1.avg
                 counter = 0
-            elif top1.avg > 99.5:
+            elif top1.avg > STOPPING_CRITERION:
                 print(colorstr('red', "=" * 60))
-                print(colorstr('red', "========= Training Prec@1 reached > 99.5 -> Finishing ========="))
+                print(colorstr('red', f"======== Training Prec@1 reached > {STOPPING_CRITERION} -> Finishing ========"))
                 print(colorstr('red', "=" * 60))
                 break
             else:
