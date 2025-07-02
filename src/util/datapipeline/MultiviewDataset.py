@@ -1,3 +1,4 @@
+import random
 import os
 import re
 
@@ -8,7 +9,7 @@ from PIL import Image
 
 
 class MultiviewDataset(Dataset):
-    def __init__(self, root_dir, num_views, transform=None, use_face_corr=True):
+    def __init__(self, root_dir, num_views, transform=None, use_face_corr=True, shuffle_views=False):
         """
         Args:
             root_dir (string): Path to the root directory of the dataset.
@@ -22,6 +23,7 @@ class MultiviewDataset(Dataset):
         self.class_to_idx = self._get_class_to_idx()
         self.data = self._load_data()
         self.classes = self._find_classes()
+        self.shuffle_views = shuffle_views
 
     def _get_class_to_idx(self):
         """
@@ -93,6 +95,20 @@ class MultiviewDataset(Dataset):
 
         # Load Scan ids
         scan_id = os.path.basename(img_paths[0])[:40]
+
+        # Shuffle in sync if enabled
+        if self.shuffle_views:
+            if self.face_cor_exist:
+                combined = list(zip(images, perspectives, facial_corr))
+                random.shuffle(combined)
+                images, perspectives, facial_corr = zip(*combined)
+                facial_corr = torch.stack(facial_corr)
+            else:
+                combined = list(zip(images, perspectives))
+                random.shuffle(combined)
+                images, perspectives = zip(*combined)
+            images = list(images)
+            perspectives = list(perspectives)
 
         # Apply the transform if any
         if self.transform:

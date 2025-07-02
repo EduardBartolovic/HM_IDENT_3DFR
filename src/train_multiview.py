@@ -70,6 +70,7 @@ def main(cfg):
     EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']  # embedding dimension
     BATCH_SIZE = cfg['BATCH_SIZE']  # Batch size in training
     DROP_LAST = cfg['DROP_LAST']  # whether drop the last batch to ensure consistent batch_norm statistics
+    SHUFFLE_PERSPECTIVES = cfg.get('SHUFFLE_PERSPECTIVES', False)  # shuffle perspectives during train loop
     LR = cfg['LR']  # initial LR
     NUM_EPOCH = cfg['NUM_EPOCH']
     PATIENCE = cfg.get('PATIENCE', 10)
@@ -114,7 +115,7 @@ def main(cfg):
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
         ])
 
-        dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=NUM_VIEWS, transform=train_transform, use_face_corr=use_face_corr)
+        dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=NUM_VIEWS, transform=train_transform, use_face_corr=use_face_corr, shuffle_views=SHUFFLE_PERSPECTIVES)
 
         # create a weighted random sampler to process imbalanced data
         weights = make_weights_for_balanced_classes(dataset_train.data, len(dataset_train.classes))
