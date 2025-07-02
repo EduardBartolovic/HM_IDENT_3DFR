@@ -14,7 +14,6 @@ from src.aggregator.MedianAggregator import make_median_aggregator
 from src.aggregator.RobustMeanAggregator import make_rma
 from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_transformer_aggregator
-#from src.aggregator.TransformerAggregatorV2 import make_transformer_aggregatorv2
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
 from src.backbone.model_multiview_irse import IR_MV_50, execute_model
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
