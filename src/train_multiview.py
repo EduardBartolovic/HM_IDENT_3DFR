@@ -330,7 +330,7 @@ def main(cfg):
             if top1.avg > best_acc:  # Early stopping check
                 best_acc = top1.avg
                 counter = 0
-            elif top1.avg > STOPPING_CRITERION:
+            elif top1.avg > STOPPING_CRITERION and epoch > UNFREEZE_EPOCH:
                 print(colorstr('red', "=" * 60))
                 print(colorstr('red', f"======== Training Prec@1 reached > {STOPPING_CRITERION} -> Finishing ========"))
                 print(colorstr('red', "=" * 60))
