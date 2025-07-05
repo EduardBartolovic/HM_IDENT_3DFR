@@ -7,7 +7,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 # Config
-dataset_path = "F:\\Face\\data\\datasets9\\MV_MSCELEB85KO8\\"
+dataset_path = "F:\\Face\\data\\datasets9\\MV_TEST\\" #MV_MSCELEB85KO8\\"
 appendices = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
 batch_size = len(appendices)
 
@@ -29,6 +29,8 @@ def rename_images_in_class_folder(class_path):
 
     processed_images = images[:num_to_process]
 
+    renamed_images = []
+
     # Step 1: Rename full batches
     for i in range(num_batches):
         batch = processed_images[i * batch_size:(i + 1) * batch_size]
@@ -39,13 +41,16 @@ def rename_images_in_class_folder(class_path):
             src = os.path.join(class_path, img_name)
             dst = os.path.join(class_path, new_name)
             os.rename(src, dst)
+            renamed_images.append(new_name)
 
     # Step 2: Process leftovers
     if leftovers:
-        # Refresh file list (only renamed images are available now)
-        all_images_now = get_image_files(class_path)
+        if not renamed_images:
+            print(f"Not enough images to fill batch in '{class_path}'. Skipping leftovers.")
+            return
+
         needed = batch_size - len(leftovers)
-        fill_ins = random.choices(all_images_now, k=needed)
+        fill_ins = random.choices(renamed_images, k=needed)
         final_batch = leftovers + fill_ins
         group_hash = generate_hash()
 
@@ -54,18 +59,17 @@ def rename_images_in_class_folder(class_path):
             new_name = f"{group_hash}{appendix}_image{ext}"
             dst = os.path.join(class_path, new_name)
 
+            src = os.path.join(class_path, img_name)
+
             if img_name in leftovers:
-                # This is a real leftover → rename
-                src = os.path.join(class_path, img_name)
                 if os.path.exists(src):
                     os.rename(src, dst)
             else:
-                # This is a fill-in → copy
-                src = os.path.join(class_path, img_name)
+                # Fill-in → Copy from renamed_images
                 if os.path.exists(src):
                     shutil.copy2(src, dst)
 
-        print(f"Leftover batch filled (copied {needed} fill-ins) in '{class_path}'.")
+        print(f"Leftover batch filled (only using non-leftovers) in '{class_path}'.")
 
     print(f"Processed total of {(num_batches + (1 if leftovers else 0)) * batch_size} images in '{class_path}'.")
 
