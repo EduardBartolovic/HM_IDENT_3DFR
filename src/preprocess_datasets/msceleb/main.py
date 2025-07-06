@@ -7,7 +7,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 # Config
-dataset_path = "F:\\Face\\data\\datasets9\\MV_TEST\\" #MV_MSCELEB85KO8\\"
+dataset_path = "F:\\Face\\data\\datasets9\\MV_MSCELEBFULL\\photo_MS-Celeb-1M_Align_112x112" #MV_MSCELEB85KO8\\"
 appendices = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
 batch_size = len(appendices)
 
@@ -46,7 +46,12 @@ def rename_images_in_class_folder(class_path):
     # Step 2: Process leftovers
     if leftovers:
         if not renamed_images:
-            print(f"Not enough images to fill batch in '{class_path}'. Skipping leftovers.")
+            print(f"Not enough images to fill batch in '{class_path}'. Deleting folder.")
+            # Delete all files
+            for file_name in get_image_files(class_path):
+                os.remove(os.path.join(class_path, file_name))
+            # Delete folder
+            os.rmdir(class_path)
             return
 
         needed = batch_size - len(leftovers)
