@@ -57,7 +57,7 @@ class MultiviewDataset(Dataset):
                                 sha_groups[sha_hash] = []
                             sha_groups[sha_hash].append(file_path)
 
-                        assert re.match(r"^[-+]?\d+_[-+]?\d+$", os.path.basename(file_path)[40:-10]), "perspective in dataset doesnt match convention"
+                        assert re.match(r"^[-+]?\d+_[-+]?\d+$", os.path.basename(file_path)[40:-10]), f"perspective in dataset doesnt match convention: {file_path}"
                     else:
                         if filename.endswith(".npz"):
                             self.face_cor_exist = True
@@ -96,7 +96,6 @@ class MultiviewDataset(Dataset):
         # Load Scan ids
         scan_id = os.path.basename(img_paths[0])[:40]
 
-        # Shuffle in sync if enabled
         if self.shuffle_views:
             if self.face_cor_exist:
                 combined = list(zip(images, perspectives, facial_corr))

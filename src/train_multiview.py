@@ -16,6 +16,7 @@ from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_transformer_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
 from src.backbone.model_multiview_irse import IR_MV_50, execute_model
+from src.backbone.multiview_iresnet_insight import IR_MV_V2_50
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mv
 from src.util.load_checkpoint import load_checkpoint
@@ -77,7 +78,7 @@ def main(cfg):
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
     UNFREEZE_EPOCH = cfg.get('UNFREEZE_EPOCH', 1)  # Unfreeze aggregators after X Epochs. Train Arcface Head first.
-    STOPPING_CRITERION = cfg.get('STOPPING_CRITERION', 99.75)
+    STOPPING_CRITERION = cfg.get('STOPPING_CRITERION', 99.9)
 
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     MULTI_GPU = cfg['MULTI_GPU']  # flag to use multiple GPUs

@@ -55,7 +55,7 @@ if __name__ == '__main__':
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
-    DISTANCE_METRIC = cfg['DISTANCE_METRIC']  # support: ['euclidian', 'cosine']
+    DISTANCE_METRIC = cfg.get('DISTANCE_METRIC', 'cosine')  # support: ['euclidian', 'cosine']
 
     INPUT_SIZE = cfg['INPUT_SIZE']
     RGB_MEAN = cfg['RGB_MEAN']  # for normalize inputs
@@ -122,8 +122,9 @@ if __name__ == '__main__':
             test_faceverse = 'test_rgb_faceverse'
             test_texas = 'test_rgb_texas'
             test_bff = 'test_rgb_bff'
-            test_vox2test = "test_vox2test"
-            test_vox2train = "test_vox2train"
+            test_vox2test = "test_vox2test8"
+            test_vox2train = "test_vox2train8"
+            test_nersemble = "test_nersemble8"
         elif 'depth' in TRAIN_SET:
             test_bellus = 'test_depth_bellus'
             test_facescape = 'test_depth_facescape'
@@ -249,16 +250,13 @@ if __name__ == '__main__':
 
             #  ======= perform validation =======
             #evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bellus, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE*6, disable_bar=True)
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, "C:\\Users\\Eduard\\Desktop\\Face\\dataset8\\test_vox2testX", epoch, DISTANCE_METRIC, (150, 150),
-                             BATCH_SIZE * 6, disable_bar=False)
 
-            #if (epoch + 1) % 10 == 0 or (epoch + 1) == 5:
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE*6)
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_vox2test, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE*6, disable_bar=True)
             evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_vox2train, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE*6)
-            # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_facescape, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE*8)
+            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_nersemble, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE*8)
             # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_faceverse, epoch, DISTANCE_METRIC, (112, 112), BATCH_SIZE*8)
             # evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_texas, epoch, DISTANCE_METRIC, (168, 112), BATCH_SIZE*6)
-            evaluate_and_log(DEVICE, BACKBONE, DATA_ROOT, test_bff, epoch, DISTANCE_METRIC, (150, 150), BATCH_SIZE*6)
 
             print("=" * 60)
 
