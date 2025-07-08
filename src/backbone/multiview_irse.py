@@ -21,9 +21,9 @@ def get_blocks():
     ]
 
 
-class Backbone(Module):
+class MultiviewIResnet(Module):
     def __init__(self, input_size, embedding_size=512):
-        super(Backbone, self).__init__()
+        super(MultiviewIResnet, self).__init__()
         assert input_size[0] in [112], "input_size should be [112, 112]"
 
         unit_module = bottleneck_IR
@@ -108,7 +108,7 @@ class Backbone(Module):
 def IR_MV_50(input_size, embedding_size):
     """Constructs a ir-50 model.
     """
-    model = Backbone(input_size, embedding_size)
+    model = MultiviewIResnet(input_size, embedding_size)
 
     return model
 

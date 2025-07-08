@@ -42,9 +42,23 @@ def load_checkpoint(BACKBONE, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd
         if rgbd:
             load_rgbd_backbone_checkpoint(BACKBONE, BACKBONE_RESUME_ROOT)
         else:
-            BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT, weights_only=True))
+            state_dict = torch.load(BACKBONE_RESUME_ROOT, weights_only=True)
+            try:
+                BACKBONE.load_state_dict(state_dict)
+            except RuntimeError:
+                print("Warning: Changing State dict!")
+                state_dict = adapt_state_dict_for_backbone(state_dict)
+                BACKBONE.load_state_dict(state_dict)
     else:
         if len(BACKBONE_RESUME_ROOT) > 5 or len(HEAD_RESUME_ROOT) > 5:
             print(colorstr('red', f"You put in a path but there is no checkpoint found at {BACKBONE_RESUME_ROOT} or {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
             raise Exception(colorstr('red', f"You put in a path but there is no checkpoint found at {BACKBONE_RESUME_ROOT} or {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
         print(colorstr('red', f"No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
+
+
+def adapt_state_dict_for_backbone(state_dict, prefix="backbone."):
+    new_state_dict = {}
+    for k, v in state_dict.items():
+        new_key = prefix + k if not k.startswith(prefix) else k
+        new_state_dict[new_key] = v
+    return new_state_dict

@@ -10,7 +10,7 @@ import torchvision
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
-from src.backbone.model_multiview_irse import execute_model
+from src.backbone.multiview_irse import execute_model
 from src.util.Metrics import error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram
 from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, accuracy_front_perspective

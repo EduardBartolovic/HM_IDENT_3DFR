@@ -6,7 +6,7 @@ import torch.nn as nn
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
-from src.backbone.model_multiview_irse import IR_MV_50
+from src.backbone.multiview_irse import IR_MV_50
 from src.util.eval_model_multiview import evaluate_and_log_mv
 from src.util.load_checkpoint import load_checkpoint
 import os

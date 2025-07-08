@@ -15,8 +15,8 @@ from src.aggregator.RobustMeanAggregator import make_rma
 from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_transformer_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
-from src.backbone.model_multiview_irse import IR_MV_50, execute_model
-from src.backbone.multiview_iresnet_insight import IR_MV_V2_50
+from src.backbone.multiview_irse import IR_MV_50, execute_model
+from src.backbone.multiview_ires_insight import IR_MV_V2_50
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mv
 from src.util.load_checkpoint import load_checkpoint
@@ -131,7 +131,8 @@ def main(cfg):
         print("Number of Training Classes: {}".format(NUM_CLASS))
 
         # ======= model & loss & optimizer =======
-        BACKBONE_DICT = {'IR_MV_50': lambda: IR_MV_50(INPUT_SIZE, EMBEDDING_SIZE)}
+        BACKBONE_DICT = {'IR_MV_50': lambda: IR_MV_50(INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_MV_V2': lambda: IR_MV_V2_50(EMBEDDING_SIZE)}
         BACKBONE_reg = BACKBONE_DICT[BACKBONE_NAME]()
         BACKBONE_agg = BACKBONE_DICT[BACKBONE_NAME]()
         model_stats_backbone = summary(BACKBONE_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
