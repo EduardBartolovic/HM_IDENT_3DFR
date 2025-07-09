@@ -1,8 +1,10 @@
+import torch
 from pathlib import Path
 
 from src.preprocess_datasets.blazeface.face_crop import face_crop_full_frame
 from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_landmarks_dataset, \
     calculate_face_correspondences_dataset
+from src.preprocess_datasets.process_dataset_retinaface import face_crop_and_alignment
 from src.preprocess_datasets.rendering import PrepareDataset
 from src.preprocess_datasets.rendering.Extract2DFaces import Extract2DFaces
 from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
@@ -14,17 +16,14 @@ def main():
     facescape = False
     faceverse = False
     texas = False
-    nphm = False
     facewarehouse = False
     mononphm = False
     ffhq = False
     prep_data = False
     colorferet = False
-    bff = False
+    bff = True
 
-    root = 'F:\\Face\\data\\datasets9\\'
-
-    face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
+    root = 'F:\\Face\\data\\dataset10\\'
     render_angles = [-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
 
     # -------- Bellus --------
@@ -49,9 +48,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus\\')
-        output_dir = Path(root+'test_rgb_bellus')
-        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        #input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus\\')
+        #output_dir = Path(root+'test_rgb_bellus')
+        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth:
         #input_path = Path(root+'test_rgb_bellus')
@@ -63,13 +62,6 @@ def main():
         #input_path = Path('F:\\Face\\data\\tmp\\2D_Bellus\\')
         #output_dir = Path(root+'test_photo_bellus')
         #PrepareDataset.prepare_dataset_photos(input_path, output_dir)
-
-        face_crop_full_frame(root+'test_rgb_bellus/train', root+'test_rgb_bellus/train_crop', face_detect_model_root)
-        face_crop_full_frame(root+'test_rgb_bellus/validation', root+'test_rgb_bellus/validation_crop', face_detect_model_root)
-        #calculate_face_landmarks_dataset(root+'test_rgb_bellus/train_crop')
-        #calculate_face_landmarks_dataset(root + 'test_rgb_bellus/validation_crop')
-        #calculate_face_correspondences_dataset(root+'test_rgb_bellus/train_crop', keep=True, processes=2)
-        #calculate_face_correspondences_dataset(root+'test_rgb_bellus/validation_crop', keep=True, processes=2)
 
     # -------- FACESCAPE --------
     if facescape:
@@ -97,13 +89,6 @@ def main():
         #output_dir = Path(root+'test_rgbd_facescape')
         #PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
-        face_crop_full_frame(root+'test_rgb_facescape/train', root+'test_rgb_facescape/train_crop', face_detect_model_root)
-        face_crop_full_frame(root+'test_rgb_facescape/validation', root+'test_rgb_facescape/validation_crop', face_detect_model_root)
-        #calculate_face_landmarks_dataset(root+'test_rgb_facescape/train_crop')
-        #calculate_face_landmarks_dataset(root + 'test_rgb_facescape/validation_crop')
-        #calculate_face_correspondences_dataset(root+'test_rgb_facescape/train_crop', keep=True, processes=2)
-        #calculate_face_correspondences_dataset(root+'test_rgb_facescape/validation_crop', keep=True, processes=2)
-
     if faceverse:
         print("################# FACEVERSE #################")
         # Image Rendering faceverse
@@ -128,35 +113,6 @@ def main():
         #output_dir = Path(root+'test_rgbd_faceverse')
         #PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
-        face_crop_full_frame(root+'test_rgb_faceverse/train', root+'test_rgb_faceverse/train_crop', face_detect_model_root)
-        face_crop_full_frame(root+'test_rgb_faceverse/validation', root+'test_rgb_faceverse/validation_crop', face_detect_model_root)
-        #calculate_face_landmarks_dataset(root+'test_rgb_faceverse/train_crop')
-        #calculate_face_landmarks_dataset(root + 'test_rgb_faceverse/validation_crop')
-        #calculate_face_correspondences_dataset(root+'test_rgb_faceverse/train_crop', keep=True, processes=2)
-        #calculate_face_correspondences_dataset(root+'test_rgb_faceverse/validation_crop', keep=True, processes=2)
-
-    # if nphm:
-    #     # Image Rendering nphm
-    #     directory_path = Path('H:\\Maurer\\nphm\\')
-    #     output_dir = Path('F:\\Face\\data\\tmp\\3D_nphm\\')
-    #     obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-    #     obj_reader.render_obj_files("nphm")
-    #
-    #     # Prepare Dataset Depth nphm:
-    #     input_path = Path('F:\\Face\\data\\tmp\\3D_nphm')
-    #     output_dir = Path('F:\\Face\\data\\datasets4\\test_depth_nphm')
-    #     PrepareDataset.prepare_dataset_depth(input_path, output_dir)
-    #
-    #     # Prepare Dataset RGB nphm:
-    #     input_path = Path('F:\\Face\\data\\tmp\\3D_nphm\\')
-    #     output_dir = Path('F:\\Face\\data\\datasets4\\test_rgb_nphm')
-    #     PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
-    #
-    #     # Prepare Dataset RGB + Depth nphm:
-    #     input_path = Path('F:\\Face\\data\\datasets4\\test_rgb_nphm')
-    #     input_path2 = Path('F:\\Face\\data\\datasets4\\test_depth_nphm')
-    #     output_dir = Path('F:\\Face\\data\\datasets4\\test_rgbd_nphm')
-    #     PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
     # Texas
     if texas:
@@ -185,13 +141,13 @@ def main():
         output_dir = Path(root+'test_rgb_monoffhq')
         # PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
-        face_crop_full_frame(root+'rgb_monoffhq12000', root+'rgb_monoffhq12000_crop', face_detect_model_root)
-
         # Prepare Dataset RGB + Depth Facescape:
         # input_path = Path(root+'test_rgb_monoffhq')
         # input_path2 = Path(root+'test_depth_monoffhq')
         # output_dir = Path(root+'test_rgbd_monoffhq')
         # PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
+
+        #face_crop_full_frame(root+'rgb_monoffhq70K8', root+'rgb_monoffhq70K_crop8', face_detect_model_root)
 
     if facewarehouse:
 
@@ -251,15 +207,21 @@ def main():
 
     if bff:
         print("################# BFF #################")
-        #input_paths = [Path(root+'test_rgb_bellus'), Path(root+'test_rgb_facescape'), Path(root+'test_rgb_faceverse')]
-        #output_dir = Path(root + 'test_rgb_bff')
+        input_paths = [Path(root+'test_rgb_bellus'), Path(root+'test_rgb_facescape'), Path(root+'test_rgb_faceverse')]
+        output_dir = Path(root + 'test_rgb_bff')
         #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
-        #calculate_face_landmarks_dataset(root+'test_rgb_bff_crop/train')
-        #calculate_face_landmarks_dataset(root + 'test_rgb_bff_crop/validation')
-        #calculate_face_correspondences_dataset(root+'test_rgb_bff_crop/train', keep=True, processes=19)
+        #face_crop_and_alignment(root + 'test_rgb_bff/train', root + 'test_rgb_bff_crop/train', face_factor=0.75, device='cuda' if torch.cuda.is_available() else 'cpu')
+        #face_crop_and_alignment(root + 'test_rgb_bff/validation', root + 'test_rgb_bff_crop/validation', face_factor=0.75, device='cuda' if torch.cuda.is_available() else 'cpu')
+
         perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
-        calculate_face_correspondences_dataset(root+'test_rgb_bff_crop/validation', keep=True, processes=19, filter_keywords=perspective_filter, target_views=len(perspective_filter))
+        PrepareDataset.filter_views(root + 'test_rgb_bff_crop/train', root + 'test_rgb_bff_crop8/train', perspective_filter, target_views=8)
+        PrepareDataset.filter_views(root + 'test_rgb_bff_crop/validation', root + 'test_rgb_bff_crop8/validation', perspective_filter, target_views=8)
+
+        #calculate_face_landmarks_dataset(root+'test_rgb_bff_croplc8\\train')
+        #calculate_face_landmarks_dataset(root + 'test_rgb_bff_croplc8\\validation')
+        #calculate_face_correspondences_dataset(root+'test_rgb_bff_croplc8\\train', keep=True, processes=2, target_views=8)
+        #calculate_face_correspondences_dataset(root+'test_rgb_bff_croplc8\\validation', keep=True, processes=2, target_views=8)
 
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)

@@ -608,3 +608,45 @@ def sanity_check(dir_path):
             if len(perspectives) == 9 or len(perspectives) == 25:
                 continue
             print(f"Scan ID {scan} has {len(perspectives)} unique perspectives.")
+
+
+def filter_views(dataset_folder, output_folder, filter_keywords, target_views=8):
+    """
+    Filters images in dataset_folder based on keywords, and only copies classes where the
+    number of matching images equals target_views or is a multiple of it.
+
+    Args:
+        dataset_folder (str): Path to dataset.
+        filter_keywords (list): List of keywords to filter filenames.
+        target_views (int): Required number of views or multiple.
+        output_folder (str): Destination for filtered images.
+    """
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    for class_name in tqdm(os.listdir(dataset_folder), desc="Filtering Dataset"):
+        class_path = os.path.join(dataset_folder, class_name)
+        if os.path.isdir(class_path):
+            # List matching files
+            matching_files = [
+                f for f in os.listdir(class_path)
+                if any(keyword == f[40:-10] for keyword in filter_keywords)
+            ]
+
+            num_matching = len(matching_files)
+
+            # Check if the number of matching images is valid
+            if num_matching > 0 and num_matching % target_views == 0:
+                # Create class folder in output
+                output_class_path = os.path.join(output_folder, class_name)
+                os.makedirs(output_class_path, exist_ok=True)
+
+                # Copy the matching files
+                for filename in matching_files:
+                    src_file = os.path.join(class_path, filename)
+                    dst_file = os.path.join(output_class_path, filename)
+                    shutil.copy2(src_file, dst_file)
+            else:
+                raise Exception(f"num_matching doesnt match in {class_name}")
+
+    print(f"✅ Done! Filtered dataset saved in: {output_folder}")
