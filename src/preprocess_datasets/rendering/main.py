@@ -211,12 +211,12 @@ def main():
         output_dir = Path(root + 'test_rgb_bff')
         #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
-        #face_crop_and_alignment(root + 'test_rgb_bff/train', root + 'test_rgb_bff_crop/train', face_factor=0.75, device='cuda' if torch.cuda.is_available() else 'cpu')
-        #face_crop_and_alignment(root + 'test_rgb_bff/validation', root + 'test_rgb_bff_crop/validation', face_factor=0.75, device='cuda' if torch.cuda.is_available() else 'cpu')
+        face_crop_and_alignment(root + 'test_rgb_bff/train', root + 'test_rgb_bff_crop07/train', face_factor=0.7, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(272, 272))
+        face_crop_and_alignment(root + 'test_rgb_bff/validation', root + 'test_rgb_bff_crop07/validation', face_factor=0.7, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(272, 272))
 
         perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
-        PrepareDataset.filter_views(root + 'test_rgb_bff_crop/train', root + 'test_rgb_bff_crop8/train', perspective_filter, target_views=8)
-        PrepareDataset.filter_views(root + 'test_rgb_bff_crop/validation', root + 'test_rgb_bff_crop8/validation', perspective_filter, target_views=8)
+        PrepareDataset.filter_views(root + 'test_rgb_bff_crop07/train', root + 'test_rgb_bff_crop078/train', perspective_filter, target_views=8)
+        PrepareDataset.filter_views(root + 'test_rgb_bff_crop07/validation', root + 'test_rgb_bff_crop078/validation', perspective_filter, target_views=8)
 
         #calculate_face_landmarks_dataset(root+'test_rgb_bff_croplc8\\train')
         #calculate_face_landmarks_dataset(root + 'test_rgb_bff_croplc8\\validation')

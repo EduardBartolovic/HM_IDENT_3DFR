@@ -4,10 +4,10 @@ from tqdm import tqdm
 from face_crop_plus import Cropper
 
 
-def face_crop_and_alignment(input_folder, output_folder, face_factor=0.75, device='cuda' if torch.cuda.is_available() else 'cpu'):
+def face_crop_and_alignment(input_folder, output_folder, face_factor=0.7, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(256, 256), output_size=(256, 256)):
     cropper = Cropper(
-        resize_size=(256, 256),
-        output_size=(256, 256),
+        resize_size=resize_size,
+        output_size=output_size,
         output_format="jpg",
         face_factor=face_factor,
         strategy="largest",

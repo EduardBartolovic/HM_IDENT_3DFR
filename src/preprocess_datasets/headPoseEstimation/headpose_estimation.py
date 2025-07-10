@@ -5,6 +5,7 @@ import time
 import cv2
 import numpy as np
 import torch
+from PIL import Image
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -153,6 +154,28 @@ def headpose_estimation(input_folder, image_folder, output_folder, model_path_hp
                 print(f"Processed: {output_txt_path}")
 
     print(f"HPE for {counter} frames")
+
+
+def collect_images(image_folder):
+    supported_extensions = ('.jpg', '.jpeg', '.png', '.webp')
+    frames = []
+    names = []
+
+    for filename in sorted(os.listdir(image_folder)):
+        if filename.lower().endswith(supported_extensions):
+            file_path = os.path.join(image_folder, filename)
+            try:
+                image = Image.open(file_path).convert('RGB')
+                frames.append(image)
+                names.append(filename)
+            except Exception as e:
+                print(f"Error loading image {filename}: {e}")
+
+    if not frames:
+        print("No images found in", image_folder)
+        return [], []
+
+    return frames, names
 
 
 def process_video(video_path, frame_skip, output_analysis_folder):

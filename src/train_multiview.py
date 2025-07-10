@@ -9,6 +9,7 @@ import torchvision.transforms as transforms
 
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
+from src.aggregator.L2Aggregator import make_l2_aggregator
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.MedianAggregator import make_median_aggregator
 from src.aggregator.RobustMeanAggregator import make_rma
@@ -34,7 +35,15 @@ import argparse
 
 def eval_loop(device, backbone_reg, backbone_agg, aggregators, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
     # evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bellus_crop", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    #evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop8", epoch, (256, 256), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    #evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop8", epoch, (200, 200), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (256, 256), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (224, 224), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (200, 200), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (170, 170), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (160, 160), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (130, 130), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     # evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff", epoch, (150, 150), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2test8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
@@ -144,6 +153,7 @@ def main(cfg):
                     'MeanAggregator': lambda: make_mean_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
                     'RobustMeanAggregator': lambda: make_rma([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
                     'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
+                    'L2Aggregator': lambda: make_l2_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
                     'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG),}
                     #'TransformerAggregatorV2': lambda: make_transformer_aggregatorv2([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG)}
