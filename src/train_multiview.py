@@ -23,7 +23,6 @@ from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
     separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
-import tracemalloc
 from torchinfo import summary
 from tqdm import tqdm
 import os
@@ -42,7 +41,6 @@ def eval_loop(device, backbone_reg, backbone_agg, aggregators, data_root, epoch,
 
 
 def main(cfg):
-    tracemalloc.start()
     SEED = cfg['SEED']
     torch.manual_seed(SEED)
 
