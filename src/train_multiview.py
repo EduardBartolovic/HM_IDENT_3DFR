@@ -9,6 +9,7 @@ import torchvision.transforms as transforms
 
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
+from src.aggregator.ConvAggregator import make_conv_aggregator
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.MedianAggregator import make_median_aggregator
 from src.aggregator.RobustMeanAggregator import make_rma
@@ -141,9 +142,10 @@ def main(cfg):
         print("=" * 60)
 
         AGG_DICT = {'WeightedSumAggregator': lambda: make_weighted_sum_aggregator(AGG_CONFIG),
-                    'MeanAggregator': lambda: make_mean_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
-                    'RobustMeanAggregator': lambda: make_rma([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
-                    'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
+                    'MeanAggregator': lambda: make_mean_aggregator([NUM_VIEWS]*5),
+                    'RobustMeanAggregator': lambda: make_rma([NUM_VIEWS]*5),
+                    'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS]*5),
+                    'ConvAggregator': lambda : make_conv_aggregator(AGG_CONFIG),
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
                     'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG),}
                     #'TransformerAggregatorV2': lambda: make_transformer_aggregatorv2([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG)}
