@@ -47,9 +47,6 @@ def load_checkpoint(model, head, backbone_resume_path, head_resume_path, rgbd=Fa
                 raise Exception
             load_rgbd_backbone_checkpoint(model, backbone_resume_path)
         else:
-            if ".onnx" not in backbone_resume_path:
-                model.load_state_dict(torch.load(backbone_resume_path, weights_only=True))
-
             state_dict = torch.load(backbone_resume_path, weights_only=True)
             try:
                 model.load_state_dict(state_dict)

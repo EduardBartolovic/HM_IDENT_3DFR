@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 
-from src.backbone.iresnet_insight import iresnet50
+from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18
 
 
 class IR_MV_V2_50(nn.Module):
@@ -29,19 +29,118 @@ class IR_MV_V2_50(nn.Module):
 
             if 1 in execute_stage:
                 x = self.backbone.layer1(x)
-                feature_maps['block_2'] = x
+                feature_maps['stage_1'] = x
 
             if 2 in execute_stage:
                 x = self.backbone.layer2(x)
-                feature_maps['block_6'] = x
+                feature_maps['stage_2'] = x
 
             if 3 in execute_stage:
                 x = self.backbone.layer3(x)
-                feature_maps['block_20'] = x
+                feature_maps['stage_3'] = x
 
             if 4 in execute_stage:
                 x = self.backbone.layer4(x)
-                feature_maps['block_23'] = x
+                feature_maps['stage_4'] = x
+
+            if 5 in execute_stage:
+                x = self.backbone.bn2(x)
+                x = torch.flatten(x, 1)
+                x = self.backbone.dropout(x)
+                x = self.backbone.fc(x.float() if self.fp16 else x)
+                x = self.backbone.features(x)
+                feature_maps['output_stage'] = x
+
+        if return_featuremaps:
+            return feature_maps
+
+        return x
+
+
+class IR_MV_V2_34(nn.Module):
+    def __init__(self, embedding_size=512, fp16=False):
+        super(IR_MV_V2_34, self).__init__()
+        self.backbone = iresnet34(num_features=embedding_size, fp16=fp16)
+        self.fp16 = fp16
+        self.precision = torch.float16 if fp16 else torch.float32
+
+    def forward(self, x, return_featuremaps=False, execute_stage=None):
+        if execute_stage is None:
+            execute_stage = {0, 1, 2, 3, 4, 5}
+
+        feature_maps = {}
+
+        with torch.amp.autocast('cuda', dtype=self.precision):
+            if 0 in execute_stage:
+                x = self.backbone.conv1(x)
+                x = self.backbone.bn1(x)
+                x = self.backbone.prelu(x)
+                feature_maps['input_stage'] = x
+
+            if 1 in execute_stage:
+                x = self.backbone.layer1(x)
+                feature_maps['stage_1'] = x
+
+            if 2 in execute_stage:
+                x = self.backbone.layer2(x)
+                feature_maps['stage_2'] = x
+
+            if 3 in execute_stage:
+                x = self.backbone.layer3(x)
+                feature_maps['stage_3'] = x
+
+            if 4 in execute_stage:
+                x = self.backbone.layer4(x)
+                feature_maps['stage_4'] = x
+
+            if 5 in execute_stage:
+                x = self.backbone.bn2(x)
+                x = torch.flatten(x, 1)
+                x = self.backbone.dropout(x)
+                x = self.backbone.fc(x.float() if self.fp16 else x)
+                x = self.backbone.features(x)
+                feature_maps['output_stage'] = x
+
+        if return_featuremaps:
+            return feature_maps
+
+        return x
+
+class IR_MV_V2_18(nn.Module):
+    def __init__(self, embedding_size=512, fp16=False):
+        super(IR_MV_V2_18, self).__init__()
+        self.backbone = iresnet18(num_features=embedding_size, fp16=fp16)
+        self.fp16 = fp16
+        self.precision = torch.float16 if fp16 else torch.float32
+
+    def forward(self, x, return_featuremaps=False, execute_stage=None):
+        if execute_stage is None:
+            execute_stage = {0, 1, 2, 3, 4, 5}
+
+        feature_maps = {}
+
+        with torch.amp.autocast('cuda', dtype=self.precision):
+            if 0 in execute_stage:
+                x = self.backbone.conv1(x)
+                x = self.backbone.bn1(x)
+                x = self.backbone.prelu(x)
+                feature_maps['input_stage'] = x
+
+            if 1 in execute_stage:
+                x = self.backbone.layer1(x)
+                feature_maps['stage_1'] = x
+
+            if 2 in execute_stage:
+                x = self.backbone.layer2(x)
+                feature_maps['stage_2'] = x
+
+            if 3 in execute_stage:
+                x = self.backbone.layer3(x)
+                feature_maps['stage_3'] = x
+
+            if 4 in execute_stage:
+                x = self.backbone.layer4(x)
+                feature_maps['stage_4'] = x
 
             if 5 in execute_stage:
                 x = self.backbone.bn2(x)
@@ -138,10 +237,10 @@ def perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_featur
 def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr):
     stage_to_index = {
         "input_stage": 0,
-        "block_2": 1,
-        "block_6": 2,
-        "block_20": 3,
-        "block_23": 4,
+        "stage_1": 1,
+        "stage_2": 2,
+        "stage_3": 3,
+        "stage_4": 4,
         "output_stage": 5,
     }
 
