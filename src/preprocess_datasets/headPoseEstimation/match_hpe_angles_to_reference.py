@@ -80,6 +80,8 @@ def find_matches(input_folder, references, txt_name="analysis.txt"):
                             writer.writerow(ref_angles + hpe_angles + [error] + [filename] + list(bbox))
 
     elapsed_time = time.time() - start_time
+    if len(all_errors) == 0:
+        raise Exception("No analysis txts found")
     avg_error = sum(all_errors) / len(all_errors)
     print("Found matches for", counter, "files in", round(elapsed_time, 2), "seconds, Average angle error:", round(avg_error, 4))
 

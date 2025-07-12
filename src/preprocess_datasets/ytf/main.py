@@ -13,7 +13,8 @@ from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_v
     generate_ytf_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
 from src.preprocess_datasets.preprocess_video import analyse_video_ytf
-from src.preprocess_datasets.process_dataset_retinaface import face_crop_and_alignment
+from src.preprocess_datasets.process_dataset_retinaface import face_crop_and_alignment, \
+    face_crop_and_alignment_deepfolder
 
 
 def preprocessing():
@@ -31,13 +32,12 @@ def preprocessing():
     print("##################################")
     print("##### Crop Frames ##############")
     print("##################################")
-    face_crop_and_alignment(folder_root, folder_root_crop, face_factor=0.75, device='cuda' if torch.cuda.is_available() else 'cpu')
+    face_crop_and_alignment_deepfolder(folder_root, folder_root_crop, face_factor=0.75, device='cuda' if torch.cuda.is_available() else 'cpu')
 
-    exit()
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    analyse_video_ytf(folder_root, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=True, max_workers=16, face_confidence=0.6)
+    analyse_video_ytf(folder_root_crop, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=True, max_workers=16, face_confidence=0.6)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
@@ -46,13 +46,13 @@ def preprocessing():
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches(folder_root, permutations, txt_name="analysis.txt")
+    find_matches(folder_root_crop, permutations, txt_name="analysis.txt")
     # evaluate_gaze_coverage(folder_root)
 
     print("##################################")
     print("##### GEN DATASET ################")
     print("##################################")
-    generate_ytf_dataset_from_video(folder_root, dataset_output_folder, keep=True)
+    generate_ytf_dataset_from_video(folder_root_crop, dataset_output_folder, keep=True)
 
     exit()
     print("##################################")

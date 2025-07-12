@@ -155,6 +155,17 @@ def headpose_estimation(input_folder, image_folder, output_folder, model_path_hp
     print(f"HPE for {counter} frames")
 
 
+def get_images_from_dir(image_dir, files_names):
+    images = []
+    for image_file in files_names:
+        image_path = os.path.join(image_dir, image_file)
+        img = cv2.imread(image_path)
+        if img is not None:
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            images.append(img_rgb)
+
+    return images
+
 def process_video(video_path, frame_skip, output_analysis_folder):
     os.makedirs(output_analysis_folder, exist_ok=True)
     frames, names = get_frames(video_path, frame_skip=frame_skip)
