@@ -7,6 +7,9 @@ import numpy as np
 import time
 import torch
 import torchvision
+from matplotlib import pyplot as plt
+from numpy.linalg import norm
+from sklearn.metrics import roc_curve, auc, accuracy_score
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
@@ -45,6 +48,16 @@ def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_
         enrolled_scan_ids.extend(deepcopy(scan_id))
         enrolled_perspectives = np.array(perspectives).T
 
+    enrolled_embeddings_agg = np.array(enrolled_embeddings_agg)
+    enrolled_embeddings_reg = np.concatenate(enrolled_embeddings_reg, axis=1)
+    enrolled_labels = np.array([t.item() for t in enrolled_labels])
+    enrolled_scan_ids = np.array(enrolled_scan_ids)
+    enrolled_perspectives = np.array([enrolled_perspectives])
+
+    if query_loader is None:
+        Results = namedtuple("Results",["enrolled_embeddings_agg", "enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids","enrolled_perspectives"])
+        return Results(enrolled_embeddings_agg, enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids,enrolled_perspectives)
+
     query_embeddings_reg = []
     query_embeddings_agg = []
     query_labels = []
@@ -58,11 +71,6 @@ def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_
         query_scan_ids.extend(deepcopy(scan_id))
         query_perspectives = np.array(perspectives).T
 
-    enrolled_embeddings_agg = np.array(enrolled_embeddings_agg)
-    enrolled_embeddings_reg = np.concatenate(enrolled_embeddings_reg, axis=1)
-    enrolled_labels = np.array([t.item() for t in enrolled_labels])
-    enrolled_scan_ids = np.array(enrolled_scan_ids)
-    enrolled_perspectives = np.array([enrolled_perspectives])
     query_embeddings_agg = np.array(query_embeddings_agg)
     query_embeddings_reg = np.concatenate(query_embeddings_reg, axis=1)
     query_labels = np.array([t.item() for t in query_labels])
@@ -106,7 +114,7 @@ def load_data_mv(data_dir, max_batch_size: int, num_views: int, transform, use_f
     return dataset, data_loader
 
 
-def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+def evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
@@ -155,8 +163,214 @@ def evaluate_mv(device, backbone_reg, backbone_agg, aggregators, test_path, test
 
     return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
 
+def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, dataset_enrolled_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+    """
+    Evaluate 1:1 Model Performance on given test dataset
+    """
 
-def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+    pair_list = []
+    unique_sample_paths = set()
+
+    with open(os.path.join(dataset_enrolled_path, "split.txt"), "r") as f:
+        next(f)  # skip header
+        for line in f:
+            _, _, name1, name2, is_same, _ = line.strip().split(",") # TODO: CHECK LAST COLUMN
+            pair_list.append((name1, name2, int(is_same)))
+            unique_sample_paths.add(name1)
+            unique_sample_paths.add(name2)
+
+    dataset_enrolled, enrolled_loader = load_data_mv(dataset_enrolled_path, batch_size, num_views, test_transform, use_face_corr)
+    time.sleep(0.1)
+
+    embedding_library = get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, None, use_face_corr, disable_bar)
+
+    embeddings_agg = embedding_library.enrolled_embeddings_agg
+    embeddings_reg = embedding_library.enrolled_embeddings
+    class_labels = embedding_library.enrolled_labels
+    samples = embedding_library.enrolled_scan_ids
+    name_to_class_dict = dataset_enrolled.classes
+    print(embedding_library.enrolled_perspectives.shape)
+    mask = np.array(["0_0" in perspective for perspective in embedding_library.enrolled_perspectives[1]])
+    print(mask.shape)
+    print(mask)
+
+    # Evaluate pairs
+    similarities_mv = []
+    similarities_front = []
+    similarities_concat = []
+    labels = []
+    for name1, name2, is_same in tqdm(pair_list, desc="Evaluating pairs", disable=disable_bar):
+        class1, sample1 = name1.split("/")
+        class2, sample2 = name2.split("/")
+
+        sample1 = ('X' * 40 + sample1)[-40:]
+        sample2 = ('X' * 40 + sample2)[-40:]
+        class1 = class1.lstrip()
+        class2 = class2.lstrip()
+
+        try:
+            class_idx1 = name_to_class_dict[class1]
+            class_idx2 = name_to_class_dict[class2]
+        except:
+            print("NOT IN DATASET: ", class1, "or", class2)
+            continue
+
+        emb1_agg = None
+        emb2_agg = None
+        emb1_reg = None
+        emb2_reg = None
+        for i, (c_idx, scan_id) in enumerate(zip(class_labels, samples)):
+            if c_idx == class_idx1 and scan_id == sample1:
+                emb1_agg = embeddings_agg[i]
+                emb1_reg = embeddings_reg[:,i,:]
+            elif c_idx == class_idx2 and scan_id == sample2:
+                emb2_agg = embeddings_agg[i]
+                emb2_reg = embeddings_reg[:,i,:]
+            if emb1_agg is not None and emb2_agg is not None:
+                break
+
+        if emb1_agg is None or emb2_agg is None:
+            print(f"Warning: Could not find embeddings for pair {name1}, {name2}")
+            continue
+
+        # Multiview compute cosine similarity
+        sim = np.dot(emb1_agg, emb2_agg) / (norm(emb1_agg) * norm(emb2_agg))
+        similarities_mv.append(sim)
+        labels.append(is_same)
+
+        # Front
+        emb1_front = emb1_reg[mask]
+        emb2_front = emb2_reg[mask]
+        sim = np.dot(emb1_front, emb2_front) / (norm(emb1_front) * norm(emb2_front))
+        similarities_front.append(sim)
+
+        # Concat compute cosine similarity
+        emb1_flat = emb1_reg.reshape(-1)
+        emb2_flat = emb2_reg.reshape(-1)
+        sim = np.dot(emb1_flat, emb2_flat) / (norm(emb1_flat) * norm(emb2_flat))
+        similarities_concat.append(sim)
+
+    # ###############################################
+
+    #fpr, tpr, thresholds = roc_curve(labels, similarities_front)
+    #roc_auc = auc(fpr, tpr)
+    #best_idx = np.argmax(tpr - fpr)
+    #best_thresh = thresholds[best_idx]
+    #predictions = (similarities_front > best_thresh).astype(int)
+    #acc = accuracy_score(labels, predictions)
+    #print("FRONT")
+    #print(f"AUC: {roc_auc:.4f}")
+    #print(f"Best threshold: {best_thresh:.4f}")
+    #print(f"Accuracy: {acc:.4f}")
+
+    fpr, tpr, thresholds = roc_curve(labels, similarities_concat)
+    roc_auc = auc(fpr, tpr)
+    best_idx = np.argmax(tpr - fpr)
+    best_thresh = thresholds[best_idx]
+    predictions = (similarities_concat > best_thresh).astype(int)
+    acc = accuracy_score(labels, predictions)
+    print("CONCAT")
+    print(f"AUC: {roc_auc:.4f}")
+    print(f"Best threshold: {best_thresh:.4f}")
+    print(f"Accuracy: {acc:.4f}")
+
+
+
+    # Compute ROC curve
+    fpr, tpr, thresholds = roc_curve(labels, similarities_mv)
+    roc_auc = auc(fpr, tpr)
+    best_idx = np.argmax(tpr - fpr)
+    best_thresh = thresholds[best_idx]
+    predictions = (similarities_mv > best_thresh).astype(int)
+    acc = accuracy_score(labels, predictions)
+    print("MV")
+    print(f"AUC: {roc_auc:.4f}")
+    print(f"Best threshold: {best_thresh:.4f}")
+    print(f"Accuracy: {acc:.4f}")
+
+
+
+    # Compute EER (Equal Error Rate)
+    fnr = 1 - tpr
+    eer_idx = np.nanargmin(np.absolute((fnr - fpr)))
+    eer = (fpr[eer_idx] + fnr[eer_idx]) / 2
+    print(f"EER: {eer}")
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, label=f"ROC curve (AUC = {roc_auc:.4f})", linewidth=2)
+    plt.plot([0, 1], [0, 1], "k--", label="Random guess")
+    plt.scatter(fpr[best_idx], tpr[best_idx], color="red", label=f"Best threshold = {best_thresh:.4f}")
+    plt.title("1:1 Verification ROC Curve")
+    plt.xlabel("False Positive Rate (FPR)")
+    plt.ylabel("True Positive Rate (TPR)")
+    plt.grid(True)
+    plt.legend(loc="lower right")
+
+    # Add annotations
+    plt.annotate(f"Accuracy: {acc:.4f}", xy=(0.6, 0.2), xycoords='axes fraction')
+    plt.annotate(f"EER: {eer:.4f}", xy=(0.6, 0.15), xycoords='axes fraction')
+
+    plt.tight_layout()
+    plt.savefig("ROC.jpg")
+    plt.close()
+
+    from sklearn.metrics import DetCurveDisplay
+    DetCurveDisplay(fpr=fpr, fnr=1 - tpr).plot()
+    plt.title("DET Curve")
+    plt.grid(True)
+    plt.savefig("DET_Curve.jpg")
+    plt.close()
+
+    from sklearn.metrics import precision_recall_curve, average_precision_score
+    precision, recall, _ = precision_recall_curve(labels, similarities_mv)
+    ap = average_precision_score(labels, similarities_mv)
+
+    plt.plot(recall, precision, label=f"AP={ap:.4f}")
+    plt.xlabel("Recall")
+    plt.ylabel("Precision")
+    plt.title("Precision-Recall Curve")
+    plt.legend()
+    plt.grid()
+    plt.savefig("AP_Curve")
+    plt.close()
+
+
+
+
+    # Multi View evaluation
+    #similarity_matrix = calculate_embedding_similarity(embedding_library.query_embeddings_agg, embedding_library.enrolled_embeddings_agg, chunk_size=batch_size, disable_bar=disable_bar)
+    #top_indices, top_values = compute_ranking_matrices(similarity_matrix)
+    #result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
+    #plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix, os.path.basename(test_path), "mv")
+    #plot_confusion_matrix(query_labels, enrolled_labels[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
+    #error_rate_per_class(query_labels, enrolled_labels, top_indices, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix, os.path.basename(test_path), "_mv")
+
+    #if not eval_all:
+    #    return result_metrics, {}, {}, {}, {}, embedding_library, dataset_enrolled
+
+    # Single Front View
+    #metrics_front, similarity_matrix_front, top_indices_front, y_true_front, y_pred_front = accuracy_front_perspective(embedding_library, pre_sorted=True)
+    #plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_front, os.path.basename(test_path), "front")
+    #error_rate_per_class(query_labels, enrolled_labels, top_indices_front, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix, os.path.basename(test_path), "_front")
+    #del similarity_matrix_front, top_indices_front, y_true_front, y_pred_front
+
+    # Concat
+    #metrics_concat, similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True)
+    #plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat, os.path.basename(test_path), "concat")
+    #error_rate_per_class(query_labels, enrolled_labels, top_indices_concat, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix, os.path.basename(test_path), "_concat")
+    #del similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat
+
+    #metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with="mean")
+    #del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
+
+    #metrics_concat_pca, similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with="pca")
+    #plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_pca, os.path.basename(test_path), "concat_pca")
+
+    #return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
+
+
+
+def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, eval_1_1=False):
 
     test_transform = transforms.Compose([
         transforms.Resize(transform_sizes),
@@ -165,10 +379,17 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ])
 
-    print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {transform_sizes} and face_corr: {use_face_corr}"))
-    metrics_mv, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query = evaluate_mv(
-        device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size,
-        num_views, use_face_corr, disable_bar, eval_all)
+    eval_type = "1:1" if eval_1_1 else "1:N"
+    print(colorstr('bright_green', f"Perform {eval_type} Evaluation on {dataset} with cropping: {transform_sizes} and face_corr: {use_face_corr}"))
+
+    if eval_1_1:
+        metrics_mv, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_1_1(
+            device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size,
+            num_views, use_face_corr, disable_bar, eval_all)
+    else:
+        metrics_mv, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_1_n(
+            device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size,
+            num_views, use_face_corr, disable_bar, eval_all)
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 

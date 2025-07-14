@@ -69,6 +69,5 @@ def make_conv_aggregator(agg_config: dict):
 
     aggregators = []
     for views, channels in zip(view_list, channel_list):
-        print(views, channels)
         aggregators.append(ConvAggregator(num_views = views, channels=channels, use_activation=use_activation, use_batchnorm=use_batchnorm, dropout_prob=dropout_prob))
     return aggregators
