@@ -15,6 +15,7 @@ from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference im
 from src.preprocess_datasets.preprocess_video import analyse_video_ytf
 from src.preprocess_datasets.process_dataset_retinaface import face_crop_and_alignment, \
     face_crop_and_alignment_deepfolder
+from src.preprocess_datasets.rendering import PrepareDataset
 
 
 def preprocessing():
@@ -22,7 +23,7 @@ def preprocessing():
     folder_root = root+"aligned_db"
     folder_root_crop = root+"aligned_db_crop"
     dataset_output_folder = root+"aligned_db_out"
-    output_test_dataset = root+"test_vox2test"
+    output_test_dataset = root+"test_ytf8"
     model_path_hpe = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     face_detect_model_root = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
     batch_size = 8 # 256 for 24GB  # 48 for 8 GB VRAM
@@ -53,6 +54,9 @@ def preprocessing():
     print("##### GEN DATASET ################")
     print("##################################")
     generate_ytf_dataset_from_video(folder_root_crop, dataset_output_folder, keep=True)
+
+    perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
+    PrepareDataset.filter_views(dataset_output_folder, output_test_dataset, perspective_filter, target_views=8)
 
     exit()
     print("##################################")
