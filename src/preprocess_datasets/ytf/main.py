@@ -56,7 +56,7 @@ def preprocessing():
     generate_ytf_dataset_from_video(folder_root_crop, dataset_output_folder, keep=True)
 
     perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
-    PrepareDataset.filter_views_deep_folder(dataset_output_folder, output_test_dataset, perspective_filter, target_views=8)
+    PrepareDataset.filter_views(dataset_output_folder, output_test_dataset, perspective_filter, target_views=8)
 
     exit()
     print("##################################")
