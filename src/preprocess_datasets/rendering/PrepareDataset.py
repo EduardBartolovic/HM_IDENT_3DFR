@@ -650,3 +650,51 @@ def filter_views(dataset_folder, output_folder, filter_keywords, target_views=8)
                 raise Exception(f"num_matching doesnt match in {class_name}")
 
     print(f"✅ Done! Filtered dataset saved in: {output_folder}")
+
+def filter_views_deep_folder(dataset_folder, output_folder, filter_keywords, target_views=8):
+    """
+    Filters images in dataset_folder based on keywords, and only copies samples where the
+    number of matching images equals target_views or is a multiple of it.
+
+    Handles one additional subfolder level: dataset_folder/class_name/sample_id/images...
+
+    Args:
+        dataset_folder (str): Path to dataset root.
+        output_folder (str): Destination for filtered images.
+        filter_keywords (list): List of keywords to filter filenames.
+        target_views (int): Required number of views or multiple.
+    """
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    for class_name in tqdm(os.listdir(dataset_folder), desc="Filtering Dataset"):
+        class_path = os.path.join(dataset_folder, class_name)
+        if not os.path.isdir(class_path):
+            continue
+
+        for sample_id in os.listdir(class_path):
+            sample_path = os.path.join(class_path, sample_id)
+            if not os.path.isdir(sample_path):
+                continue
+
+            # Filter matching files inside sample folder
+            matching_files = [
+                f for f in os.listdir(sample_path)
+                if any(keyword == f[40:-10] for keyword in filter_keywords)
+            ]
+
+            num_matching = len(matching_files)
+
+            if num_matching > 0 and num_matching % target_views == 0:
+                # Create output path
+                output_sample_path = os.path.join(output_folder, class_name, sample_id)
+                os.makedirs(output_sample_path, exist_ok=True)
+
+                for filename in matching_files:
+                    src_file = os.path.join(sample_path, filename)
+                    dst_file = os.path.join(output_sample_path, filename)
+                    shutil.copy2(src_file, dst_file)
+            else:
+                raise Exception(f"[{class_name}/{sample_id}] → num_matching={num_matching} does not match")
+
+    print(f"✅ Done! Filtered dataset saved in: {output_folder}")

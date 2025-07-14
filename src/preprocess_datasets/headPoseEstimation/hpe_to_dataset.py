@@ -223,7 +223,7 @@ def generate_ytf_dataset_from_video(folder_root, dataset_output_folder, keep=Tru
             id_name = os.path.basename(id_name_path)
             video_folder_path = os.path.abspath(os.path.join(root, ".."))
 
-            destination = os.path.join(dataset_output_folder, id_name)
+            destination = os.path.join(dataset_output_folder, id_name, sample_name)
             os.makedirs(destination, exist_ok=True)
 
             hash_name = hashlib.sha1((id_name + sample_name).encode()).hexdigest()
