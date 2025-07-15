@@ -288,7 +288,7 @@ def analyse_video_ytf(input_folder, output_folder, model_path_hpe, model_path_bl
     back_net = BlazeFace(back_model=True).to(device)
     back_net.load_weights(os.path.join(model_path_blazeface, "blazefaceback.pth"))
     back_net.load_anchors(os.path.join(model_path_blazeface, "anchorsback.npy"))
-    back_net.min_score_thresh = 0.45
+    back_net.min_score_thresh = 0.25
     back_net.min_suppression_threshold = 0.3
 
     missing_faces = 0
@@ -368,23 +368,26 @@ def analyse_video_ytf(input_folder, output_folder, model_path_hpe, model_path_bl
                     det = np.array([d for d in det.cpu().numpy() if d[-1] >= face_confidence])  # Remove det below a set confidence
                     if det.shape[0] == 0:
                         missing_faces += 1
-                        continue
+                        y_min, x_min, y_max, x_max = 0, 0, img.shape[0], img.shape[1]
                     elif det.shape[0] > 1:
                         # plot_detections(padded_image, detections)
                         more_faces += 1
                         det = max(det, key=lambda d: (d[2] - d[0]) * (d[3] - d[1]))
+                        y_min = int(det[0] * img.shape[0])
+                        x_min = int(det[1] * img.shape[1])
+                        y_max = int(det[2] * img.shape[0])
+                        x_max = int(det[3] * img.shape[1])
                     else:
                         if det[0][-1] < 0.5:
                             print(det)
                         found_one_face += 1
                         det = det[0]
+                        y_min = int(det[0] * img.shape[0])
+                        x_min = int(det[1] * img.shape[1])
+                        y_max = int(det[2] * img.shape[0])
+                        x_max = int(det[3] * img.shape[1])
 
-                    y_min = int(det[0] * img.shape[0])
-                    x_min = int(det[1] * img.shape[1])
-                    y_max = int(det[2] * img.shape[0])
-                    x_max = int(det[3] * img.shape[1])
-
-                    x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max, factor=0.1)
+                    x_min, y_min, x_max, y_max = expand_bbox(x_min, y_min, x_max, y_max, factor=0)
                     assert (x_max - x_min) == (y_max - y_min)
                     if x_max - x_min < min_accepted_face_size:
                         too_small += 1

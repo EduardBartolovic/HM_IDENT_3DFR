@@ -3,11 +3,13 @@ from collections import defaultdict
 
 import faiss
 import numpy as np
+from matplotlib import pyplot as plt
 from sklearn import neighbors
 from sklearn.decomposition import PCA, IncrementalPCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import numba
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, roc_curve, auc, DetCurveDisplay, precision_recall_curve, \
+    average_precision_score
 from sklearn.preprocessing import normalize
 from tqdm import tqdm
 
@@ -52,6 +54,64 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
         f"Rank-{top_k_acc_k} Rate": round(top_k_accuracy * 100, 4),
         "mean_true_match_similarity": mean_true_match_similarity,
         "mean_false_match_similarity": mean_false_match_similarity
+    }
+
+
+def analyze_result_verification(labels, similarities_mv):
+
+    fpr, tpr, thresholds = roc_curve(labels, similarities_mv)
+    roc_auc = auc(fpr, tpr)
+    best_idx = np.argmax(tpr - fpr)
+    best_thresh = thresholds[best_idx]
+    predictions = (similarities_mv > best_thresh).astype(int)
+    accuracy = accuracy_score(labels, predictions)
+
+    fnr = 1 - tpr
+    eer_idx = np.nanargmin(np.absolute((fnr - fpr)))
+    equal_error_rate = (fpr[eer_idx] + fnr[eer_idx]) / 2
+
+    precision, recall, _ = precision_recall_curve(labels, similarities_mv)
+    average_precision = average_precision_score(labels, similarities_mv)
+
+    plt.plot(recall, precision, label=f"AP={average_precision:.4f}")
+    plt.xlabel("Recall")
+    plt.ylabel("Precision")
+    plt.title("Precision-Recall Curve")
+    plt.legend()
+    plt.grid()
+    plt.savefig("AP_Curve")
+    plt.close()
+
+    DetCurveDisplay(fpr=fpr, fnr=1 - tpr).plot()
+    plt.title("DET Curve")
+    plt.grid(True)
+    plt.savefig("DET_Curve.jpg")
+    plt.close()
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, label=f"ROC curve (AUC = {roc_auc:.4f})", linewidth=2)
+    plt.plot([0, 1], [0, 1], "k--", label="Random guess")
+    plt.scatter(fpr[best_idx], tpr[best_idx], color="red", label=f"Best threshold = {best_thresh:.4f}")
+    plt.title("1:1 Verification ROC Curve")
+    plt.xlabel("False Positive Rate (FPR)")
+    plt.ylabel("True Positive Rate (TPR)")
+    plt.grid(True)
+    plt.legend(loc="lower right")
+
+    # Add annotations
+    plt.annotate(f"Accuracy: {accuracy:.4f}", xy=(0.6, 0.2), xycoords='axes fraction')
+    plt.annotate(f"EER: {equal_error_rate:.4f}", xy=(0.6, 0.15), xycoords='axes fraction')
+
+    plt.tight_layout()
+    plt.savefig("ROC.jpg")
+    plt.close()
+
+    return {
+        "AUC": round(roc_auc * 100, 4),
+        "Best_thresh": round(best_thresh * 100, 4),
+        "Accuracy": round(accuracy * 100, 4),
+        "EER": round(equal_error_rate * 100, 4),
+        "average_precision": round(average_precision * 100, 4),
     }
 
 

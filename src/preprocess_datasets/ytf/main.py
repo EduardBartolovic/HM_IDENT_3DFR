@@ -1,11 +1,7 @@
-import hashlib
 import itertools
-import os
-import time
 
 import numpy as np
 import torch
-from tqdm import tqdm
 
 from src.preprocess_datasets.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_landmarks_dataset, calculate_face_correspondences_dataset
@@ -19,21 +15,20 @@ from src.preprocess_datasets.rendering import PrepareDataset
 
 
 def preprocessing():
-    root = "C:\\Users\\Eduard\\Downloads\\"
-    folder_root = root+"aligned_db"
-    folder_root_crop = root+"aligned_db_crop"
-    dataset_output_folder = root+"aligned_db_out"
+    root = "F:\\Face\\data\\dataset10\\"
+    folder_root = root+"aligned_images_DB"
+    folder_root_crop = root+"aligned_images_DB_crop"
+    dataset_output_folder = root+"aligned_images_DB_out"
     output_test_dataset = root+"test_ytf8"
-    model_path_hpe = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
-    face_detect_model_root = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
-    batch_size = 8 # 256 for 24GB  # 48 for 8 GB VRAM
-    poses = 25  # Number of poses
+    model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
+    face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
+    batch_size = 8  # 256 for 24GB  # 48 for 8 GB VRAM
     device = torch.device("cuda")
 
     print("##################################")
     print("##### Crop Frames ################")
     print("##################################")
-    face_crop_and_alignment_deepfolder(folder_root, folder_root_crop, face_factor=0.75, device='cuda' if torch.cuda.is_available() else 'cpu')
+    #face_crop_and_alignment_deepfolder(folder_root, folder_root_crop, face_factor=0.75, device='cuda' if torch.cuda.is_available() else 'cpu')
 
     print("##################################")
     print("##### Analyse Video ##############")
