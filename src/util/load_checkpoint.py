@@ -26,34 +26,39 @@ def load_rgbd_backbone_checkpoint(model, checkpoint_path):
     return model
 
 
-def load_checkpoint(BACKBONE, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd=False):
+def load_checkpoint(model, head, backbone_resume_path, head_resume_path, rgbd=False):
 
-    if os.path.isfile(BACKBONE_RESUME_ROOT) and os.path.isfile(HEAD_RESUME_ROOT):
-        print(colorstr('blue', f"Loading Backbone Checkpoint {BACKBONE_RESUME_ROOT}"))
+    if os.path.isfile(backbone_resume_path) and os.path.isfile(head_resume_path):
+        print(colorstr('blue', f"Loading Backbone Checkpoint {backbone_resume_path}"))
+        if ".onnx" in backbone_resume_path:
+            raise Exception
         if rgbd:
-            load_rgbd_backbone_checkpoint(BACKBONE, BACKBONE_RESUME_ROOT)
+            load_rgbd_backbone_checkpoint(model, backbone_resume_path)
         else:
-            BACKBONE.load_state_dict(torch.load(BACKBONE_RESUME_ROOT))
+            model.load_state_dict(torch.load(backbone_resume_path))
 
-        print(colorstr('blue', f"Loading Head Checkpoint {HEAD_RESUME_ROOT}"))
-        HEAD.load_state_dict(torch.load(HEAD_RESUME_ROOT))
-    elif os.path.isfile(BACKBONE_RESUME_ROOT):
-        print(colorstr('blue', f"Loading ONLY Backbone Checkpoint {BACKBONE_RESUME_ROOT}"))
+        print(colorstr('blue', f"Loading Head Checkpoint {head_resume_path}"))
+        head.load_state_dict(torch.load(head_resume_path))
+
+    elif os.path.isfile(backbone_resume_path):
+        print(colorstr('blue', f"Loading ONLY Backbone Checkpoint {backbone_resume_path}"))
         if rgbd:
-            load_rgbd_backbone_checkpoint(BACKBONE, BACKBONE_RESUME_ROOT)
+            if ".onnx" in backbone_resume_path:
+                raise Exception
+            load_rgbd_backbone_checkpoint(model, backbone_resume_path)
         else:
-            state_dict = torch.load(BACKBONE_RESUME_ROOT, weights_only=True)
+            state_dict = torch.load(backbone_resume_path, weights_only=True)
             try:
-                BACKBONE.load_state_dict(state_dict)
+                model.load_state_dict(state_dict)
             except RuntimeError:
                 print("Warning: Changing State dict!")
                 state_dict = adapt_state_dict_for_backbone(state_dict)
-                BACKBONE.load_state_dict(state_dict)
+                model.load_state_dict(state_dict)
     else:
-        if len(BACKBONE_RESUME_ROOT) > 5 or len(HEAD_RESUME_ROOT) > 5:
-            print(colorstr('red', f"You put in a path but there is no checkpoint found at {BACKBONE_RESUME_ROOT} or {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
-            raise Exception(colorstr('red', f"You put in a path but there is no checkpoint found at {BACKBONE_RESUME_ROOT} or {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
-        print(colorstr('red', f"No Checkpoint Found at {BACKBONE_RESUME_ROOT} and {HEAD_RESUME_ROOT}. Please Have a Check or Continue to Train from Scratch"))
+        if len(backbone_resume_path) > 5 or len(head_resume_path) > 5:
+            print(colorstr('red', f"You put in a path but there is no checkpoint found at {backbone_resume_path} or {head_resume_path}. Please Have a Check or Continue to Train from Scratch"))
+            raise Exception(colorstr('red', f"You put in a path but there is no checkpoint found at {backbone_resume_path} or {head_resume_path}. Please Have a Check or Continue to Train from Scratch"))
+        print(colorstr('red', f"No Checkpoint Found at {backbone_resume_path} and {head_resume_path}. Please Have a Check or Continue to Train from Scratch"))
 
 
 def adapt_state_dict_for_backbone(state_dict, prefix="backbone."):

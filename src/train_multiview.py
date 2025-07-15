@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
-from src.aggregator.L2Aggregator import make_l2_aggregator
+from src.aggregator.ConvAggregator import make_conv_aggregator
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.MedianAggregator import make_median_aggregator
 from src.aggregator.RobustMeanAggregator import make_rma
@@ -17,14 +17,13 @@ from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_transformer_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
 from src.backbone.multiview_irse import IR_MV_50, execute_model
-from src.backbone.multiview_ires_insight import IR_MV_V2_50
+from src.backbone.multiview_ires_insight import IR_MV_V2_50, IR_MV_V2_34, IR_MV_V2_18
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mv
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
     separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
-import tracemalloc
 from torchinfo import summary
 from tqdm import tqdm
 import os
@@ -141,7 +140,9 @@ def main(cfg):
 
         # ======= model & loss & optimizer =======
         BACKBONE_DICT = {'IR_MV_50': lambda: IR_MV_50(INPUT_SIZE, EMBEDDING_SIZE),
-                         'IR_MV_V2': lambda: IR_MV_V2_50(EMBEDDING_SIZE)}
+                         'IR_MV_V2_18': lambda: IR_MV_V2_18(EMBEDDING_SIZE),
+                         'IR_MV_V2_34': lambda: IR_MV_V2_34(EMBEDDING_SIZE),
+                         'IR_MV_V2_50': lambda: IR_MV_V2_50(EMBEDDING_SIZE)}
         BACKBONE_reg = BACKBONE_DICT[BACKBONE_NAME]()
         BACKBONE_agg = BACKBONE_DICT[BACKBONE_NAME]()
         model_stats_backbone = summary(BACKBONE_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
@@ -150,10 +151,10 @@ def main(cfg):
         print("=" * 60)
 
         AGG_DICT = {'WeightedSumAggregator': lambda: make_weighted_sum_aggregator(AGG_CONFIG),
-                    'MeanAggregator': lambda: make_mean_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
-                    'RobustMeanAggregator': lambda: make_rma([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
-                    'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
-                    'L2Aggregator': lambda: make_l2_aggregator([NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS, NUM_VIEWS]),
+                    'MeanAggregator': lambda: make_mean_aggregator([NUM_VIEWS]*5),
+                    'RobustMeanAggregator': lambda: make_rma([NUM_VIEWS]*5),
+                    'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS]*5),
+                    'ConvAggregator': lambda : make_conv_aggregator(AGG_CONFIG),
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
                     'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG),}
                     #'TransformerAggregatorV2': lambda: make_transformer_aggregatorv2([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG)}
