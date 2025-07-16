@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 
-def match_hpe_angles_to_references(data, references, ignore_roll=False):
+def match_hpe_angles_to_references(data, references, ignore_roll=True):
     closest_rows = []
     for reference in references:
         if ignore_roll:
@@ -30,7 +30,30 @@ def match_hpe_angles_to_references(data, references, ignore_roll=False):
     return closest_rows
 
 
-def find_matches(input_folder, references, txt_name="analysis.txt"):
+def correct_angle_pair(x, y):
+    """
+    Corrects a pair of angles (x, y) based only on their signs,
+    ignoring their actual magnitude values.
+
+    Mapping logic based on signs:
+    - If signs of x and y are the same (both positive or both negative),
+      mirror both by flipping their signs.
+    - Otherwise, leave them unchanged.
+
+    This corresponds to your example where:
+    (-25, -25) -> (25, 25)
+    (25, 25) -> (-25, -25)
+    but
+    (-25, 25) and (25, -25) remain unchanged.
+    """
+    # Check if signs are the same
+    if (x >= 0 and y >= 0) or (x < 0 and y < 0):
+        return -x, -y
+    else:
+        return x, y
+
+
+def find_matches(input_folder, references, txt_name="analysis.txt", correct_angles=False):
     start_time = time.time()
     counter = 0
     all_errors = []
@@ -48,6 +71,9 @@ def find_matches(input_folder, references, txt_name="analysis.txt"):
                                 raise Exception("Unexpected line format:", line, "in", file_path)
                             try:
                                 angles = list(map(float, parts[0:3]))
+                                if correct_angles:
+                                    corrected_x, corrected_y = correct_angle_pair(angles[0], angles[1])
+                                    angles[0], angles[1] = corrected_x, corrected_y
                                 filename_frame = parts[3]  # Keep as string
                                 bbox = list(map(int, parts[4:8]))
                             except:
@@ -84,13 +110,3 @@ def find_matches(input_folder, references, txt_name="analysis.txt"):
         raise Exception("No analysis txts found")
     avg_error = sum(all_errors) / len(all_errors)
     print("Found matches for", counter, "files in", round(elapsed_time, 2), "seconds, Average angle error:", round(avg_error, 4))
-
-
-if __name__ == '__main__':
-
-    input_dir = "VoxCeleb2_test"  # Folder containing original preprocessed files
-    references_angles = [-25, -10, 0, 10, 25]
-    permutations = np.array([(x, y, 0) for x, y in itertools.product(references_angles, repeat=2)])
-    print(len(permutations))
-    print(permutations)
-    find_matches(input_dir, permutations)

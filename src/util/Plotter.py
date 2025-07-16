@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from pycm import ConfusionMatrix, ROCCurve
 from openTSNE import TSNE
 from sklearn.decomposition import PCA
-from sklearn.metrics import confusion_matrix, DetCurveDisplay
+from sklearn.metrics import confusion_matrix, DetCurveDisplay, auc
 import seaborn as sns
 import tempfile
 
@@ -142,6 +142,102 @@ def plot_verification(recall, precision, avg_precision, fpr, tpr, best_idx, best
         plt.close()
 
         mlflow.log_artifacts(tmp_dir, artifact_path="verifciation")
+
+
+def plot_cmc(similarity_matrix, gallery_labels, probe_labels, dataset, extension='', top_k=100):
+    """
+    Compute and plot the CMC (Cumulative Matching Characteristic) curve.
+
+    Args:
+        similarity_matrix: (num_probes, num_gallery) similarity scores. Higher = more similar.
+        gallery_labels: np.array (num_gallery,) - identity labels of gallery
+        probe_labels: np.array (num_probes,) - identity labels of probe
+        dataset: str - dataset name for title/saving
+        extension: str - extra filename identifier
+        top_k: int - max rank for CMC
+
+    Returns:
+        cmc_curve: np.array of shape (top_k,)
+        auc_cmc: float, area under the CMC curve (normalized)
+    """
+    num_probes = similarity_matrix.shape[0]
+    ranks = np.zeros(top_k)
+
+    for i in range(num_probes):
+        sims = similarity_matrix[i]
+        sorted_idx = np.argsort(sims)[::-1]
+        sorted_labels = gallery_labels[sorted_idx]
+
+        correct_label = probe_labels[i]
+        rank = np.where(sorted_labels == correct_label)[0]
+        if len(rank) > 0 and rank[0] < top_k:
+            ranks[rank[0]:] += 1
+
+    cmc_curve = ranks / num_probes
+
+    x_ranks = np.arange(1, top_k + 1)
+    auc_cmc = auc(x_ranks, cmc_curve[:top_k]) / top_k
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        plt.figure(figsize=(9, 6))
+        plt.plot(
+            x_ranks,
+            cmc_curve[:top_k] * 100,
+            marker="o",
+            color="royalblue",
+            linewidth=2
+        )
+        plt.xlabel("Rank", fontsize=12)
+        plt.ylabel("Identification Rate (%)", fontsize=12)
+        plt.title(f"CMC Curve – {dataset} - {extension}", fontsize=14)
+        xticks = [1, 5, 10, 25, 50, 100]
+        xticks = [x for x in xticks if x <= top_k]  # filter out ticks beyond top_k
+        plt.xticks(xticks, fontsize=10)
+        plt.yticks(fontsize=10)
+        if cmc_curve[0] > 0.99:
+            plt.ylim((99, 100))
+        elif cmc_curve[0] > 0.95:
+            plt.ylim((95, 100))
+        elif cmc_curve[0] > 0.90:
+            plt.ylim((90, 100))
+        elif cmc_curve[0] > 0.85:
+            plt.ylim((85, 100))
+        elif cmc_curve[0] > 0.70:
+            plt.ylim((70, 100))
+        elif cmc_curve[0] > 0.50:
+            plt.ylim((50, 100))
+        elif cmc_curve[0] > 0.25:
+            plt.ylim((25, 100))
+        plt.grid(True, linestyle="--", alpha=0.6)
+
+        # Annotation box
+        rank1 = cmc_curve[0] * 100
+        rank5 = cmc_curve[4] * 100 if top_k >= 5 else None
+        rank10 = cmc_curve[9] * 100 if top_k >= 10 else None
+
+        annotation = f"AUC-CMC: {auc_cmc*100:.2f}%\nRank-1: {rank1:.2f}%"
+        if rank5 is not None:
+            annotation += f"\nRank-5: {rank5:.2f}%"
+        if rank10 is not None:
+            annotation += f"\nRank-10: {rank10:.2f}%"
+
+        plt.text(
+            0.98,
+            0.02,
+            annotation,
+            transform=plt.gca().transAxes,
+            fontsize=10,
+            verticalalignment="bottom",
+            horizontalalignment="right",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="gray", alpha=0.9)
+        )
+        plt.tight_layout()
+        plt.savefig(os.path.join(tmp_dir, 'CMC_Curve_-' + dataset + '_' + extension + '.svg'), format='svg')
+        plt.close()
+
+        mlflow.log_artifacts(tmp_dir, artifact_path="CMC_Curve")
+
+    return auc_cmc
 
 
 def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matplotlib=True):

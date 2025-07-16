@@ -28,7 +28,7 @@ def preprocessing():
     print("##################################")
     print("##### Crop Frames ################")
     print("##################################")
-    #face_crop_and_alignment_deepfolder(folder_root, folder_root_crop, face_factor=0.75, device='cuda' if torch.cuda.is_available() else 'cpu')
+    face_crop_and_alignment_deepfolder(folder_root, folder_root_crop, face_factor=0.7, device='cuda' if torch.cuda.is_available() else 'cpu')
 
     print("##################################")
     print("##### Analyse Video ##############")
@@ -60,11 +60,6 @@ def preprocessing():
     calculate_face_landmarks_dataset(dataset_output_folder)
     perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
     calculate_face_correspondences_dataset(dataset_output_folder, keep=True, filter_keywords=perspective_filter, target_views=len(perspective_filter))
-
-    print("##################################")
-    print("###### Create Test Dataset #######")
-    print("##################################")
-    create_train_test_split(dataset_output_folder, output_test_dataset, poses=poses, ignore_face_corr=True)
 
 
 if __name__ == '__main__':
