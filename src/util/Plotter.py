@@ -160,6 +160,10 @@ def plot_cmc(similarity_matrix, gallery_labels, probe_labels, dataset, extension
         cmc_curve: np.array of shape (top_k,)
         auc_cmc: float, area under the CMC curve (normalized)
     """
+
+    if similarity_matrix is None:
+        return None
+
     num_probes = similarity_matrix.shape[0]
     ranks = np.zeros(top_k)
 

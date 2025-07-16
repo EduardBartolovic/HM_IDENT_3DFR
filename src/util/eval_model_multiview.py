@@ -166,7 +166,9 @@ def evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, test_path, 
     del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
 
     metrics_concat_pca, similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with="pca")
-    metrics_concat_pca["auc_cmc"] = plot_cmc(similarity_matrix_concat_pca, enrolled_labels, query_labels, os.path.basename(test_path), "concat_pca")
+    auc_cmc = plot_cmc(similarity_matrix_concat_pca, enrolled_labels, query_labels, os.path.basename(test_path), "concat_pca")
+    if auc_cmc:
+        metrics_concat_pca["auc_cmc"] = auc_cmc
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_pca, os.path.basename(test_path), "concat_pca")
 
     return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
