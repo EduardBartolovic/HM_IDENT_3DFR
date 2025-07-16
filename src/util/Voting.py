@@ -14,6 +14,7 @@ from sklearn.preprocessing import normalize
 from tqdm import tqdm
 
 from src.util.EmbeddingsUtils import process_unsorted_embeddings
+from src.util.Plotter import plot_verification
 
 # Set environment variables to avoid OpenBLAS conflicts
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -57,62 +58,64 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
     }
 
 
-def analyze_result_verification(labels, similarities_mv):
+def analyze_result_verification(labels, similarities_mv, dataset_name, method_appendix="", far_targets=(1e-6, 1e-4)):
+    """
+    Evaluate 1:1 face verification results.
 
+    Args:
+        labels: Ground-truth binary labels (1=same, 0=different)
+        similarities_mv: Similarity scores between pairs
+        far_targets: Tuple of FARs to compute TAR at (default: 1e-6 and 1e-4)
+
+    Returns:
+        Dictionary with evaluation metrics.
+    """
+
+    # ROC and AUC
     fpr, tpr, thresholds = roc_curve(labels, similarities_mv)
     roc_auc = auc(fpr, tpr)
+
+    # Best threshold based on Youden’s J statistic
     best_idx = np.argmax(tpr - fpr)
     best_thresh = thresholds[best_idx]
     predictions = (similarities_mv > best_thresh).astype(int)
     accuracy = accuracy_score(labels, predictions)
 
+    # Equal Error Rate (EER)
     fnr = 1 - tpr
-    eer_idx = np.nanargmin(np.absolute((fnr - fpr)))
-    equal_error_rate = (fpr[eer_idx] + fnr[eer_idx]) / 2
+    eer_idx = np.nanargmin(np.abs(fnr - fpr))
+    eer = (fpr[eer_idx] + fnr[eer_idx]) / 2
 
+    # Average Precision (AP)
     precision, recall, _ = precision_recall_curve(labels, similarities_mv)
-    average_precision = average_precision_score(labels, similarities_mv)
+    avg_precision = average_precision_score(labels, similarities_mv)
 
-    plt.plot(recall, precision, label=f"AP={average_precision:.4f}")
-    plt.xlabel("Recall")
-    plt.ylabel("Precision")
-    plt.title("Precision-Recall Curve")
-    plt.legend()
-    plt.grid()
-    plt.savefig("AP_Curve")
-    plt.close()
+    # TAR @ FAR
+    tar_results = {}
+    for far in far_targets:
+        idxs = np.where(fpr <= far)[0]
+        if len(idxs) > 0:
+            tar_at_far = tpr[idxs[-1]]  # take the last one under the FAR
+        else:
+            tar_at_far = 0.0  # No FPR small enough
+        tar_results[f"TAR@FAR={far:.0e}"] = tar_at_far
 
-    DetCurveDisplay(fpr=fpr, fnr=1 - tpr).plot()
-    plt.title("DET Curve")
-    plt.grid(True)
-    plt.savefig("DET_Curve.jpg")
-    plt.close()
+    plot_verification(recall, precision, avg_precision, fpr, tpr, best_idx, best_thresh, accuracy, eer, roc_auc, dataset_name, method_appendix)
 
-    plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, label=f"ROC curve (AUC = {roc_auc:.4f})", linewidth=2)
-    plt.plot([0, 1], [0, 1], "k--", label="Random guess")
-    plt.scatter(fpr[best_idx], tpr[best_idx], color="red", label=f"Best threshold = {best_thresh:.4f}")
-    plt.title("1:1 Verification ROC Curve")
-    plt.xlabel("False Positive Rate (FPR)")
-    plt.ylabel("True Positive Rate (TPR)")
-    plt.grid(True)
-    plt.legend(loc="lower right")
-
-    # Add annotations
-    plt.annotate(f"Accuracy: {accuracy:.4f}", xy=(0.6, 0.2), xycoords='axes fraction')
-    plt.annotate(f"EER: {equal_error_rate:.4f}", xy=(0.6, 0.15), xycoords='axes fraction')
-
-    plt.tight_layout()
-    plt.savefig("ROC.jpg")
-    plt.close()
-
-    return {
+    # Final results
+    result = {
         "AUC": round(roc_auc * 100, 4),
-        "Best_thresh": round(best_thresh * 100, 4),
+        "Best_thresh": round(best_thresh, 4),
         "Accuracy": round(accuracy * 100, 4),
-        "EER": round(equal_error_rate * 100, 4),
-        "average_precision": round(average_precision * 100, 4),
+        "EER": round(eer * 100, 4),
+        "Average_Precision": round(avg_precision * 100, 4),
     }
+
+    # Add TAR@FARs
+    for k, v in tar_results.items():
+        result[k] = round(v * 100, 4)
+
+    return result
 
 
 @numba.njit(parallel=True, fastmath=True, nogil=True)

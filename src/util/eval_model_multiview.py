@@ -9,7 +9,9 @@ import torch
 import torchvision
 from matplotlib import pyplot as plt
 from numpy.linalg import norm
+from sklearn.decomposition import PCA, IncrementalPCA
 from sklearn.metrics import roc_curve, auc, accuracy_score
+from sklearn.preprocessing import normalize
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
@@ -165,7 +167,7 @@ def evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, test_path, 
     return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
 
 
-def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, dataset_enrolled_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
     """
     Evaluate 1:1 Model Performance on given test dataset
     """
@@ -173,7 +175,7 @@ def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, dataset_enr
     pair_list = []
     unique_sample_paths = set()
 
-    with open(os.path.join(dataset_enrolled_path, "split.txt"), "r") as f:
+    with open(os.path.join(test_path, "split.txt"), "r") as f:
         next(f)  # skip header
         for line in f:
             _, _, name1, name2, is_same, _ = line.strip().split(",")   # TODO: CHECK LAST COLUMN
@@ -181,7 +183,7 @@ def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, dataset_enr
             unique_sample_paths.add(name1)
             unique_sample_paths.add(name2)
 
-    dataset_enrolled, enrolled_loader = load_data_mv(dataset_enrolled_path, batch_size, num_views, test_transform, use_face_corr)
+    dataset_enrolled, enrolled_loader = load_data_mv(test_path, batch_size, num_views, test_transform, use_face_corr)
     time.sleep(0.1)
 
     embedding_library = get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, None, use_face_corr, disable_bar)
@@ -193,12 +195,21 @@ def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, dataset_enr
     samples = embedding_library.enrolled_scan_ids
     name_to_class_dict = dataset_enrolled.classes
     mask = np.array(["0_0" in perspective for perspective in embedding_library.enrolled_perspectives[0][0]])
+    embeddings_reg_pca = embeddings_reg.transpose(1, 0, 2).reshape(embeddings_reg.shape[1], -1)
+    if embeddings_reg.shape[0] > 2048:
+        pca = IncrementalPCA(n_components=512, batch_size=2048)
+    else:
+        pca = PCA(n_components=512)
+
+    pca = pca.fit(embeddings_reg_pca)
+    embeddings_reg_pca = normalize(pca.transform(embeddings_reg_pca))
 
     # Evaluate pairs
     similarities_mv = []
     similarities_front = []
     similarities_concat = []
     similarities_concat_mean = []
+    similarities_concat_pca = []
     labels = []
     for name1, name2, is_same in tqdm(pair_list, desc="Evaluating pairs", disable=disable_bar):
         class1, sample1 = name1.split("/")
@@ -225,10 +236,12 @@ def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, dataset_enr
                 emb1_agg = embeddings_agg[i]
                 emb1_reg = embeddings_reg[:, i, :]
                 emb1_reg_mean = embeddings_reg_mean[i, :]
+                emb1_reg_pca = embeddings_reg_pca[i, :]
             elif c_idx == class_idx2 and scan_id == sample2:
                 emb2_agg = embeddings_agg[i]
                 emb2_reg = embeddings_reg[:, i, :]
                 emb2_reg_mean = embeddings_reg_mean[i, :]
+                emb2_reg_pca = embeddings_reg_pca[i, :]
             if emb1_agg is not None and emb2_agg is not None:
                 break
 
@@ -257,13 +270,15 @@ def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, dataset_enr
         sim = np.dot(emb1_reg_mean, emb2_reg_mean) / (norm(emb1_reg_mean) * norm(emb2_reg_mean))
         similarities_concat_mean.append(sim)
 
-    # ###############################################
+        # Concat pca
+        sim = np.dot(emb1_reg_pca, emb2_reg_pca) / (norm(emb1_reg_pca) * norm(emb2_reg_pca))
+        similarities_concat_pca.append(sim)
 
-    metrics_front = analyze_result_verification(labels, similarities_front)
-    metrics_concat = analyze_result_verification(labels, similarities_concat)
-    metrics_concat_mean = analyze_result_verification(labels, similarities_concat_mean)
-    metrics_concat_pca = {}
-    result_metrics = analyze_result_verification(labels, similarities_mv)
+    metrics_front = analyze_result_verification(labels, similarities_front, os.path.basename(test_path), "_front")
+    metrics_concat = analyze_result_verification(labels, similarities_concat, os.path.basename(test_path), "_concat")
+    metrics_concat_mean = analyze_result_verification(labels, similarities_concat_mean, os.path.basename(test_path), "_mean")
+    metrics_concat_pca = analyze_result_verification(labels, similarities_concat_pca, os.path.basename(test_path), "_pca")
+    result_metrics = analyze_result_verification(labels, similarities_mv, os.path.basename(test_path), "_mv")
 
     return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled
 
@@ -333,25 +348,17 @@ def evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggrega
 
     neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
 
-    mlflow.log_metric(f'{neutral_dataset}_MV-AP', metrics_mv['average_precision'], step=epoch)
-    #mlflow.log_metric(f'{neutral_dataset}_MV-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
-    #mlflow.log_metric(f'{neutral_dataset}_MV-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_MV-AUC', metrics_mv["AUC"], step=epoch)
 
     if metrics_front:
-        mlflow.log_metric(f'{neutral_dataset}_Front-AP', metrics_front['average_precision'], step=epoch)
-        #mlflow.log_metric(f'{neutral_dataset}_Front-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
-        #mlflow.log_metric(f'{neutral_dataset}_Front-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Front-AUC', metrics_front["AUC"], step=epoch)
 
     if metrics_concat:
-        mlflow.log_metric(f'{neutral_dataset}_Concat-AP', metrics_concat['average_precision'], step=epoch)
-        mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-AP', metrics_concat_mean['average_precision'], step=epoch)
-        #mlflow.log_metric(f'{neutral_dataset}_Concat-mean_true_match_similarity', metrics_mv['mean_true_match_similarity'], step=epoch)
-        #mlflow.log_metric(f'{neutral_dataset}_Concat-mean_false_match_similarity', metrics_mv['mean_false_match_similarity'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat-AUC', metrics_concat["AUC"], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-AUC', metrics_concat_mean["AUC"], step=epoch)
 
     if metrics_concat_pca:
-        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-AP', metrics_concat_pca['average_precision'], step=epoch)
-        #mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-mean_true_match_similarity',  metrics_concat_pca['mean_true_match_similarity'], step=epoch)
-        #mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-mean_false_match_similarity', metrics_concat_pca['mean_false_match_similarity'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-AUC', metrics_concat_pca["AUC"], step=epoch)
 
     print_results_verification(neutral_dataset, dataset_enrolled, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, metrics_mv, eval_all)
 
@@ -389,25 +396,25 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_fron
 
 
 def print_results_verification(neutral_dataset, dataset_enrolled, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, metrics_mv, eval_all):
-    ap_front = smart_round(metrics_front.get('average_precision', 'N/A'))
+    auc_front = smart_round(metrics_front.get("AUC", 'N/A'))
 
-    ap_concat = smart_round(metrics_concat.get('average_precision', 'N/A'))
+    auc_concat = smart_round(metrics_concat.get("AUC", 'N/A'))
 
-    ap_concat_mean = smart_round(metrics_concat_mean.get('average_precision', 'N/A'))
+    auc_concat_mean = smart_round(metrics_concat_mean.get("AUC", 'N/A'))
 
-    ap_concat_pca = smart_round(metrics_concat_pca.get('average_precision', 'N/A'))
+    auc_concat_pca = smart_round(metrics_concat_pca.get("AUC", 'N/A'))
 
-    ap_mv = smart_round(metrics_mv.get('average_precision', 'N/A'))
+    auc_mv = smart_round(metrics_mv.get("AUC", 'N/A'))
 
     if eval_all:
         string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}: ") +
-                  f"{bold('Front-AP')}: {underscore(ap_front)} "
-                  f"{bold('Concat-AP')}: {underscore(ap_concat)} "
-                  f"{bold('Concat_Mean-AP')}: {underscore(ap_concat_mean)}  "
-                  f"{bold('Concat_PCA-AP')}: {underscore(ap_concat_pca)}  "
-                  f"{bold('MV-AP')}: {underscore(ap_mv)}  "
+                  f"{bold('Front-AUC')}: {underscore(auc_front)} "
+                  f"{bold('Concat-AUC')}: {underscore(auc_concat)} "
+                  f"{bold('Concat_Mean-AUC')}: {underscore(auc_concat_mean)} "
+                  f"{bold('Concat_PCA-AUC')}: {underscore(auc_concat_pca)} "
+                  f"{bold('MV-AUC')}: {underscore(auc_mv)}"
                   )
     else:
         string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}: ") +
-                  f"{bold('MV-AP')}: {underscore(ap_mv)} ")
+                  f"{bold('MV-AUC')}: {underscore(auc_mv)}")
     print(string)

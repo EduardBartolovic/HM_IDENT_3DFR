@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from pycm import ConfusionMatrix, ROCCurve
 from openTSNE import TSNE
 from sklearn.decomposition import PCA
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, DetCurveDisplay
 import seaborn as sns
 import tempfile
 
@@ -102,6 +102,46 @@ def plot_rrk_histogram(true_labels, enrolled_labels, similarity_matrix, dataset_
         plt.savefig(os.path.join(tmp_dir, 'RRK_Histogram_log_scale-' +dataset_name + '_' + method_appendix + '.svg'), format='svg')
         plt.close()
         mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
+
+
+def plot_verification(recall, precision, avg_precision, fpr, tpr, best_idx, best_thresh, accuracy, eer, roc_auc, dataset_name, method_appendix):
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = Path(tmp_dir)
+
+        # Precision-Recall
+        plt.plot(recall, precision, label=f"AP={avg_precision:.4f}")
+        plt.xlabel("Recall")
+        plt.ylabel("Precision")
+        plt.title("Precision-Recall Curve")
+        plt.legend()
+        plt.grid()
+        plt.savefig(os.path.join(tmp_dir, 'AP_Curve-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.close()
+
+        # DET Curve
+        DetCurveDisplay(fpr=fpr, fnr=1 - tpr).plot()
+        plt.title("DET Curve")
+        plt.grid(True)
+        plt.savefig(os.path.join(tmp_dir, 'DET_Curve-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.close()
+
+        # ROC Curve
+        plt.figure(figsize=(8, 6))
+        plt.plot(fpr, tpr, label=f"ROC (AUC = {roc_auc:.4f})", linewidth=2)
+        plt.plot([0, 1], [0, 1], "k--", label="Random guess")
+        plt.scatter(fpr[best_idx], tpr[best_idx], color="red", label=f"Best Threshold = {best_thresh:.4f}")
+        plt.xlabel("False Positive Rate (FPR)")
+        plt.ylabel("True Positive Rate (TPR)")
+        plt.title("1:1 Verification ROC Curve")
+        plt.grid(True)
+        plt.legend(loc="lower right")
+        plt.annotate(f"Accuracy: {accuracy:.4f}", xy=(0.6, 0.2), xycoords='axes fraction')
+        plt.annotate(f"EER: {eer:.4f}", xy=(0.6, 0.15), xycoords='axes fraction')
+        plt.tight_layout()
+        plt.savefig(os.path.join(tmp_dir, 'ROC_Curve-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.close()
+
+        mlflow.log_artifacts(tmp_dir, artifact_path="verifciation")
 
 
 def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matplotlib=True):
