@@ -32,7 +32,7 @@ def visualize_feature_maps(feature_maps, output_dir, stage_names=None, cols=8, b
         num_channels = fmap.shape[0]  # Get the number of channels
         rows = int(np.ceil(num_channels / cols))
 
-        print(f"Saving visualizations for {stage}: {fmap.shape} (Sample {batch_idx})")
+        print(f"Saving visualizations for {stage}: {fmap.shape} Sample {batch_idx} view_idx {view_idx}")
 
         fig, axes = plt.subplots(rows, cols, figsize=(cols * 2, rows * 2))  # Increase individual subplot size
         axes = axes.flatten()
@@ -50,12 +50,11 @@ def visualize_feature_maps(feature_maps, output_dir, stage_names=None, cols=8, b
         plt.tight_layout(pad=1.0)  # Add padding between subplots
 
         # Save the figure to the output directory
-        output_path = os.path.join(output_dir, f"{stage}_sample_{batch_idx}.png")
+        output_path = os.path.join(output_dir, f"{stage}_sample_{batch_idx}_{view_idx}.png")
         plt.savefig(output_path, dpi=300)  # Save with higher resolution
         plt.close(fig)
 
         print(f"Visualization saved to {output_path}")
-    raise ValueError("Done")
 
 
 def plot_feature_maps_grid(tensor, output_path, cols=8, title_prefix=""):

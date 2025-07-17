@@ -246,7 +246,7 @@ def execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, persp
                 if stage in features_stages:
                     all_views_stage_features[index].append(features_stages[stage])
 
-    # visualize_feature_maps(all_views_stage_features, "E:\\Download", batch_idx=0)
+    # visualize_feature_maps(all_views_stage_features, "E:\\Download", view_idx=0)
     embeddings_agg = perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr)  # Embeddings of aggregator branch
     embeddings_reg = all_views_stage_features[5]  # Embeddings of regular branch
 

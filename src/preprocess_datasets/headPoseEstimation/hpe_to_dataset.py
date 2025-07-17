@@ -77,8 +77,9 @@ def process_txt_file_to_video_voxceleb(args):
             x_min, y_min, x_max, y_max = map(int, info[8:])
             dst_filename = f'{hash_name}{info[0]}_{info[1]}_image.jpg'
             dst_path = os.path.join(destination, dst_filename)
-        except ValueError:
-            raise ValueError("Error in :", file_path)
+        except ValueError as e:
+            print("Error in :", file_path)
+            raise e
 
         if keep and os.path.exists(dst_path):
             continue

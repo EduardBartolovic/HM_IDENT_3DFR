@@ -100,6 +100,8 @@ def find_matches(input_folder, references, txt_name="analysis.txt", correct_angl
                             ref_angles = row[0].tolist()
                             hpe_angles = row[1][:3].tolist()
                             filename = row[1][3]
+                            if len(filename.split("#")) > 2:
+                                filename = "#".join(filename.split("#")[0:1])
                             bbox = row[1][4:]
                             error = row[2]
                             all_errors.append(error)
