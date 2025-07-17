@@ -98,13 +98,13 @@ def process_txt_file_to_video_voxceleb(args):
             errors += 1
             continue
 
-        pad_size = 16  # Since (256-224)/2 = 16
-        padded_image = cv2.copyMakeBorder(frame, pad_size, pad_size, pad_size, pad_size, cv2.BORDER_CONSTANT, value=[0, 0, 0])
-        face_crop = padded_image[y_min:y_max, x_min:x_max]
-        assert face_crop.size > 0
+        #pad_size = 16  # Since (256-224)/2 = 16
+        #padded_image = cv2.copyMakeBorder(frame, pad_size, pad_size, pad_size, pad_size, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+        #face_crop = padded_image[y_min:y_max, x_min:x_max]
+        #assert face_crop.size > 0
 
-        face_crop_resized = cv2.resize(face_crop, (112, 112), cv2.INTER_AREA)  # maybe better? cv2.INTER_LANCZOS4
-        cv2.imwrite(dst_path, face_crop_resized)
+        #face_crop_resized = cv2.resize(face_crop, (112, 112), cv2.INTER_AREA)  # maybe better? cv2.INTER_LANCZOS4
+        cv2.imwrite(dst_path, frame)
         success_count += 1
 
     for cap in video_cache.values():
@@ -187,12 +187,12 @@ def process_txt_file_to_video_nersemble(args):
             errors += 1
             continue
 
-        padded_image, _, _ = resize_with_padding(frame)
-        face_crop = padded_image[y_min:y_max, x_min:x_max]
-        assert face_crop.size > 0
+        #padded_image, _, _ = resize_with_padding(frame)
+        #face_crop = padded_image[y_min:y_max, x_min:x_max]
+        #assert face_crop.size > 0
 
-        face_crop_resized = cv2.resize(face_crop, (112, 112), interpolation=cv2.INTER_AREA)
-        cv2.imwrite(dst_path, face_crop_resized)
+        #face_crop_resized = cv2.resize(face_crop, (112, 112), interpolation=cv2.INTER_AREA)
+        cv2.imwrite(dst_path, frame)
         success_count += 1
 
     for cap in video_cache.values():
