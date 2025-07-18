@@ -16,10 +16,10 @@ from src.aggregator.RobustMeanAggregator import make_rma
 from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_transformer_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
-from src.backbone.multiview_irse import IR_MV_50, execute_model
+from src.backbone.multiview_irse import IR_MV_50
 from src.backbone.multiview_ires_insight import IR_MV_V2_50, IR_MV_V2_34, IR_MV_V2_18
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
-from src.util.eval_model_multiview import evaluate_and_log_mv
+from src.util.eval_model_multiview import evaluate_and_log_mv, evaluate_and_log_mv_verification
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
@@ -33,24 +33,15 @@ import argparse
 
 
 def eval_loop(device, backbone_reg, backbone_agg, aggregators, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
-    # evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bellus_crop", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    #evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop8", epoch, (256, 256), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    #evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop8", epoch, (200, 200), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (256, 256), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (224, 224), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (200, 200), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (170, 170), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (160, 160), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (130, 130), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop078", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    # evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff", epoch, (150, 150), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2test8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2test8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2train8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    # evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggregators, data_root, "test_ytf8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
 
 def main(cfg):
-    tracemalloc.start()
     SEED = cfg['SEED']
     torch.manual_seed(SEED)
 
@@ -156,7 +147,7 @@ def main(cfg):
                     'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS]*5),
                     'ConvAggregator': lambda : make_conv_aggregator(AGG_CONFIG),
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
-                    'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG),}
+                    'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG)}
                     #'TransformerAggregatorV2': lambda: make_transformer_aggregatorv2([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG)}
         aggregators = AGG_DICT[AGG_NAME]()
 
@@ -202,10 +193,8 @@ def main(cfg):
 
         if TRAIN_ALL:
             params_list = [{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}]
-            # params_list.extend([{'params': i.parameters()} for i in aggregators])
         else:
             params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
-            # params_list.extend([{'params': i.parameters()} for i in aggregators])
 
             for param in BACKBONE_agg.parameters():
                 param.requires_grad = False
@@ -213,7 +202,7 @@ def main(cfg):
             param.requires_grad = False
 
         OPTIMIZER_DICT = {'SGD': lambda: optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
-                          'ADAM':  lambda: torch.optim.Adam(params_list, lr=LR)}
+                          'ADAM': lambda: torch.optim.Adam(params_list, lr=LR)}
         OPTIMIZER = OPTIMIZER_DICT[OPTIMIZER_NAME]()
         print(colorstr('magenta', OPTIMIZER))
         print("=" * 60)
@@ -258,14 +247,6 @@ def main(cfg):
             if epoch == STAGES[2]:
                 schedule_lr(OPTIMIZER)
 
-            # for i, agg in enumerate(aggregators):
-            #    weights_fc1, weights_fc2 = agg.get_weights()
-            #    plot_weights(weights_fc1, f"fc1 Weights{i}epoch{epoch}")
-            #    plot_weights(weights_fc2, f"fc2 Weights{i}epoch{epoch}")
-            #    print(agg.get_weights()[-1])
-            #    weights_log[i].append(agg.get_weights())
-            # plot_weights(HEAD.weight.detach().numpy(), str(epoch)+"HEAD.jpg")
-
             # =========== Gradient Handling ========
             if epoch == UNFREEZE_EPOCH:
                 print(colorstr('yellow', f"Unfreezing aggregators at epoch {epoch}"))
@@ -302,7 +283,7 @@ def main(cfg):
                     use_face_corr = True
 
                 labels = labels.to(DEVICE).long()
-                _, embeddings = execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs, perspectives, face_corrs, use_face_corr)
+                _, embeddings = BACKBONE_reg.execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs, perspectives, face_corrs, use_face_corr)
                 outputs = HEAD(embeddings, labels)
                 loss = LOSS(outputs, labels)
 
@@ -364,19 +345,6 @@ def main(cfg):
             # else:
             #     torch.save(BACKBONE.state_dict(), os.path.join(MODEL_ROOT, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(BACKBONE_NAME, epoch + 1, batch, get_time())))
             #     torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
-
-    # plot_weight_evolution(weights_log, save_dir="weights_logs")
-
-# def plot_weights(weights, title):
-#    plt.figure(figsize=(8, 6))
-#    plt.imshow(weights, aspect='auto', cmap='viridis')
-#    plt.colorbar()
-#    plt.title(title)
-#    plt.xlabel("Input Features")
-#    plt.ylabel("Output Neurons")
-#    plt.tight_layout()
-#    plt.savefig(title)
-#    plt.close()
 
 
 if __name__ == '__main__':
