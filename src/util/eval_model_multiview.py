@@ -7,22 +7,18 @@ import numpy as np
 import time
 import torch
 import torchvision
-from matplotlib import pyplot as plt
 from numpy.linalg import norm
 from sklearn.decomposition import PCA, IncrementalPCA
-from sklearn.metrics import roc_curve, auc, accuracy_score
 from sklearn.preprocessing import normalize
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
-from src.backbone.multiview_irse import execute_model
 from src.util.Metrics import error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram, plot_cmc
-from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, \
-    accuracy_front_perspective, analyze_result_verification
+from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, accuracy_front_perspective, analyze_result_verification
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
-from src.util.misc import colorstr, bold, underscore, safe_round, smart_round
+from src.util.misc import colorstr, bold, underscore, smart_round
 
 
 @torch.no_grad()
@@ -44,7 +40,7 @@ def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_
         if use_face_corr and face_corr.shape[1] == 0:
             raise ValueError("Please provide face correspondences if use_face_corr is True")
 
-        embeddings_reg, embeddings_agg = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr)
+        embeddings_reg, embeddings_agg = backbone_reg.execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr)
         enrolled_embeddings_agg.extend(embeddings_agg.cpu().numpy())
         enrolled_embeddings_reg.append(np.array([t.cpu().numpy() for t in embeddings_reg]))
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
@@ -58,7 +54,7 @@ def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_
     enrolled_perspectives = np.array([enrolled_perspectives])
 
     if query_loader is None:
-        Results = namedtuple("Results",["enrolled_embeddings_agg", "enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids","enrolled_perspectives"])
+        Results = namedtuple("Results", ["enrolled_embeddings_agg", "enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids","enrolled_perspectives"])
         return Results(enrolled_embeddings_agg, enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids,enrolled_perspectives)
 
     query_embeddings_reg = []
@@ -67,7 +63,7 @@ def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_
     query_scan_ids = []
     query_perspectives = 0
     for inputs, labels, perspectives, face_corr, scan_id in tqdm(iter(query_loader), disable=disable_bar, desc="Generate Query Embeddings"):
-        embeddings_reg, embeddings_agg = execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr)
+        embeddings_reg, embeddings_agg = backbone_reg.execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr)
         query_embeddings_agg.extend(embeddings_agg.cpu().numpy())
         query_embeddings_reg.append(np.array([t.cpu().numpy() for t in embeddings_reg]))
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
@@ -139,7 +135,7 @@ def evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, test_path, 
     similarity_matrix = calculate_embedding_similarity(embedding_library.query_embeddings_agg, embedding_library.enrolled_embeddings_agg, chunk_size=batch_size, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result_metrics = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
-    result_metrics["auc_cmc"] = plot_cmc(similarity_matrix, enrolled_labels, query_labels, os.path.basename(test_path), "mv")
+    plot_cmc(similarity_matrix, enrolled_labels, query_labels, os.path.basename(test_path), "mv")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix, os.path.basename(test_path), "mv")
     plot_confusion_matrix(query_labels, enrolled_labels[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(query_labels, enrolled_labels, top_indices, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix, os.path.basename(test_path), "_mv")
@@ -149,26 +145,24 @@ def evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, test_path, 
 
     # Single Front View
     metrics_front, similarity_matrix_front, top_indices_front, y_true_front, y_pred_front = accuracy_front_perspective(embedding_library, pre_sorted=True)
-    metrics_front["auc_cmc"] = plot_cmc(similarity_matrix_front, enrolled_labels, query_labels, os.path.basename(test_path), "front")
+    plot_cmc(similarity_matrix_front, enrolled_labels, query_labels, os.path.basename(test_path), "front")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_front, os.path.basename(test_path), "front")
     error_rate_per_class(query_labels, enrolled_labels, top_indices_front, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix, os.path.basename(test_path), "_front")
     del similarity_matrix_front, top_indices_front, y_true_front, y_pred_front
 
     # Concat
     metrics_concat, similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar, pre_sorted=True)
-    metrics_concat["auc_cmc"] = plot_cmc(similarity_matrix_concat, enrolled_labels, query_labels, os.path.basename(test_path), "concat")
+    plot_cmc(similarity_matrix_concat, enrolled_labels, query_labels, os.path.basename(test_path), "concat")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat, os.path.basename(test_path), "concat")
     error_rate_per_class(query_labels, enrolled_labels, top_indices_concat, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix, os.path.basename(test_path), "_concat")
     del similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat
 
     metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with="mean")
-    metrics_concat_mean["auc_cmc"] = plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, os.path.basename(test_path), "concat_mean")
+    plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, os.path.basename(test_path), "concat_mean")
     del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
 
     metrics_concat_pca, similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, pre_sorted=True, reduce_with="pca")
-    auc_cmc = plot_cmc(similarity_matrix_concat_pca, enrolled_labels, query_labels, os.path.basename(test_path), "concat_pca")
-    if auc_cmc:
-        metrics_concat_pca["auc_cmc"] = auc_cmc
+    plot_cmc(similarity_matrix_concat_pca, enrolled_labels, query_labels, os.path.basename(test_path), "concat_pca")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_pca, os.path.basename(test_path), "concat_pca")
 
     return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
@@ -308,25 +302,20 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
 
     mlflow.log_metric(f'{neutral_dataset}_MV-RR1', metrics_mv['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_MV-RR5', metrics_mv['Rank-5 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_MV-CMC_AUC', metrics_mv['auc_cmc'], step=epoch)
 
     if metrics_front:
         mlflow.log_metric(f'{neutral_dataset}_Front-RR1', metrics_front['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Front-RR5', metrics_front['Rank-5 Rate'], step=epoch)
-        mlflow.log_metric(f'{neutral_dataset}_Front-CMC_AUC', metrics_front['auc_cmc'], step=epoch)
 
     if metrics_concat:
         mlflow.log_metric(f'{neutral_dataset}_Concat-RR1', metrics_concat['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat-RR5', metrics_concat['Rank-5 Rate'], step=epoch)
-        mlflow.log_metric(f'{neutral_dataset}_Concat-CMC_AUC', metrics_concat['auc_cmc'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-RR1', metrics_concat_mean['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-RR5', metrics_concat_mean['Rank-5 Rate'], step=epoch)
-        mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-CMC_AUC', metrics_concat_mean['auc_cmc'], step=epoch)
 
     if metrics_concat_pca:
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR1', metrics_concat_pca['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR5', metrics_concat_pca['Rank-5 Rate'], step=epoch)
-        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-CMC_AUC', metrics_concat_pca['auc_cmc'], step=epoch)
 
     # if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)

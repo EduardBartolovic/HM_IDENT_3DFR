@@ -180,7 +180,6 @@ def plot_cmc(similarity_matrix, gallery_labels, probe_labels, dataset, extension
     cmc_curve = ranks / num_probes
 
     x_ranks = np.arange(1, top_k + 1)
-    auc_cmc = auc(x_ranks, cmc_curve[:top_k]) / top_k
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         plt.figure(figsize=(9, 6))
@@ -198,7 +197,9 @@ def plot_cmc(similarity_matrix, gallery_labels, probe_labels, dataset, extension
         xticks = [x for x in xticks if x <= top_k]  # filter out ticks beyond top_k
         plt.xticks(xticks, fontsize=10)
         plt.yticks(fontsize=10)
-        if cmc_curve[0] > 0.99:
+        if cmc_curve[0] > 0.995:
+            plt.ylim((99.5, 100))
+        elif cmc_curve[0] > 0.99:
             plt.ylim((99, 100))
         elif cmc_curve[0] > 0.95:
             plt.ylim((95, 100))
@@ -216,14 +217,23 @@ def plot_cmc(similarity_matrix, gallery_labels, probe_labels, dataset, extension
 
         # Annotation box
         rank1 = cmc_curve[0] * 100
+        rank3 = cmc_curve[2] * 100 if top_k >= 3 else None
         rank5 = cmc_curve[4] * 100 if top_k >= 5 else None
         rank10 = cmc_curve[9] * 100 if top_k >= 10 else None
+        rank25 = cmc_curve[24] * 100 if top_k >= 25 else None
+        rank50 = cmc_curve[49] * 100 if top_k >= 50 else None
 
-        annotation = f"AUC-CMC: {auc_cmc*100:.2f}%\nRank-1: {rank1:.2f}%"
+        annotation = f"Rank-1: {rank1:.2f}%"
+        if rank3 is not None:
+            annotation += f"\nRank-3: {rank3:.2f}%"
         if rank5 is not None:
             annotation += f"\nRank-5: {rank5:.2f}%"
         if rank10 is not None:
             annotation += f"\nRank-10: {rank10:.2f}%"
+        if rank25 is not None:
+            annotation += f"\nRank-25: {rank25:.2f}%"
+        if rank50 is not None:
+            annotation += f"\nRank-50: {rank50:.2f}%"
 
         plt.text(
             0.98,
@@ -240,8 +250,6 @@ def plot_cmc(similarity_matrix, gallery_labels, probe_labels, dataset, extension
         plt.close()
 
         mlflow.log_artifacts(tmp_dir, artifact_path="CMC_Curve")
-
-    return auc_cmc
 
 
 def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matplotlib=True):
