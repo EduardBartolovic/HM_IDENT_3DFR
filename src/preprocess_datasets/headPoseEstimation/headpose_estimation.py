@@ -166,9 +166,9 @@ def get_images_from_dir(image_dir, files_names):
 
     return images
 
-def process_video(video_path, frame_skip, output_analysis_folder):
+def process_video(video_path, frame_skip, output_analysis_folder, downscale=False):
     os.makedirs(output_analysis_folder, exist_ok=True)
-    frames, names = get_frames(video_path, frame_skip=frame_skip)
+    frames, names = get_frames(video_path, frame_skip=frame_skip, downscale=downscale)
 
     if not frames:
         print("Error processing", video_path)
@@ -177,7 +177,7 @@ def process_video(video_path, frame_skip, output_analysis_folder):
     return frames, names
 
 
-def get_frames(video_path, frame_skip=1):
+def get_frames(video_path, frame_skip=1, downscale=False):
     cap = cv2.VideoCapture(video_path)
     frames = []
     names = []
@@ -189,6 +189,12 @@ def get_frames(video_path, frame_skip=1):
         if not ret:
             break
         if frame_index % frame_skip == 0:
+
+            if downscale:
+                height, width = frame.shape[:2]
+                if height > 1500 or width > 1500:
+                    frame = cv2.resize(frame, (width // 2, height // 2), interpolation=cv2.INTER_AREA)
+
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frames.append(frame_rgb)
             names.append(f"{video_filename}#{frame_index}")

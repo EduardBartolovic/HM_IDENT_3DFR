@@ -148,7 +148,7 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
     print("Video Analysis for ", num_folders, " in", round(elapsed_time / 60, 2), "minutes, missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces+more_faces+found_one_face, ", too_small:", too_small, "hpe on", hpe_counter, "frames")
 
 
-def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, max_workers=8, face_confidence=0.6):
+def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, downscale=True, max_workers=8, face_confidence=0.6):
     start_time = time.time()
 
     head_pose_model = get_model("resnet50", num_classes=6)
@@ -189,7 +189,7 @@ def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_p
             for video in files:
                 if video.endswith(".mp4"):
                     video_path = os.path.join(root, video)
-                    futures.append(executor.submit(process_video, video_path, frame_skip, output_analysis_folder))
+                    futures.append(executor.submit(process_video, video_path, frame_skip, output_analysis_folder, downscale))
         for future in futures:
             frames, names = future.result()
             video_frames.extend(frames)
