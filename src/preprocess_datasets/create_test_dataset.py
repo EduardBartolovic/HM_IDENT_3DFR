@@ -47,7 +47,7 @@ def unique_views_score(file_paths):
 
 def create_train_test_split(input_folder, output_folder, filter_strings=None, poses=25, ignore_face_corr=True):
     """
-    Splits images into train and test sets, always using the first group in each class for training
+    Splits images into enrolled and query sets, always using the first group in each class for training
     and the remaining groups for testing. Only files containing a specific string from filter_strings
     in their name are included.
 
@@ -69,8 +69,8 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
     start_time = time.time()
     counter = 0
     os.makedirs(output_folder, exist_ok=True)
-    train_folder = os.path.join(output_folder, "train")
-    test_folder = os.path.join(output_folder, "validation")
+    train_folder = os.path.join(output_folder, "enrolled")
+    test_folder = os.path.join(output_folder, "query")
     os.makedirs(train_folder, exist_ok=True)
     os.makedirs(test_folder, exist_ok=True)
     ignored = 0

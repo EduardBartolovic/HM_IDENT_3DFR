@@ -16,7 +16,7 @@ def copy_filtered_dataset(src_dir, dest_dir, filters):
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
 
-    for split in ['train', 'validation']:
+    for split in ['enrolled', 'query']:
         split_src = os.path.join(src_dir, split)
         split_dest = os.path.join(dest_dir, split)
 

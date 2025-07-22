@@ -166,6 +166,7 @@ def get_images_from_dir(image_dir, files_names):
 
     return images
 
+
 def process_video(video_path, frame_skip, output_analysis_folder, downscale=False):
     os.makedirs(output_analysis_folder, exist_ok=True)
     frames, names = get_frames(video_path, frame_skip=frame_skip, downscale=downscale)

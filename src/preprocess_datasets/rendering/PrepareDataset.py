@@ -520,7 +520,7 @@ def prepare_datasets_test(dir_path):
             if not os.path.exists(target):
                 os.makedirs(target, exist_ok=True)
 
-                for dataset_type in ['train', 'validation']:
+                for dataset_type in ['enrolled', 'query']:
                     dataset_path = os.path.join(entry_path, dataset_type)
                     class_dirs = os.listdir(dataset_path)
 

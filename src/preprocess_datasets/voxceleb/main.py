@@ -13,11 +13,11 @@ from src.preprocess_datasets.rendering import PrepareDataset
 
 def preprocessing():
     root = "F:\\Face\\data\\datasets9\\"
-    folder_root = root+"vox2test"
-    dataset_output_folder = root+"test_vox2train_out"
-    dataset_output_folder_crop = root+"test_vox2train_crop"
-    dataset_output_folder_filtered = root+"test_vox2train_filtered"
-    output_test_dataset = root+"test_vox2test8"
+    folder_root = root+"vox2train_raw"
+    dataset_output_folder = root+"vox2train_out"
+    dataset_output_folder_crop = root+"vox2train_crop"
+    dataset_output_folder_filtered = root+"vox2train_crop8"
+    output_test_dataset = root+"test_vox2train_crop8"
     model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
     batch_size = 8 # 256 for 24GB  # 48 for 8 GB VRAM
@@ -52,9 +52,9 @@ def preprocessing():
     perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
     PrepareDataset.filter_views(dataset_output_folder_crop, dataset_output_folder_filtered, perspective_filter, target_views=8)
 
-    print("##################################")
-    print("###### face_correspondences ######")
-    print("##################################")
+    #print("##################################")
+    #print("###### face_correspondences ######")
+    #print("##################################")
     #calculate_face_landmarks_dataset(dataset_output_folder+"\\train")
     #perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
     #calculate_face_correspondences_dataset(dataset_output_folder+"\\train", keep=True, target_views=8, processes=1)
