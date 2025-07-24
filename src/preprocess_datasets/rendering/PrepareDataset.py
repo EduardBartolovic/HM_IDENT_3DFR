@@ -647,6 +647,12 @@ def filter_views(dataset_folder, output_folder, filter_keywords, target_views=8)
                     dst_file = os.path.join(output_class_path, filename)
                     shutil.copy2(src_file, dst_file)
             else:
-                raise Exception(f"num_matching doesnt match in {class_name}")
+                present_keywords = set(f[40:-10] for f in matching_files)
+                missing_keywords = [k for k in filter_keywords if k not in present_keywords]
+                raise Exception(
+                    f"\n❌ Invalid number of matches in '{class_name}'!\n"
+                    f"  ➤ Found {num_matching} matching files, expected multiple of {target_views}.\n"
+                    f"  ➤ Missing keywords: {missing_keywords}"
+                )
 
     print(f"✅ Done! Filtered dataset saved in: {output_folder}")
