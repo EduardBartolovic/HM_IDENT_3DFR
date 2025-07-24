@@ -154,7 +154,7 @@ class MultiviewIResnet(Module):
                 if v == zero_position or v >= view_grid.shape[0]: # Skip alignment if zero pose or merged features
                     aligned_batched_featuremaps[b, v] = view_featuremaps[v]
                 else:
-                    aligned_batched_featuremaps[b, v] = align_featuremap(
+                    aligned_batched_featuremaps[b, v] = self.align_featuremap(
                         view_featuremaps[v],
                         view_grid[v]
                     )
@@ -166,11 +166,11 @@ class MultiviewIResnet(Module):
         if use_face_corr:
             zero_position = np.where(np.array(perspectives)[:, 0] == '0_0')[0][0]
             if stage_index == 0:
-                all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
+                all_view_stage = self.align_featuremaps(all_view_stage, face_corr, zero_position)
             if stage_index == 1:
-                all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
+                all_view_stage = self.align_featuremaps(all_view_stage, face_corr, zero_position)
             if stage_index == 2:
-                all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
+                all_view_stage = self.align_featuremaps(all_view_stage, face_corr, zero_position)
 
         views_pooled_stage = aggregators[stage_index](all_view_stage)
         #visualize_all_views_and_pooled(all_view_stage, views_pooled_stage, output_dir=f"feature_map_outputs_{stage_index}")
@@ -198,7 +198,7 @@ class MultiviewIResnet(Module):
                 all_view_stage = torch.cat((all_view_stage, x_4.unsqueeze(1)), dim=1)
 
             # Perform pooling across views
-            views_pooled_stage = aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr, use_face_corr)  # [batch, c, w, h]
+            views_pooled_stage = self.aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr, use_face_corr)  # [batch, c, w, h]
 
             if views_pooled_stage.shape[-1] == 112:
                 x_1 = backbone_agg(views_pooled_stage, execute_stage={1})
@@ -234,7 +234,7 @@ class MultiviewIResnet(Module):
                         all_views_stage_features[index].append(features_stages[stage])
 
         # visualize_feature_maps(all_views_stage_features, "E:\\Download", view_idx=0)
-        embeddings_agg = perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr)  # Embeddings of aggregator branch
+        embeddings_agg = self.perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr)  # Embeddings of aggregator branch
         embeddings_reg = all_views_stage_features[5]  # Embeddings of regular branch
 
         return embeddings_reg, embeddings_agg
