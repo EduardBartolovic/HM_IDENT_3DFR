@@ -160,7 +160,7 @@ def analyse_video_new(input_folder, output_folder, model_path_hpe, device, batch
 
     # Setup InsightFace
     face_app = FaceAnalysis(name='buffalo_l', providers=['CUDAExecutionProvider' if torch.cuda.is_available() else 'CPUExecutionProvider'])
-    face_app.prepare(ctx_id=0 if torch.cuda.is_available() else -1, det_tresh=face_confidence)
+    face_app.prepare(ctx_id=0 if torch.cuda.is_available() else -1)
 
     missing_faces = 0
     more_faces = 0
