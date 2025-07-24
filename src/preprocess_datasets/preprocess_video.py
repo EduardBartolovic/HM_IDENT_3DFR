@@ -148,7 +148,7 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
     print("Video Analysis for ", num_folders, " in", round(elapsed_time / 60, 2), "minutes, missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces+more_faces+found_one_face, ", too_small:", too_small, "hpe on", hpe_counter, "frames")
 
 
-def analyse_video_new(input_folder, output_folder, model_path_hpe, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, downscale=True, max_workers=8):
+def analyse_video_new(input_folder, output_folder, model_path_hpe, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, downscale=True, max_workers=8, face_confidence=0.5):
     start_time = time.time()
 
     # Load HPE model
@@ -160,7 +160,7 @@ def analyse_video_new(input_folder, output_folder, model_path_hpe, device, batch
 
     # Setup InsightFace
     face_app = FaceAnalysis(name='buffalo_l', providers=['CUDAExecutionProvider' if torch.cuda.is_available() else 'CPUExecutionProvider'])
-    face_app.prepare(ctx_id=0 if torch.cuda.is_available() else -1)
+    face_app.prepare(ctx_id=0 if torch.cuda.is_available() else -1, det_tresh=face_confidence)
 
     missing_faces = 0
     more_faces = 0

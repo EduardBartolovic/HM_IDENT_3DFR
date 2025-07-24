@@ -29,7 +29,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    analyse_video_new(folder_root, "analysis", model_path_hpe, device, keep=True, frame_skip=frame_skip, downscale=True)
+    analyse_video_new(folder_root, "analysis", model_path_hpe, device, keep=True, frame_skip=frame_skip, downscale=True, face_confidence=0.5)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
