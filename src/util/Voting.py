@@ -50,11 +50,26 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
             false_match_scores.append(similarity_matrix[i, top1_ref_idx])
     mean_false_match_similarity = np.mean(false_match_scores) if false_match_scores else 0
 
+    # Mean Reciprocal Rank (MRR)
+    reciprocal_ranks = []
+    for i in range(num_inferences):
+        gt_indices = np.where(reference_ids == ground_truth_ids[i])[0]
+        if len(gt_indices) == 0:
+            continue  # ground truth not in reference set
+
+        ranks = np.where(np.isin(top_indices[i], gt_indices))[0]
+        if len(ranks) > 0:
+            reciprocal_ranks.append(1.0 / (ranks[0] + 1))  # rank is 1-based
+        else:
+            reciprocal_ranks.append(0.0)
+    mean_reciprocal_rank = np.mean(reciprocal_ranks)
+
     return {
         "Rank-1 Rate": round(top_1_accuracy * 100, 4),
         f"Rank-{top_k_acc_k} Rate": round(top_k_accuracy * 100, 4),
         "mean_true_match_similarity": mean_true_match_similarity,
-        "mean_false_match_similarity": mean_false_match_similarity
+        "mean_false_match_similarity": mean_false_match_similarity,
+        "MRR": round(mean_reciprocal_rank * 100, 6),
     }
 
 
@@ -372,7 +387,7 @@ def voting(y_pred, scan_ids, query_labels):
     return np.array(y_true_scan), np.array(y_pred_scan)
 
 
-def accuracy_front_perspective(embedding_library, distance_metric=None, pre_sorted=False):
+def accuracy_front_perspective(embedding_library, pre_sorted=False):
 
     if pre_sorted:
         # enrolled_embeddings.shape -> (views, num_samples, embedding_dim)

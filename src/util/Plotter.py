@@ -141,7 +141,7 @@ def plot_verification(recall, precision, avg_precision, fpr, tpr, best_idx, best
         plt.savefig(os.path.join(tmp_dir, 'ROC_Curve-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
         plt.close()
 
-        mlflow.log_artifacts(tmp_dir, artifact_path="verifciation")
+        mlflow.log_artifacts(tmp_dir, artifact_path="verification")
 
 
 def plot_cmc(similarity_matrix, gallery_labels, probe_labels, dataset, extension='', top_k=100):
