@@ -148,7 +148,24 @@ def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_bl
     print("Video Analysis for ", num_folders, " in", round(elapsed_time / 60, 2), "minutes, missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces+more_faces+found_one_face, ", too_small:", too_small, "hpe on", hpe_counter, "frames")
 
 
-def analyse_video_new(input_folder, output_folder, model_path_hpe, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, downscale=True, max_workers=8, face_confidence=0.5):
+def pad_to_minimum_size(img, min_size=640):
+    h, w = img.shape[:2]
+    pad_h = max(0, min_size - h)
+    pad_w = max(0, min_size - w)
+
+    top = pad_h // 2
+    bottom = pad_h - top
+    left = pad_w // 2
+    right = pad_w - left
+
+    padded_img = cv2.copyMakeBorder(
+        img, top, bottom, left, right,
+        borderType=cv2.BORDER_CONSTANT, value=[0, 0, 0]
+    )
+    return padded_img
+
+
+def analyse_video_new(input_folder, output_folder, model_path_hpe, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, downscale=True, max_workers=8, face_confidence=0.5, padding=False):
     start_time = time.time()
 
     # Load HPE model
@@ -159,8 +176,9 @@ def analyse_video_new(input_folder, output_folder, model_path_hpe, device, batch
     head_pose_model.eval()
 
     # Setup InsightFace
-    face_app = FaceAnalysis(name='buffalo_l', providers=['CUDAExecutionProvider' if torch.cuda.is_available() else 'CPUExecutionProvider'])
+    face_app = FaceAnalysis(name='buffalo_l', providers=['CUDAExecutionProvider' if torch.cuda.is_available() else 'CPUExecutionProvider'], allowed_modules=['detection'])
     face_app.prepare(ctx_id=0 if torch.cuda.is_available() else -1)
+    face_app.det_model.conf_threshold = face_confidence
 
     missing_faces = 0
     more_faces = 0
@@ -206,7 +224,10 @@ def analyse_video_new(input_folder, output_folder, model_path_hpe, device, batch
             valid_names_batch = []
 
             for img, name in zip(img_batch, name_batch):
+                if padding:
+                    img = pad_to_minimum_size(img)
                 img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
                 faces = face_app.get(img_rgb)
 
                 if not faces:
