@@ -6,6 +6,7 @@ import os
 
 import time
 import torch
+from sklearn.utils import deprecated
 from tqdm import tqdm
 
 from src.preprocess_datasets.blazeface.blazeface import BlazeFace
@@ -15,6 +16,7 @@ from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_m
     process_video, get_images_from_dir
 from insightface.app import FaceAnalysis
 
+@deprecated
 def analyse_video_vox(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, filter=None, keep=True, min_accepted_face_size=112, frame_skip=2, max_workers=8, face_confidence=0.6):
     start_time = time.time()
 
@@ -165,7 +167,7 @@ def pad_to_minimum_size(img, min_size=640):
     return padded_img
 
 
-def analyse_video_new(input_folder, output_folder, model_path_hpe, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, downscale=True, max_workers=8, face_confidence=0.5, padding=False):
+def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, downscale=True, max_workers=8, face_confidence=0.5, padding=False):
     start_time = time.time()
 
     # Load HPE model
@@ -300,6 +302,7 @@ def analyse_video_new(input_folder, output_folder, model_path_hpe, device, batch
     print("missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces + more_faces + found_one_face, ", too_small:", too_small)
 
 
+@deprecated
 def analyse_video_nersemble(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, downscale=True, max_workers=8, face_confidence=0.6):
     start_time = time.time()
 

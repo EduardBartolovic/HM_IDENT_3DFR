@@ -8,7 +8,7 @@ from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences i
     calculate_face_correspondences_dataset
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_nersemble_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
-from src.preprocess_datasets.preprocess_video import analyse_video_new
+from src.preprocess_datasets.preprocess_video import analyse_video_hpe
 from src.preprocess_datasets.process_dataset_retinaface import face_crop_and_alignment
 from src.preprocess_datasets.rendering import PrepareDataset
 
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    analyse_video_new(folder_root, "analysis", model_path_hpe, device, keep=True, frame_skip=frame_skip, downscale=True, face_confidence=0.5)
+    analyse_video_hpe(folder_root, "analysis", model_path_hpe, device, keep=True, frame_skip=frame_skip, downscale=True, face_confidence=0.5)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
