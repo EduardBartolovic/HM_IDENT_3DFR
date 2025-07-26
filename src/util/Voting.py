@@ -1,7 +1,7 @@
 import os
 from collections import defaultdict
 
-import faiss
+#import faiss
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn import neighbors
@@ -299,8 +299,8 @@ def multidatabase_voting(embedding_library):
 
 def knn_voting(embedding_library, k=1, d="cosine", faiss_method=True):
 
-    if faiss_method:
-        return faiss_knn_voting(embedding_library)
+    #if faiss_method:
+    #    return faiss_knn_voting(embedding_library)
 
     knn_model = neighbors.KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric=d)
     knn_model.fit(embedding_library.enrolled_embeddings, embedding_library.enrolled_labels)
@@ -332,28 +332,28 @@ def normalize_embeddings(embeddings):
     return embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 
 
-def faiss_knn_voting(embedding_library, k=1):
-
-    enrolled_embeddings = normalize_embeddings(embedding_library.enrolled_embeddings)
-    query_embeddings = normalize_embeddings(embedding_library.query_embeddings)
-
-    index = faiss.IndexFlatIP(enrolled_embeddings.shape[1])
-    index.add(enrolled_embeddings)
-
-    _, indices = index.search(query_embeddings, k)
-    y_preds = embedding_library.enrolled_labels[indices.flatten()]
-
-    # Majority voting
-    vote_scan_id = {}
-    label_scan_id = {}
-    for scan_id, y_pred, y_true in zip(embedding_library.query_scan_ids, y_preds, embedding_library.query_labels):
-        vote_scan_id.setdefault(scan_id, []).append(y_pred)
-        label_scan_id[scan_id] = y_true
-
-    y_pred_scan = np.array([max(set(votes), key=votes.count) for votes in vote_scan_id.values()])
-    y_true_scan = np.array([label_scan_id[key] for key in vote_scan_id.keys()])
-
-    return y_true_scan, y_pred_scan
+# def faiss_knn_voting(embedding_library, k=1):
+#
+#     enrolled_embeddings = normalize_embeddings(embedding_library.enrolled_embeddings)
+#     query_embeddings = normalize_embeddings(embedding_library.query_embeddings)
+#
+#     index = faiss.IndexFlatIP(enrolled_embeddings.shape[1])
+#     index.add(enrolled_embeddings)
+#
+#     _, indices = index.search(query_embeddings, k)
+#     y_preds = embedding_library.enrolled_labels[indices.flatten()]
+#
+#     # Majority voting
+#     vote_scan_id = {}
+#     label_scan_id = {}
+#     for scan_id, y_pred, y_true in zip(embedding_library.query_scan_ids, y_preds, embedding_library.query_labels):
+#         vote_scan_id.setdefault(scan_id, []).append(y_pred)
+#         label_scan_id[scan_id] = y_true
+#
+#     y_pred_scan = np.array([max(set(votes), key=votes.count) for votes in vote_scan_id.values()])
+#     y_true_scan = np.array([label_scan_id[key] for key in vote_scan_id.keys()])
+#
+#     return y_true_scan, y_pred_scan
 
 
 def voting(y_pred, scan_ids, query_labels):
