@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 
-from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18
+from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18, iresnet100
 
 
 class IR_MV_V2(nn.Module):
@@ -130,6 +130,10 @@ class IR_MV_V2(nn.Module):
         embeddings_agg = self.perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr)
         embeddings_reg = all_views_stage_features[5]
         return embeddings_reg, embeddings_agg
+
+
+def IR_MV_V2_100(embedding_size=512, fp16=False):
+    return IR_MV_V2(iresnet100, embedding_size, fp16)
 
 
 def IR_MV_V2_50(embedding_size=512, fp16=False):
