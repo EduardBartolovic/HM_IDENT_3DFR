@@ -18,7 +18,6 @@ class ConvAggregator(nn.Module):
         if self.use_dropout:
             self.dropout = nn.Dropout2d(p=dropout_prob)
 
-
     def forward(self, all_view_stage):
         """
         Args:
@@ -44,7 +43,6 @@ class ConvAggregator(nn.Module):
 
 
 def make_conv_aggregator(agg_config: dict):
-
 
     if "VIEWS" in agg_config.keys():
         view_list = agg_config["VIEWS"]

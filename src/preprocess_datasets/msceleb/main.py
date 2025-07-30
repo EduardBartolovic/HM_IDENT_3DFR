@@ -7,7 +7,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 # Config
-dataset_path = "F:\\Face\\data\\datasets9\\MV_MSCELEBFULL\\photo_MS-Celeb-1M_Align_112x112" #MV_MSCELEB85KO8\\"
+dataset_path = "F:\\Face\\data\\dataset10\\ms1mv3_raw"
 appendices = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
 batch_size = len(appendices)
 
