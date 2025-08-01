@@ -1,7 +1,7 @@
 import os
 from collections import defaultdict
 
-#import faiss
+# import faiss
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn import neighbors
@@ -10,6 +10,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import numba
 from sklearn.metrics import accuracy_score, roc_curve, auc, DetCurveDisplay, precision_recall_curve, \
     average_precision_score
+from sklearn.model_selection import KFold
 from sklearn.preprocessing import normalize
 from tqdm import tqdm
 
@@ -39,7 +40,8 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
     top_k_matches = reference_ids[top_indices[:, :top_k_acc_k]]
     top_k_accuracy = np.mean([ground_truth_ids[i] in top_k_matches[i] for i in range(num_inferences)])
 
-    true_match_scores = np.array([similarity_matrix[i, np.where(reference_ids == ground_truth_ids[i])[0][0]] for i in range(num_inferences)])
+    true_match_scores = np.array(
+        [similarity_matrix[i, np.where(reference_ids == ground_truth_ids[i])[0][0]] for i in range(num_inferences)])
     mean_true_match_similarity = np.mean(true_match_scores)
 
     false_match_scores = []
@@ -73,64 +75,99 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
     }
 
 
-def analyze_result_verification(labels, similarities_mv, dataset_name, method_appendix="", far_targets=(1e-6, 1e-4)):
+def analyze_result_verification(labels, similarities_mv,
+                                dataset_name,
+                                method_appendix="",
+                                far_targets=(1e-6, 1e-4),
+                                k_folds=10,
+                                random_state=42,
+                                plot=False
+                                ):
     """
-    Evaluate 1:1 face verification results.
+    K-Fold evaluation for 1:1 face verification.
 
     Args:
         labels: Ground-truth binary labels (1=same, 0=different)
         similarities_mv: Similarity scores between pairs
+        dataset_name: Name of the dataset (for logging/plotting)
+        method_appendix: Extra string for logging/plotting
         far_targets: Tuple of FARs to compute TAR at (default: 1e-6 and 1e-4)
+        k_folds: Number of cross-validation folds (default: 10)
+        random_state: Random seed for reproducibility
+        plot: If True, plots for the first fold only
 
     Returns:
-        Dictionary with evaluation metrics.
+        Dictionary with mean and std for each metric
     """
 
-    # ROC and AUC
-    fpr, tpr, thresholds = roc_curve(labels, similarities_mv)
-    roc_auc = auc(fpr, tpr)
+    labels = np.array(labels)
+    similarities_mv = np.array(similarities_mv)
+    kf = KFold(n_splits=k_folds, shuffle=True, random_state=random_state)
 
-    # Best threshold based on Youden’s J statistic
-    best_idx = np.argmax(tpr - fpr)
-    best_thresh = thresholds[best_idx]
-    predictions = (similarities_mv > best_thresh).astype(int)
-    accuracy = accuracy_score(labels, predictions)
+    all_metrics = []
 
-    # Equal Error Rate (EER)
-    fnr = 1 - tpr
-    eer_idx = np.nanargmin(np.abs(fnr - fpr))
-    eer = (fpr[eer_idx] + fnr[eer_idx]) / 2
+    for fold_idx, (train_idx, test_idx) in enumerate(kf.split(similarities_mv)):
+        train_labels = labels[train_idx]
+        train_scores = similarities_mv[train_idx]
+        test_labels = labels[test_idx]
+        test_scores = similarities_mv[test_idx]
 
-    # Average Precision (AP)
-    precision, recall, _ = precision_recall_curve(labels, similarities_mv)
-    avg_precision = average_precision_score(labels, similarities_mv)
+        # Threshold selection on train set using Youden’s J
+        fpr_train, tpr_train, thresholds_train = roc_curve(train_labels, train_scores)
+        best_idx = np.argmax(tpr_train - fpr_train)
+        best_thresh = thresholds_train[best_idx]
 
-    # TAR @ FAR
-    tar_results = {}
-    for far in far_targets:
-        idxs = np.where(fpr <= far)[0]
-        if len(idxs) > 0:
-            tar_at_far = tpr[idxs[-1]]  # take the last one under the FAR
-        else:
-            tar_at_far = 0.0  # No FPR small enough
-        tar_results[f"TAR@FAR={far:.0e}"] = tar_at_far
+        # Evaluate on test set
+        test_preds = (test_scores > best_thresh).astype(int)
+        accuracy = accuracy_score(test_labels, test_preds)
 
-    plot_verification(recall, precision, avg_precision, fpr, tpr, best_idx, best_thresh, accuracy, eer, roc_auc, dataset_name, method_appendix)
+        fpr, tpr, thresholds = roc_curve(test_labels, test_scores)
+        roc_auc = auc(fpr, tpr)
 
-    # Final results
-    result = {
-        "AUC": round(roc_auc * 100, 4),
-        "Best_thresh": round(best_thresh, 4),
-        "Accuracy": round(accuracy * 100, 4),
-        "EER": round(eer * 100, 4),
-        "Average_Precision": round(avg_precision * 100, 4),
-    }
+        fnr = 1 - tpr
+        eer_idx = np.nanargmin(np.abs(fnr - fpr))
+        eer = (fpr[eer_idx] + fnr[eer_idx]) / 2
 
-    # Add TAR@FARs
-    for k, v in tar_results.items():
-        result[k] = round(v * 100, 4)
+        precision, recall, _ = precision_recall_curve(test_labels, test_scores)
+        avg_precision = average_precision_score(test_labels, test_scores)
 
-    return result
+        tar_results = {}
+        for far in far_targets:
+            idxs = np.where(fpr <= far)[0]
+            if len(idxs) > 0:
+                tar_at_far = tpr[idxs[-1]]
+            else:
+                tar_at_far = 0.0
+            tar_results[f"TAR@FAR={far:.0e}"] = tar_at_far
+
+        # Optionally plot only for the first fold
+        if plot and fold_idx == 0:
+            plot_verification(
+                recall, precision, avg_precision,
+                fpr, tpr, best_idx, best_thresh,
+                accuracy, eer, roc_auc,
+                dataset_name, method_appendix + f"_fold{fold_idx}"
+            )
+
+        metrics = {
+            "AUC": roc_auc * 100,
+            "Best_thresh": best_thresh,
+            "Accuracy": accuracy * 100,
+            "EER": eer,
+            "Average_Precision": avg_precision * 100
+        }
+        metrics.update({k: v * 100 for k, v in tar_results.items()})
+
+        all_metrics.append(metrics)
+
+    # Aggregate metrics: mean and std
+    summary = {}
+    for key in all_metrics[0].keys():
+        values = [m[key] for m in all_metrics]
+        summary[key] = round(np.mean(values), 4)
+        summary[key + "_std"] = round(np.std(values), 4)
+
+    return summary
 
 
 @numba.njit(parallel=True, fastmath=True, nogil=True)
@@ -152,12 +189,13 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
 
 
 def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with=""):
-
     if pre_sorted:
         enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
-        enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+        enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1],
+                                                                           -1)  # (views, ids, 512) -> (ids, views*512)
         query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
-        query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+        query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1],
+                                                                     -1)  # (views, ids, 512) -> (ids, views*512)
     else:
         enrolled_embedding, enrolled_label = process_unsorted_embeddings(
             embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
@@ -269,7 +307,8 @@ def multidatabase_voting(embedding_library):
 
     majority_vote_predictions = []
     for i in range(len(query_embedding_databases)):
-        similarity_matrix = calculate_embedding_similarity(query_embedding_databases[i], enrolled_embedding_databases[i], show_progress=False)
+        similarity_matrix = calculate_embedding_similarity(query_embedding_databases[i],
+                                                           enrolled_embedding_databases[i], show_progress=False)
         top_indices, _ = compute_ranking_matrices(similarity_matrix)
 
         majority_vote_predictions.append(top_indices)
@@ -293,13 +332,13 @@ def multidatabase_voting(embedding_library):
         # Get the sorted indices based on scores (highest to lowest)
         weighted_majority_votes[query_idx] = np.argsort(rank_scores)[::-1]
 
-    result_metrics = analyze_result(similarity_matrix, weighted_majority_votes, enrolled_label_database, query_label_database, top_k_acc_k=5)
+    result_metrics = analyze_result(similarity_matrix, weighted_majority_votes, enrolled_label_database,
+                                    query_label_database, top_k_acc_k=5)
     return result_metrics
 
 
 def knn_voting(embedding_library, k=1, d="cosine", faiss_method=True):
-
-    #if faiss_method:
+    # if faiss_method:
     #    return faiss_knn_voting(embedding_library)
 
     knn_model = neighbors.KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric=d)
@@ -388,7 +427,6 @@ def voting(y_pred, scan_ids, query_labels):
 
 
 def accuracy_front_perspective(embedding_library, pre_sorted=False):
-
     if pre_sorted:
         # enrolled_embeddings.shape -> (views, num_samples, embedding_dim)
         # enrolled_labels.shape -> (num_samples,)
