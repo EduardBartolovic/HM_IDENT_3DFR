@@ -194,11 +194,12 @@ def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch
         frame_dets = []
         frame_hpe = []
         output_analysis_folder = os.path.join(root, output_folder)
-        os.makedirs(output_analysis_folder, exist_ok=True)
         output_txt_path = os.path.join(output_analysis_folder, "analysis.txt")
 
         if keep and os.path.exists(output_txt_path):
             continue
+
+        os.makedirs(output_analysis_folder, exist_ok=True)
 
         video_frames = []
         video_names = []
