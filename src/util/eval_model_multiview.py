@@ -117,8 +117,8 @@ def evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, test_path, 
     """
     Evaluate 1:N Model Performance on given test dataset
     """
-    dataset_enrolled_path = os.path.join(test_path, 'train')
-    dataset_query_path = os.path.join(test_path, 'validation')
+    dataset_enrolled_path = os.path.join(test_path, 'enrolled')
+    dataset_query_path = os.path.join(test_path, 'query')
     dataset_enrolled, enrolled_loader = load_data_mv(dataset_enrolled_path, batch_size, num_views, test_transform, use_face_corr)
     dataset_query, query_loader = load_data_mv(dataset_query_path, batch_size, num_views, test_transform, use_face_corr)
     if len(dataset_enrolled.classes) != len(dataset_enrolled):
@@ -168,7 +168,7 @@ def evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, test_path, 
     return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled, dataset_query
 
 
-def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, k_folds=10):
     """
     Evaluate 1:1 Model Performance on given test dataset
     """
@@ -275,11 +275,14 @@ def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, test_path, 
         sim = np.dot(emb1_reg_pca, emb2_reg_pca) / (norm(emb1_reg_pca) * norm(emb2_reg_pca))
         similarities_concat_pca.append(sim)
 
-    metrics_front = analyze_result_verification(labels, similarities_front, os.path.basename(test_path), "_front")
-    metrics_concat = analyze_result_verification(labels, similarities_concat, os.path.basename(test_path), "_concat")
-    metrics_concat_mean = analyze_result_verification(labels, similarities_concat_mean, os.path.basename(test_path), "_mean")
-    metrics_concat_pca = analyze_result_verification(labels, similarities_concat_pca, os.path.basename(test_path), "_pca")
-    result_metrics = analyze_result_verification(labels, similarities_mv, os.path.basename(test_path), "_mv")
+    result_metrics = analyze_result_verification(labels, similarities_mv, os.path.basename(test_path), "_mv", k_folds=k_folds)
+    if not eval_all:
+        return result_metrics, {}, {}, {}, {}, embedding_library, dataset_enrolled
+
+    metrics_front = analyze_result_verification(labels, similarities_front, os.path.basename(test_path), "_front", k_folds=k_folds)
+    metrics_concat = analyze_result_verification(labels, similarities_concat, os.path.basename(test_path), "_concat", k_folds=k_folds)
+    metrics_concat_mean = analyze_result_verification(labels, similarities_concat_mean, os.path.basename(test_path), "_mean", k_folds=k_folds)
+    metrics_concat_pca = analyze_result_verification(labels, similarities_concat_pca, os.path.basename(test_path), "_pca", k_folds=k_folds)
 
     return result_metrics, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled
 
@@ -298,24 +301,32 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
         device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size,
         num_views, use_face_corr, disable_bar, eval_all)
 
-    neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
+    neutral_dataset = dataset
+    for prefix in ['depth_', 'rgbd_', 'rgb_', 'test_']:
+        if neutral_dataset.startswith(prefix):
+            neutral_dataset = neutral_dataset[len(prefix):]
 
     mlflow.log_metric(f'{neutral_dataset}_MV-RR1', metrics_mv['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_MV-RR5', metrics_mv['Rank-5 Rate'], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_MV-MRR', metrics_mv['MRR'], step=epoch)  # ← new
 
     if metrics_front:
         mlflow.log_metric(f'{neutral_dataset}_Front-RR1', metrics_front['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Front-RR5', metrics_front['Rank-5 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Front-MRR', metrics_front['MRR'], step=epoch)
 
     if metrics_concat:
         mlflow.log_metric(f'{neutral_dataset}_Concat-RR1', metrics_concat['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat-RR5', metrics_concat['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-RR1', metrics_concat_mean['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-RR5', metrics_concat_mean['Rank-5 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat-MRR', metrics_concat['MRR'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-MRR', metrics_concat_mean['MRR'], step=epoch)
 
     if metrics_concat_pca:
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR1', metrics_concat_pca['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR5', metrics_concat_pca['Rank-5 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-MRR', metrics_concat_pca['MRR'], step=epoch)
 
     # if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
@@ -325,7 +336,7 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     return metrics_mv
 
 
-def evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+def evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, k_folds=10):
 
     test_transform = transforms.Compose([
         transforms.Resize(transform_sizes),
@@ -334,12 +345,15 @@ def evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggrega
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ])
 
-    print(colorstr('bright_green', f"Perform 1:1 Evaluation on {dataset} with cropping: {transform_sizes} and face_corr: {use_face_corr}"))
+    print(colorstr('bright_green', f"Perform 1:1 Evaluation on {dataset} with cropping: {transform_sizes} and face_corr: {use_face_corr} and k_folds: {k_folds}"))
     metrics_mv, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, embedding_library, dataset_enrolled = evaluate_mv_1_1(
         device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size,
-        num_views, use_face_corr, disable_bar, eval_all)
+        num_views, use_face_corr, disable_bar, eval_all, k_folds)
 
-    neutral_dataset = dataset.replace('depth_', '').replace('rgbd_', '').replace('rgb_', '').replace('test_', '')
+    neutral_dataset = dataset
+    for prefix in ['depth_', 'rgbd_', 'rgb_', 'test_']:
+        if neutral_dataset.startswith(prefix):
+            neutral_dataset = neutral_dataset[len(prefix):]
 
     mlflow.log_metric(f'{neutral_dataset}_MV-AUC', metrics_mv["AUC"], step=epoch)
 
@@ -358,33 +372,45 @@ def evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggrega
     return metrics_mv
 
 
-def print_results(neutral_dataset, dataset_enrolled, dataset_query, metrics_front, metrics_concat, metrics_concat_mean, metrics_concat_pca, metrics_mv, eval_all):
+def print_results(neutral_dataset, dataset_enrolled, dataset_query,
+                  metrics_front, metrics_concat, metrics_concat_mean,
+                  metrics_concat_pca, metrics_mv, eval_all):
+
     rank_1_front = smart_round(metrics_front.get('Rank-1 Rate', 'N/A'))
     rank_5_front = smart_round(metrics_front.get('Rank-5 Rate', 'N/A'))
+    mrr_front = smart_round(metrics_front.get('MRR', 'N/A'))
 
     rank_1_concat = smart_round(metrics_concat.get('Rank-1 Rate', 'N/A'))
     rank_5_concat = smart_round(metrics_concat.get('Rank-5 Rate', 'N/A'))
+    mrr_concat = smart_round(metrics_concat.get('MRR', 'N/A'))
 
     rank_1_concat_mean = smart_round(metrics_concat_mean.get('Rank-1 Rate', 'N/A'))
     rank_5_concat_mean = smart_round(metrics_concat_mean.get('Rank-5 Rate', 'N/A'))
+    mrr_concat_mean = smart_round(metrics_concat_mean.get('MRR', 'N/A'))
 
     rank_1_concat_pca = smart_round(metrics_concat_pca.get('Rank-1 Rate', 'N/A'))
     rank_5_concat_pca = smart_round(metrics_concat_pca.get('Rank-5 Rate', 'N/A'))
+    mrr_concat_pca = smart_round(metrics_concat_pca.get('MRR', 'N/A'))
 
     rank_1_mv = smart_round(metrics_mv.get('Rank-1 Rate', 'N/A'))
     rank_5_mv = smart_round(metrics_mv.get('Rank-5 Rate', 'N/A'))
+    mrr_mv = smart_round(metrics_mv.get('MRR', 'N/A'))
 
     if eval_all:
-        string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
-                  f"{bold('Front-RR1')}: {underscore(rank_1_front)} {bold('Front-RR5')}: {rank_5_front} "
-                  f"{bold('Concat-RR1')}: {underscore(rank_1_concat)} {bold('Concat-RR5')}: {rank_5_concat} "
-                  f"{bold('Concat_Mean-RR1')}: {underscore(rank_1_concat_mean)} {bold('Concat_Mean-RR5')}: {rank_5_concat_mean} "
-                  f"{bold('Concat_PCA-RR1')}: {underscore(rank_1_concat_pca)} {bold('Concat_PCA-RR5')}: {rank_5_concat_pca} "
-                  f"{bold('MV-RR1')}: {underscore(rank_1_mv)} {bold('MV-RR5')}: {rank_5_mv} "
-                  )
+        string = (
+            colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
+            f"{bold('Front RR1')}: {underscore(rank_1_front)} {bold('RR5')}: {rank_5_front} {bold('MRR')}: {mrr_front} | "
+            f"{bold('Concat RR1')}: {underscore(rank_1_concat)} {bold('RR5')}: {rank_5_concat} {bold('MRR')}: {mrr_concat} | "
+            f"{bold('Concat_Mean RR1')}: {underscore(rank_1_concat_mean)} {bold('RR5')}: {rank_5_concat_mean} {bold('MRR')}: {mrr_concat_mean} | "
+            f"{bold('Concat_PCA RR1')}: {underscore(rank_1_concat_pca)} {bold('RR5')}: {rank_5_concat_pca} {bold('MRR')}: {mrr_concat_pca} | "
+            f"{bold('MV RR1')}: {underscore(rank_1_mv)} {bold('RR5')}: {rank_5_mv} {bold('MRR')}: {mrr_mv} "
+        )
     else:
-        string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
-                  f"{bold('MV-RR1')}: {underscore(rank_1_mv)} {bold('MV-RR5')}: {rank_5_mv} ")
+        string = (
+            colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
+            f"{bold('MV-RR1')}: {underscore(rank_1_mv)} {bold('MV-RR5')}: {rank_5_mv} {bold('MV-MRR')}: {mrr_mv} "
+        )
+
     print(string)
 
 

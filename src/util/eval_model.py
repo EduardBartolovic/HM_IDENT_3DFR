@@ -73,8 +73,8 @@ def evaluate(device, batch_size, backbone, test_path, distance_metric, test_tran
     """
     Evaluate 1:N Model Performance on given test dataset
     """
-    dataset_enrolled_path = os.path.join(test_path, 'train')
-    dataset_query_path = os.path.join(test_path, 'validation')
+    dataset_enrolled_path = os.path.join(test_path, 'enrolled')
+    dataset_query_path = os.path.join(test_path, 'query')
     dataset_enrolled, enrolled_loader = load_data(dataset_enrolled_path, test_transform, batch_size)
     dataset_query, query_loader = load_data(dataset_query_path, test_transform, batch_size)
 
