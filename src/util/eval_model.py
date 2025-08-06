@@ -12,7 +12,7 @@ from tqdm import tqdm
 from src.util.EmbeddingsUtils import build_embedding_library, batched_distances_gpu
 from src.util.datapipeline.ImageFolderRGBDWithScanID import ImageFolderRGBDWithScanID
 from src.util.datapipeline.ImageFolderWithScanID import ImageFolderWithScanID
-from src.util.Voting import knn_voting, voting, accuracy_front_perspective, concat
+from src.util.Voting import accuracy_front_perspective, concat
 from src.util.Metrics import calc_metrics, error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix
 from src.util.embeddungs_metrics import calc_embedding_analysis
