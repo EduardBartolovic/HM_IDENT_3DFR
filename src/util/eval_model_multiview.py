@@ -179,8 +179,8 @@ def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, test_path, 
     with open(os.path.join(test_path, "split.txt"), "r") as f:
         next(f)  # skip header
         for line in f:
-            _, _, name1, name2, is_same, _ = line.strip().split(",")   # TODO: CHECK LAST COLUMN
-            pair_list.append((name1, name2, int(is_same)))
+            _, _, name1, name2, is_same, is_same_corrected = line.strip().split(",")
+            pair_list.append((name1, name2, int(is_same_corrected)))
             unique_sample_paths.add(name1)
             unique_sample_paths.add(name2)
 
