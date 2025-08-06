@@ -185,22 +185,6 @@ def prepare_dataset_rgbd(input_path, input_path_depth, output_dir):
 
         for future in tqdm(futures, desc="Processing Merge Images", total=len(futures)):
             future.result()
-    # for rgb, depth in tqdm(zip(file_paths, file_paths_depth), desc="Merge Images", total=len(file_paths)):
-    #
-    #     rgb_image = np.array(Image.open(rgb))
-    #     depth_image = np.array(Image.open(depth).convert("L"))
-    #
-    #     # Stack RGB and grayscale arrays to create a 4-channel image
-    #     four_channel_image = np.dstack((rgb_image, depth_image))
-    #
-    #     # Convert the numpy array back to PIL image
-    #     four_channel_image_pil = Image.fromarray(four_channel_image)
-    #
-    #     # Save the 4-channel image to disk
-    #     tmp = rgb.replace('.jpg', '.webp').split(os.path.sep)  # TODO: Webp?
-    #     image_path = os.path.join(output_dir, *tmp[-3:])
-    #     #four_channel_image_pil.save(image_path)
-    #     four_channel_image_pil.save(image_path, format='WebP')
 
 
 def merge_image(rgb, depth, output_dir):

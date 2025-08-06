@@ -65,4 +65,6 @@ out_dir
 
 *.zip
 *.7z
-
+*.pth
+*.onnx
+*.pt

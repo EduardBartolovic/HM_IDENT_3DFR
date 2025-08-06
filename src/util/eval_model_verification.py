@@ -100,7 +100,6 @@ def calculate_roc_voting(thresholds, embeddings1, embeddings2, actual_issame):
     acc_train = np.zeros(nrof_thresholds)
     for threshold_idx, threshold in enumerate(thresholds):
         _, _, acc_train[threshold_idx] = calculate_accuracy_voting(threshold, dist, actual_issame)
-    # Todo: use different thres for perspeticives
     best_threshold_index = np.argmax(acc_train)
     best_thresholds = thresholds[best_threshold_index]
     for threshold_idx, threshold in enumerate(thresholds):
