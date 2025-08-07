@@ -191,8 +191,10 @@ def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch
     num_folders = len(folders)
     for root, _, files in tqdm(folders, desc="Processing folders"):
 
-        frame_dets = []
-        frame_hpe = []
+        video_files = [f for f in files if os.path.splitext(f)[1].lower() in {'.mp4', '.mov', '.avi', '.mkv'}]
+        if not video_files:
+            continue
+
         output_analysis_folder = os.path.join(root, output_folder)
         output_txt_path = os.path.join(output_analysis_folder, "analysis.txt")
 
@@ -200,6 +202,9 @@ def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch
             continue
 
         os.makedirs(output_analysis_folder, exist_ok=True)
+
+        frame_dets = []
+        frame_hpe = []
 
         video_frames = []
         video_names = []
