@@ -194,7 +194,7 @@ def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, test_path, 
     embeddings_reg_mean = embedding_library.enrolled_embeddings.mean(axis=0)
     class_labels = embedding_library.enrolled_labels
     samples = embedding_library.enrolled_scan_ids
-    name_to_class_dict = dataset_enrolled.classes
+    name_to_class_dict = dataset_enrolled.class_to_idx
     mask = np.array(["0_0" in perspective for perspective in embedding_library.enrolled_perspectives[0][0]])
     embeddings_reg_pca = embeddings_reg.transpose(1, 0, 2).reshape(embeddings_reg.shape[1], -1)
     if embeddings_reg.shape[0] > 2048:

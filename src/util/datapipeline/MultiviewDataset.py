@@ -1,6 +1,7 @@
-import random
 import os
 import re
+import random
+from collections import defaultdict
 
 import numpy as np
 import torch
@@ -18,57 +19,51 @@ class MultiviewDataset(Dataset):
         self.root_dir = root_dir
         self.transform = transform
         self.num_views = num_views
-        self.face_cor_exist = False
         self.use_face_corr = use_face_corr
-        self.class_to_idx = self._get_class_to_idx()
-        self.data = self._load_data()
-        self.classes = self._find_classes()
         self.shuffle_views = shuffle_views
+        self.face_cor_exist = False
 
-    def _get_class_to_idx(self):
-        """
-        Maps class names to integers.
-        """
-        classes = sorted(os.listdir(self.root_dir))
-        return {class_name: idx for idx, class_name in enumerate(classes)}
+        self.valid_image_ext = {".jpg", ".jpeg", ".png", ".webp"}
+        self.filename_regex = re.compile(r"^[-+]?\d+_[-+]?\d+$")
+
+        self.classes, self.class_to_idx = self._find_classes()
+        self.data = self._load_data()
 
     def _find_classes(self):
         """
-        Finds the class names in the dataset and assigns each a unique index.
-        Returns:
-            dict: A mapping from class names to class indices.
+        Finds class names and maps them to integer labels.
         """
-        class_names = sorted([d for d in os.listdir(self.root_dir) if os.path.isdir(os.path.join(self.root_dir, d))])
-        return {class_name: idx for idx, class_name in enumerate(class_names)}
+        class_names = sorted(
+            entry.name for entry in os.scandir(self.root_dir) if entry.is_dir()
+        )
+        return class_names, {name: i for i, name in enumerate(class_names)}
 
     def _load_data(self):
         data = []
-        for class_name in os.listdir(self.root_dir):
+        for class_name in self.classes:
             class_path = os.path.join(self.root_dir, class_name)
-            if os.path.isdir(class_path):
-                class_idx = self.class_to_idx[class_name]
-                sha_groups = {}
-                for filename in os.listdir(class_path):
-                    if filename.endswith((".jpg", ".png", ".jpeg", ".webp")):
-                        file_path = os.path.join(class_path, filename)
-                        if os.path.isfile(file_path):
-                            sha_hash = filename[:40]  # Extract SHA hash from filename
-                            if sha_hash not in sha_groups:
-                                sha_groups[sha_hash] = []
-                            sha_groups[sha_hash].append(file_path)
+            class_idx = self.class_to_idx[class_name]
+            sha_groups = defaultdict(list)
 
-                        assert re.match(r"^[-+]?\d+_[-+]?\d+$", os.path.basename(file_path)[40:-10]), f"perspective in dataset doesnt match convention: {file_path}"
-                    else:
-                        if filename.endswith(".npz"):
-                            self.face_cor_exist = True
+            for filename in os.scandir(class_path):
+                if filename.is_file():
+                    ext = os.path.splitext(filename)[1].lower()
+                    if ext in self.valid_image_ext:
+                        match = self.filename_regex.match(filename.name[40:-10])
+                        if not match:
+                            raise ValueError(f"Invalid filename format: {filename.name}")
+                        sha_hash = filename.name[:40]
+                        sha_groups[sha_hash].append(filename.path)
 
-                # Append each grouped data point to the dataset
-                for sha_hash, file_paths in sha_groups.items():
-                    if len(file_paths) == self.num_views:
-                        file_paths.sort()  # Sort the data so perspectives are always at the same position
-                        data.append((file_paths, class_idx))
-                    else:
-                        raise ValueError(f"Dataset Mistake in: {file_paths} \n {len(file_paths)}: number of views doesnt match with {self.num_views}")
+                    elif ext == ".npz":
+                        self.face_cor_exist = True
+
+            # Append each grouped data point to the dataset
+            for file_paths in sha_groups.values():
+                if len(file_paths) == self.num_views:
+                    data.append((sorted(file_paths), class_idx))  # Sort the data so perspectives are always at the same position
+                else:
+                    raise ValueError(f"Incorrect number of views ({len(file_paths)}), expected {self.num_views}: {file_paths}")
 
         if not self.use_face_corr:  # When use_face_corr is deactivated then ignore face_corr
             self.face_cor_exist = False
@@ -79,21 +74,24 @@ class MultiviewDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        img_paths, class_name = self.data[idx]
+        img_paths, class_idx = self.data[idx]
 
-        # Load all images in the set
-        images = [Image.open(img_path).convert("RGB") for img_path in img_paths]
-
-        # Load all face correspondences
-        if self.face_cor_exist:
-            facial_corr = torch.Tensor(np.array([np.load(img_path.replace("_image.jpg", "_corr.npz"))['corr'] for img_path in img_paths]))
+        # Load images and apply transform (if any)
+        if self.transform:
+            images = [self.transform(Image.open(p).convert("RGB")) for p in img_paths]
         else:
-            facial_corr = torch.Tensor([])
+            images = [Image.open(p).convert("RGB") for p in img_paths]
 
-        # Load all perspectives
+        if self.face_cor_exist:
+            facial_corr = torch.stack([
+                torch.from_numpy(np.load(p.replace("_image.jpg", "_corr.npz"))["corr"])
+                for p in img_paths
+            ])
+        else:
+            facial_corr = torch.empty(0)
+
+        # Load all perspectives and Scan ids
         perspectives = [os.path.basename(img_path)[40:-10] for img_path in img_paths]
-
-        # Load Scan ids
         scan_id = os.path.basename(img_paths[0])[:40]
 
         if self.shuffle_views:
@@ -109,8 +107,4 @@ class MultiviewDataset(Dataset):
             images = list(images)
             perspectives = list(perspectives)
 
-        # Apply the transform if any
-        if self.transform:
-            images = [self.transform(img) for img in images]
-
-        return images, class_name, perspectives, facial_corr, scan_id
+        return images, class_idx, perspectives, facial_corr, scan_id
