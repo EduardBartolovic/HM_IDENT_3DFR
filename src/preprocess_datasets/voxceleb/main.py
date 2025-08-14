@@ -35,7 +35,7 @@ def preprocessing():
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches(folder_root, permutations, txt_name="analysis.txt", correct_angles=True)
+    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True)
     # evaluate_gaze_coverage(folder_root)
 
     print("##################################")

@@ -9,8 +9,8 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from src.preprocess_datasets.headPoseEstimation.models.resnet import resnet50
-from src.preprocess_datasets.headPoseEstimation.utils.general import draw_axis, \
-    compute_euler_angles_from_rotation_matrices
+from src.preprocess_datasets.headPoseEstimation.utils.general import draw_axis, compute_euler_angles_from_rotation_matrices
+from src.preprocess_datasets.preprocess_video import get_frames
 
 
 def pre_process(image):
@@ -161,48 +161,9 @@ def get_images_from_dir(image_dir, files_names):
         image_path = os.path.join(image_dir, image_file)
         img = cv2.imread(image_path)
         if img is not None:
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            images.append(img_rgb)
+            images.append(img)
 
     return images
-
-
-def process_video(video_path, frame_skip, output_analysis_folder, downscale=False):
-    os.makedirs(output_analysis_folder, exist_ok=True)
-    frames, names = get_frames(video_path, frame_skip=frame_skip, downscale=downscale)
-
-    if not frames:
-        print("Error processing", video_path)
-        return [], []
-
-    return frames, names
-
-
-def get_frames(video_path, frame_skip=1, downscale=False):
-    cap = cv2.VideoCapture(video_path)
-    frames = []
-    names = []
-    video_filename = os.path.basename(video_path)
-
-    frame_index = 0
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        if frame_index % frame_skip == 0:
-
-            if downscale:
-                height, width = frame.shape[:2]
-                if height > 1500 or width > 1500:
-                    frame = cv2.resize(frame, (width // 2, height // 2), interpolation=cv2.INTER_AREA)
-
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frames.append(frame_rgb)
-            names.append(f"{video_filename}#{frame_index}")
-        frame_index += 1
-
-    cap.release()
-    return frames, names
 
 
 def headpose_estimation_from_video(input_folder, output_folder, model_path_hpe, device, batch_size=64, filter=None):
