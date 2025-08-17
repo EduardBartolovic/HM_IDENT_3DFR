@@ -1,7 +1,7 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP376-IR_MV_18_GLINT-MV_MS1MV3_24K8-M1234T5_1layers-ArcFace-FocalLoss-epochs40-fro_agg_15-batch48-shuffle_views'  # experiment_name
-DATA_ROOT: '/home/gustav/dataset9'  # the parent data root
+DATA_ROOT: '/home/gustav/dataset10'  # the parent data root
 TRAIN_SET: 'mv_ms1mv3_24K8'  # train dataset name
 
 MODEL_ROOT: './model'  # the root to buffer checkpoints
