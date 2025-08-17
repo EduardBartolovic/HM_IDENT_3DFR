@@ -151,7 +151,7 @@ class MultiviewIResnet(Module):
             view_featuremaps = featuremaps[b]  # Shape: [V, C, H, W]
             view_grid = face_corr[b]  # Shape: [V, H, W, 2]
             for v in range(num_views):
-                if v == zero_position or v >= view_grid.shape[0]: # Skip alignment if zero pose or merged features
+                if v == zero_position or v >= view_grid.shape[0]:  # Skip alignment if zero pose or merged features
                     aligned_batched_featuremaps[b, v] = view_featuremaps[v]
                 else:
                     aligned_batched_featuremaps[b, v] = self.align_featuremap(

@@ -10,7 +10,6 @@ from tqdm import tqdm
 
 from src.preprocess_datasets.headPoseEstimation.models.resnet import resnet50
 from src.preprocess_datasets.headPoseEstimation.utils.general import draw_axis, compute_euler_angles_from_rotation_matrices
-from src.preprocess_datasets.preprocess_video import get_frames
 
 
 def pre_process(image):
