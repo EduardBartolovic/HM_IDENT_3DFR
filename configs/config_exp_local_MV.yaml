@@ -1,28 +1,30 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP189-MVS-enc_512-ArcFace-FocalLoss-112_112-batchsize_16-epochs10-IR_50_PRE_MS1M63'  # experiment_name
-DATA_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\dataset9'  # the parent root
-TRAIN_SET: 'rgb_bellus'  # where your train/val data are stored
+RUN_NAME: 'EXP_LOCAL_TEST'  # experiment_name
+DATA_ROOT: 'F:\\Face\\data\\dataset10'  # the parent root
+TRAIN_SET: 'mv_ms1mv3_5K'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
-LOG_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\log'  # the root to log your train/val status
-BACKBONE_RESUME_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
+LOG_ROOT: 'F:\\Face\\log'  # the root to log your train/val status
+BACKBONE_RESUME_ROOT: 'F:\\Face\\\\HM_IDENT_3DFR\\pretrained\\glint_cosface_r18_fp16.pth' #backbone_ir50_ms1m_epoch63.pth' #  ' #  #' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 TRAIN_ALL: False
 USE_FACE_CORR: False
-BACKBONE_NAME: 'IR_MV_50'
+BACKBONE_NAME: 'IR_MV_V2_18'# 'IR_MV_50' #
 AGG:
   AGG_NAME: 'TransformerAggregator'
-  AGG_CONFIG: [False, False, False, False, True]
+  AGG_CONFIG:
+    ACTIVE_STAGES: [False, False, False, False, True]
+    NUM_LAYERS: 1
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 
 INPUT_SIZE: [112, 112]  # support: [112, 112] and [224, 224]
-NUM_VIEWS: 25
+NUM_VIEWS: 8
 RGB_MEAN: [0.5, 0.5, 0.5]  # for normalize inputs to [-1, 1]
 RGB_STD: [0.5, 0.5, 0.5]
 EMBEDDING_SIZE: 512  # feature dimension
-BATCH_SIZE: 4
+BATCH_SIZE: 8
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
 LR: 0.025  # initial LR
 NUM_EPOCH: 40  # total epoch number (use the first 1/25 epochs to warm up)
@@ -32,7 +34,7 @@ WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
 MOMENTUM: 0.3
 STAGES: [50, 75, 95]  # epoch stages to decay learning rate
 
-MULTI_GPU: true
+MULTI_GPU: false
 # flag to use multiple GPUs; if you choose to train with single GPU, you should first run "export CUDA_VISILE_DEVICES=device_id" to specify the GPU card you want to use
 GPU_ID: [0]  # specify your GPU ids
 PIN_MEMORY: true
