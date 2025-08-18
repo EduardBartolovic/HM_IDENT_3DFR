@@ -7,7 +7,7 @@ from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18, iresne
 
 
 class IR_MV_V2(nn.Module):
-    def __init__(self, backbone_fn, embedding_size=512, fp16=False):
+    def __init__(self, backbone_fn, embedding_size=512, fp16=True):
         super().__init__()
         self.backbone = backbone_fn(num_features=embedding_size, fp16=fp16)
         self.fp16 = fp16
@@ -132,17 +132,17 @@ class IR_MV_V2(nn.Module):
         return embeddings_reg, embeddings_agg
 
 
-def IR_MV_V2_100(embedding_size=512, fp16=False):
+def IR_MV_V2_100(embedding_size=512, fp16=True):
     return IR_MV_V2(iresnet100, embedding_size, fp16)
 
 
-def IR_MV_V2_50(embedding_size=512, fp16=False):
+def IR_MV_V2_50(embedding_size=512, fp16=True):
     return IR_MV_V2(iresnet50, embedding_size, fp16)
 
 
-def IR_MV_V2_34(embedding_size=512, fp16=False):
+def IR_MV_V2_34(embedding_size=512, fp16=True):
     return IR_MV_V2(iresnet34, embedding_size, fp16)
 
 
-def IR_MV_V2_18(embedding_size=512, fp16=False):
+def IR_MV_V2_18(embedding_size=512, fp16=True):
     return IR_MV_V2(iresnet18, embedding_size, fp16)
