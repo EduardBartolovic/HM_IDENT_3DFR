@@ -137,17 +137,17 @@ class IR_MV_V2(nn.Module):
         return embeddings_reg, embeddings_agg
 
 
-def IR_MV_V2_100(embedding_size=512, fp16=True):
+def IR_MV_V2_100(embedding_size=512, fp16=False):
     return IR_MV_V2(iresnet100, embedding_size, fp16)
 
 
-def IR_MV_V2_50(embedding_size=512, fp16=True):
+def IR_MV_V2_50(embedding_size=512, fp16=False):
     return IR_MV_V2(iresnet50, embedding_size, fp16)
 
 
-def IR_MV_V2_34(embedding_size=512, fp16=True):
+def IR_MV_V2_34(embedding_size=512, fp16=False):
     return IR_MV_V2(iresnet34, embedding_size, fp16)
 
 
-def IR_MV_V2_18(embedding_size=512, fp16=True):
+def IR_MV_V2_18(embedding_size=512, fp16=False):
     return IR_MV_V2(iresnet18, embedding_size, fp16)

@@ -1,6 +1,6 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP380-IR_MV_18_GLINT-MV_MS1MV3_10K8-M1234T5_1layers-ArcFace-FocalLoss-epochs40-fro_agg_15-batch64-shuffle_views'  # experiment_name
+RUN_NAME: 'EXP380-IR_MV_18_GLINT-MV_MS1MV3_10K8-M1234T5_1layers-ArcFace-FocalLoss-epochs40-fro_agg_15-batch16-shuffle_views'  # experiment_name
 DATA_ROOT: '/home/gustav/dataset10'  # the parent data root
 TRAIN_SET: 'mv_ms1mv3_10K8'  # train dataset name
 
@@ -27,7 +27,7 @@ EMBEDDING_SIZE: 512  # feature dimension
 BATCH_SIZE: 64  # batch size
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
 SHUFFLE_PERSPECTIVES: True
-LR: 0.004  # initial LR
+LR: 0.002  # initial LR
 NUM_EPOCH: 40  # total epoch number (use the first 1/25 epochs to warm up)
 UNFREEZE_EPOCH: 15 # number of epochs of on only head training
 PATIENCE: 100  # patience for early stopping
