@@ -58,7 +58,7 @@ class IR_MV_V2(nn.Module):
 
         grid = np.stack((map_y, map_x), axis=-1)
         grid = torch.from_numpy(grid).unsqueeze(0)
-        grid = grid * 2 / torch.tensor([W - 1, H - 1]) - 1
+        grid = grid * 2 / torch.tensor([W - 1, H - 1], dtype=torch.float32, device=featuremap.device) - 1
 
         grid = F.interpolate(grid.permute(0, 3, 1, 2), size=(H, W), mode='bilinear', align_corners=True)
         grid = grid.permute(0, 2, 3, 1)[..., [1, 0]].to(featuremap.device).float()
