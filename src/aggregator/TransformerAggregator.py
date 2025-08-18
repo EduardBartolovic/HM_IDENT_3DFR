@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 
 from src.aggregator.MeanAggregator import MeanAggregator
 
@@ -47,7 +47,7 @@ class TransformerAggregator(nn.Module):
         """
         x: (B, V, C, H, W)
         """
-        with autocast(enabled=self.use_mixed_precision):
+        with autocast('cuda', enabled=self.use_mixed_precision):
             B = x.size(0)
 
             # Flatten spatial dims
