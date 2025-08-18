@@ -62,7 +62,6 @@ class TransformerAggregator(nn.Module):
 
             x = x + spatial_pos + view_pos  # Add positional encoding
 
-            # Pass through Transformer
             x = self.transformer(x)  # (B, V*H*W, C)
 
             # Reshape back to (B, V, H*W, C)
@@ -81,7 +80,7 @@ class TransformerAggregator(nn.Module):
             return x
 
 
-def make_transformer_aggregator(channels_list, num_views, agg_config, use_mixed_precision=True):
+def make_transformer_aggregator(channels_list, num_views, agg_config, use_mixed_precision=False):
     if agg_config["ACTIVE_STAGES"]:
         activate_stages = agg_config["ACTIVE_STAGES"]
     else:
