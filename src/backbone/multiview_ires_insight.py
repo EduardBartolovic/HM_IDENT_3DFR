@@ -129,6 +129,11 @@ class IR_MV_V2(nn.Module):
 
         embeddings_agg = self.perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr)
         embeddings_reg = all_views_stage_features[5]
+
+        if self.fp16:
+            embeddings_reg = [e.to(torch.float32) for e in embeddings_reg]
+            embeddings_agg = embeddings_agg.to(torch.float32)
+
         return embeddings_reg, embeddings_agg
 
 

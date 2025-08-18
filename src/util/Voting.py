@@ -181,7 +181,7 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
     with tqdm(total=query_data.shape[0], disable=disable_bar, desc="Calculating Embedding Similarity") as pbar:
         for start_row in range(0, query_data.shape[0], chunk_size):
             end_row = min(start_row + chunk_size, query_data.shape[0])
-            process_chunk_embedding_similarity(query_data.astype(np.float32), enrolled_data.astype(np.float32), start_row, end_row, similarity_matrix)
+            process_chunk_embedding_similarity(query_data, enrolled_data, start_row, end_row, similarity_matrix)
             pbar.update(end_row - start_row)
     return similarity_matrix
 
