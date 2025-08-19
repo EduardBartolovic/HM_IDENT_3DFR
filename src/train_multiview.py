@@ -158,8 +158,21 @@ def main(cfg):
             print(colorstr('magenta', str(model_stat)))
             model_stats_agg.append(model_stat)
 
+        print("=" * 60)
+        HEAD_DICT = {'ArcFace': lambda: ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
+                     'CosFace': lambda: CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
+                     'SphereFace': lambda: SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
+                     'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
+        HEAD = HEAD_DICT[HEAD_NAME]().to(DEVICE)
+        model_stats_head = summary(HEAD, input_size=[(BATCH_SIZE, EMBEDDING_SIZE), (BATCH_SIZE,)], dtypes=[torch.float, torch.long], verbose=0)
+        print(colorstr('magenta', str(model_stats_head)))
+        print(colorstr('blue', f"{HEAD_NAME} Head Generated"))
+        print("=" * 60)
+
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir = Path(tmp_dir)
+            with open(os.path.join(tmp_dir, 'Head_Summary.txt'), "w", encoding="utf-8") as f:
+                f.write(str(model_stats_head))
             with open(os.path.join(tmp_dir, 'Backbone_Summary.txt'), "w", encoding="utf-8") as f:
                 f.write(str(model_stats_backbone))
             with open(os.path.join(tmp_dir, 'Aggregator_Summary.txt'), "w", encoding="utf-8") as f:
