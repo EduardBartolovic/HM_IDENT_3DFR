@@ -39,7 +39,6 @@ def eval_loop(device, backbone_reg, backbone_agg, aggregators, data_root, epoch,
     evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2train_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggregators, data_root, "test_ytf_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
-
 def main(cfg):
     SEED = cfg['SEED']
     torch.manual_seed(SEED)
@@ -332,6 +331,8 @@ def main(cfg):
             #  ======= perform validation =======
             if epoch >= UNFREEZE_EPOCH:
                 eval_loop(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False)
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
                 print("=" * 60)
 
             if top1.avg > best_acc:  # Early stopping check
