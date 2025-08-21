@@ -46,7 +46,7 @@ def main(cfg):
     RUN_NAME = cfg['RUN_NAME']
     DATA_ROOT = cfg['DATA_ROOT']  # the parent root where the datasets are stored
     TRAIN_SET = cfg['TRAIN_SET']
-    #  MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
+    MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
     LOG_ROOT = cfg['LOG_ROOT']
     BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']  # the root to resume training from a saved checkpoint
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
@@ -178,15 +178,6 @@ def main(cfg):
                 for i in model_stats_agg:
                     f.write(str(i) + '\n')
             mlflow.log_artifacts(str(tmp_dir), artifact_path="ModelSummary")
-
-        print("=" * 60)
-        HEAD_DICT = {'ArcFace': lambda: ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
-                     'CosFace': lambda: CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
-                     'SphereFace': lambda: SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
-                     'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
-        HEAD = HEAD_DICT[HEAD_NAME]()
-        print(colorstr('blue', f"{HEAD_NAME} Head Generated"))
-        print("=" * 60)
 
         LOSS_DICT = {'Focal': FocalLoss(), 'Softmax': nn.CrossEntropyLoss()}
         LOSS = LOSS_DICT[LOSS_NAME]
