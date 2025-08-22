@@ -51,7 +51,6 @@ def load_checkpoint(model, head, backbone_resume_path, head_resume_path, rgbd=Fa
             try:
                 model.load_state_dict(state_dict)
             except RuntimeError:
-                print("Warning: Changing State dict!")
                 state_dict = adapt_state_dict_for_backbone(state_dict)
                 model.load_state_dict(state_dict)
     else:
