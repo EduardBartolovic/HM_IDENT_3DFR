@@ -12,7 +12,7 @@ TRAIN_ALL: False
 USE_FACE_CORR: False
 BACKBONE_NAME: 'IR_MV_V2_18'
 AGG:
-  AGG_NAME: 'TransformerAggregatorV2'
+  AGG_NAME: 'TransformerAggregator'
   AGG_CONFIG:
     ACTIVE_STAGES: [False, False, False, False, True]
     NUM_LAYERS: 1

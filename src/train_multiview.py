@@ -23,7 +23,7 @@ from src.util.eval_model_multiview import evaluate_and_log_mv, evaluate_and_log_
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
 from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
-    separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, accuracy
+    separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, train_accuracy
 from torchinfo import summary
 from tqdm import tqdm
 import os
@@ -56,7 +56,6 @@ def main(cfg):
     AGG_CONFIG = cfg['AGG']['AGG_CONFIG']  # Aggregator Config
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
-    TRAIN_ALL = cfg['TRAIN_ALL']  # Train all parts of the network
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
 
     INPUT_SIZE = cfg['INPUT_SIZE']
@@ -74,7 +73,8 @@ def main(cfg):
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
-    UNFREEZE_EPOCH = cfg.get('UNFREEZE_EPOCH', 1)  # Unfreeze aggregators after X Epochs. Train Arcface Head first.
+    UNFREEZE_AGG_EPOCH = cfg.get('UNFREEZE_AGG_EPOCH', 1)  # Unfreeze aggregators after X Epochs. Train Arcface Head first for smoother fine-tuning
+    UNFREEZE_AGG_BACKBONE_EPOCH = cfg.get('UNFREEZE_AGG_BACKBONE_EPOCH', 999)  # Unfreeze Backbone in aggregator branch after X Epochs.
     STOPPING_CRITERION = cfg.get('STOPPING_CRITERION', 99.9)
 
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -97,7 +97,7 @@ def main(cfg):
         runs = client.search_runs(experiment_ids=[experiment.experiment_id])
         run_count = len(runs)
     else:
-        run_count = 0  # No runs if the experiment does not exist yet
+        run_count = 0
 
     with mlflow.start_run(run_name=f"{RUN_NAME}_[{run_count + 1}]") as run:
 
@@ -144,10 +144,9 @@ def main(cfg):
                     'MeanAggregator': lambda: make_mean_aggregator([NUM_VIEWS]*5),
                     'RobustMeanAggregator': lambda: make_rma([NUM_VIEWS]*5),
                     'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS]*5),
-                    'ConvAggregator': lambda : make_conv_aggregator(AGG_CONFIG),
+                    'ConvAggregator': lambda: make_conv_aggregator(AGG_CONFIG),
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
-                    'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG)}
-                    #'TransformerAggregatorV2': lambda: make_transformer_aggregatorv2([64, 64, 124, 256, 512], NUM_VIEWS, AGG_CONFIG)}
+                    'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG)}
         aggregators = AGG_DICT[AGG_NAME]()
 
         model_arch = [(BATCH_SIZE, NUM_VIEWS, 64, 112, 112), (BATCH_SIZE, NUM_VIEWS+1, 64, 56, 56), (BATCH_SIZE, NUM_VIEWS+1, 128, 28, 28), (BATCH_SIZE, NUM_VIEWS+1, 256, 14, 14), (BATCH_SIZE, NUM_VIEWS+1, 512, 7, 7)]
@@ -186,24 +185,13 @@ def main(cfg):
 
         # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
         if BACKBONE_NAME.find("IR") >= 0:
-            # backbone_paras_only_bn_reg, backbone_paras_wo_bn_reg = separate_irse_bn_paras(BACKBONE_reg)
-            backbone_paras_only_bn_agg, backbone_paras_wo_bn_agg = separate_irse_bn_paras(BACKBONE_agg)
             _, head_paras_wo_bn = separate_irse_bn_paras(HEAD)
         else:
-            # backbone_paras_only_bn_reg, backbone_paras_wo_bn_reg = separate_resnet_bn_paras(BACKBONE_reg)
-            backbone_paras_only_bn_agg, backbone_paras_wo_bn_agg = separate_resnet_bn_paras(BACKBONE_agg)
             _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
 
-        if TRAIN_ALL:
-            params_list = [{'params': backbone_paras_wo_bn_agg + head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}, {'params': backbone_paras_only_bn_agg}]
-        else:
-            params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
+        params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
 
-            for param in BACKBONE_agg.parameters():
-                param.requires_grad = False
-        for param in BACKBONE_reg.parameters():
-            param.requires_grad = False
-
+        # ======= Optimizer Settings =======
         OPTIMIZER_DICT = {'SGD': lambda: optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
                           'ADAM': lambda: torch.optim.Adam(params_list, lr=LR)}
         OPTIMIZER = OPTIMIZER_DICT[OPTIMIZER_NAME]()
@@ -214,61 +202,68 @@ def main(cfg):
         load_checkpoint(BACKBONE_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         print("=" * 60)
 
-        print(colorstr('magenta', f"Using face correspondences: {use_face_corr}"))
-        print(colorstr('magenta', f"Unfreezing aggregators at epoch: {UNFREEZE_EPOCH}"))
-        print("=" * 60)
-
         # ======= GPU Settings =======
-        if MULTI_GPU:
-            BACKBONE_reg = nn.DataParallel(BACKBONE_reg, device_ids=GPU_ID)
-            BACKBONE_agg = nn.DataParallel(BACKBONE_agg, device_ids=GPU_ID)
         BACKBONE_reg = BACKBONE_reg.to(DEVICE)
         BACKBONE_agg = BACKBONE_agg.to(DEVICE)
+
+        # ======= Freezing Parameter Settings =======
         for agg in aggregators:
             agg = agg.to(DEVICE)
-            # Initially freeze aggregators
             for param in agg.parameters():
                 param.requires_grad = False
+        for param in BACKBONE_agg.parameters():
+            param.requires_grad = False
+        for param in BACKBONE_reg.parameters():
+            param.requires_grad = False
+
+        print(colorstr('magenta', f"Using face correspondences: {use_face_corr}"))
+        print(colorstr('magenta', f"Unfreezing aggregators at epoch: {UNFREEZE_AGG_EPOCH}"))
+        print(colorstr('magenta', f"Unfreezing aggregator-backbone at epoch: {UNFREEZE_AGG_BACKBONE_EPOCH}"))
+        print("=" * 60)
 
         # ======= Validation =======
         eval_loop(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True)
         print("=" * 60)
 
         # ======= train & early stopping parameters=======
-        DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc # was 100
+        DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc
         NUM_EPOCH_WARM_UP = NUM_EPOCH // 25  # use the first 1/25 epochs to warm up
         NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP  # use the first 1/25 epochs to warm up
         batch = 0  # batch index
         best_acc = 0  # Initial best value
         counter = 0  # Counter for epochs without improvement
-        for epoch in range(1, NUM_EPOCH):
-            # adjust LR for each training stage after warm up, you can also choose to adjust LR manually (with slight modification) once plateau observed
-            if epoch == STAGES[0]:
-                schedule_lr(OPTIMIZER)
-            if epoch == STAGES[1]:
-                schedule_lr(OPTIMIZER)
-            if epoch == STAGES[2]:
+        for epoch in range(0, NUM_EPOCH):
+
+            if epoch in STAGES:
                 schedule_lr(OPTIMIZER)
 
             # =========== Gradient Handling ========
-            if epoch == UNFREEZE_EPOCH:
+            if epoch == UNFREEZE_AGG_EPOCH:
                 print(colorstr('yellow', f"Unfreezing aggregators at epoch {epoch}"))
                 print(colorstr('yellow', "=" * 60))
                 for agg in aggregators:
                     for param in agg.parameters():
                         param.requires_grad = True
+                [OPTIMIZER.add_param_group({'params': i.parameters()}) for i in aggregators]
 
-                params_list.extend([{'params': i.parameters()} for i in aggregators])
-                OPTIMIZER = optim.SGD(params_list, lr=LR, momentum=MOMENTUM)
+            if epoch == UNFREEZE_AGG_BACKBONE_EPOCH:
+                print(colorstr('yellow', f"Unfreezing backbone-aggregator at epoch {epoch}"))
+                print(colorstr('yellow', "=" * 60))
+                for param in BACKBONE_agg.parameters():
+                    param.requires_grad = True
+                OPTIMIZER.add_param_group({'params': BACKBONE_agg.parameters(), 'weight_decay': WEIGHT_DECAY})
 
-            if epoch >= UNFREEZE_EPOCH:
+            if epoch >= UNFREEZE_AGG_EPOCH:
                 [agg.train() for agg in aggregators]
             else:
                 [agg.eval() for agg in aggregators]
 
-            BACKBONE_reg.eval()
-            if TRAIN_ALL:
+            if epoch >= UNFREEZE_AGG_BACKBONE_EPOCH:
                 BACKBONE_agg.train()
+            else:
+                BACKBONE_agg.eval()
+
+            BACKBONE_reg.eval()
             HEAD.train()
 
             # =========== Train Loop ========
@@ -277,8 +272,7 @@ def main(cfg):
             top5 = AverageMeter()
             for inputs, labels, perspectives, face_corrs, _ in tqdm(iter(train_loader)):
 
-                if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (
-                        batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
+                if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
                     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
 
                 if not use_face_corr and face_corrs.shape[1] > 0:
@@ -290,16 +284,15 @@ def main(cfg):
                 outputs = HEAD(embeddings, labels)
                 loss = LOSS(outputs, labels)
 
-                prec1, prec5 = accuracy(outputs.data, labels, topk=(1, 5))
-                losses.update(loss.data.item(), inputs[0].size(0))
-                top1.update(prec1.data.item(), inputs[0].size(0))
-                top5.update(prec5.data.item(), inputs[0].size(0))
+                prec1, prec5 = train_accuracy(outputs.data, labels, topk=(1, 5))
+                losses.update(loss.item(), inputs[0].size(0))
+                top1.update(prec1.item(), inputs[0].size(0))
+                top5.update(prec5.item(), inputs[0].size(0))
 
                 OPTIMIZER.zero_grad()
                 loss.backward()
                 OPTIMIZER.step()
 
-                # display training loss & acc every DISP_FREQ
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     print("=" * 60)
                     print(colorstr('cyan',
@@ -320,7 +313,7 @@ def main(cfg):
             print("#" * 60)
 
             #  ======= perform validation =======
-            if epoch >= UNFREEZE_EPOCH:
+            if epoch >= UNFREEZE_AGG_EPOCH:
                 eval_loop(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False)
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
@@ -329,7 +322,7 @@ def main(cfg):
             if top1.avg > best_acc:  # Early stopping check
                 best_acc = top1.avg
                 counter = 0
-            elif top1.avg > STOPPING_CRITERION and epoch > UNFREEZE_EPOCH:
+            elif top1.avg > STOPPING_CRITERION and epoch > UNFREEZE_AGG_EPOCH:
                 print(colorstr('red', "=" * 60))
                 print(colorstr('red', f"======== Training Prec@1 reached > {STOPPING_CRITERION} -> Finishing ========"))
                 print(colorstr('red', "=" * 60))
@@ -343,13 +336,6 @@ def main(cfg):
                     break
 
             time.sleep(0.2)
-            # save checkpoints per epoch
-            # if MULTI_GPU:
-            #     torch.save(BACKBONE.module.state_dict(), os.path.join(MODEL_ROOT, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(BACKBONE_NAME, epoch + 1, batch, get_time())))
-            #     torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
-            # else:
-            #     torch.save(BACKBONE.state_dict(), os.path.join(MODEL_ROOT, "Backbone_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(BACKBONE_NAME, epoch + 1, batch, get_time())))
-            #     torch.save(HEAD.state_dict(), os.path.join(MODEL_ROOT, "Head_{}_Epoch_{}_Batch_{}_Time_{}_checkpoint.pth".format(HEAD_NAME, epoch + 1, batch, get_time())))
 
 
 if __name__ == '__main__':

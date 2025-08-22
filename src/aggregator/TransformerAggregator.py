@@ -26,8 +26,10 @@ class TransformerAggregator(nn.Module):
         self.use_mixed_precision = use_mixed_precision
 
         # Positional Embeddings
-        self.spatial_pos_embed = nn.Parameter(torch.randn(1, self.tokens_per_view, feature_dim))
-        self.view_pos_embed = nn.Parameter(torch.randn(1, num_views, feature_dim))
+        self.spatial_pos_embed = nn.Parameter(torch.empty(1, self.tokens_per_view, feature_dim))
+        self.view_pos_embed = nn.Parameter(torch.empty(1, num_views, feature_dim))
+        nn.init.normal_(self.spatial_pos_embed, std=0.02)
+        nn.init.normal_(self.view_pos_embed, std=0.02)
 
         # Transformer Encoder
         encoder_layer = nn.TransformerEncoderLayer(
