@@ -297,9 +297,9 @@ def main(cfg):
                     print("=" * 60)
                     print(colorstr('cyan',
                                    f'Epoch {epoch + 1}/{NUM_EPOCH} Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
-                                   f'Training Loss {losses.val:.4f} ({losses.avg:.4f})\t'
-                                   f'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                                   f'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'))
+                                   f'Training Loss {losses.avg:.4f}\t'
+                                   f'Training Prec@1 {top1.avg:.3f}\t'
+                                   f'Training Prec@5 {top5.avg:.3f}'))
                     print("=" * 60)
                 batch += 1
 
@@ -307,9 +307,9 @@ def main(cfg):
             mlflow.log_metric('Training_Accuracy', top1.avg, step=epoch + 1)
             print("#" * 60)
             print(colorstr('bright_green', f'Epoch: {epoch + 1}/{NUM_EPOCH}\t'
-                                           f'Training Loss {losses.val:.4f} ({losses.avg:.4f})\t'
-                                           f'Training Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                                           f'Training Prec@5 {top5.val:.3f} ({top5.avg:.3f})'))
+                                           f'Training Loss {losses.avg:.5f}\t'
+                                           f'Training Prec@1 {top1.avg:.3f}\t'
+                                           f'Training Prec@5 {top5.avg:.3f}'))
             print("#" * 60)
 
             #  ======= perform validation =======

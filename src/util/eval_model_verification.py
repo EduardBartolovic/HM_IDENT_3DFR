@@ -235,7 +235,6 @@ def evaluate_verification_colorferet(device, backbone, data_root, dataset_path, 
         embeddings_pairs2.append(embeddings_storage[p2][0])
 
     tpr, fpr, accuracy, best_thresholds = evaluate(embeddings_pairs1, embeddings_pairs2, np.array(is_same_pairs))
-    roc_curve = gen_plot(fpr, tpr)
 
     print(colorstr('bright_green',
                    f"Epoch {epoch + 1}/{num_epoch}, {dataset_path} Evaluation: Acc: {accuracy}, best_thresholds:{best_thresholds}, tpr: {tpr.mean()}, fpr: {fpr.mean()}"))
