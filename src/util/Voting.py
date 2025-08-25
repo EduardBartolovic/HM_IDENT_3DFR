@@ -189,11 +189,9 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
 def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with=""):
     if pre_sorted:
         enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
-        enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1],
-                                                                           -1)  # (views, ids, 512) -> (ids, views*512)
+        enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
         query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
-        query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1],
-                                                                     -1)  # (views, ids, 512) -> (ids, views*512)
+        query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
     else:
         enrolled_embedding, enrolled_label = process_unsorted_embeddings(
             embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
@@ -222,35 +220,35 @@ def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with="
     predicted_labels = enrolled_label[top_indices[:, 0]]
     return result, similarity_matrix, top_indices, predicted_labels, query_label
 
-
-def knn_voting(embedding_library, k=1, d="cosine", faiss_method=True):
-    # if faiss_method:
-    #    return faiss_knn_voting(embedding_library)
-
-    knn_model = neighbors.KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric=d)
-    knn_model.fit(embedding_library.enrolled_embeddings, embedding_library.enrolled_labels)
-
-    y_preds = knn_model.predict(embedding_library.query_embeddings)
-
-    vote_scan_id = {}
-    label_scan_id = {}
-    for idx, y_pred in enumerate(y_preds):
-        if embedding_library.query_scan_ids[idx] in vote_scan_id.keys():
-            vote_scan_id[embedding_library.query_scan_ids[idx]].append(y_pred)
-        else:
-            vote_scan_id[embedding_library.query_scan_ids[idx]] = [y_pred]
-            label_scan_id[embedding_library.query_scan_ids[idx]] = embedding_library.query_labels[idx]
-
-    y_pred_scan = []
-    y_true_scan = []
-    for key, value in vote_scan_id.items():
-        votes = vote_scan_id[key]
-        vote = max(set(votes), key=votes.count)
-        y_true = label_scan_id[key]
-        y_true_scan.append(y_true)
-        y_pred_scan.append(vote)
-
-    return np.array(y_true_scan), np.array(y_pred_scan)
+#
+# def knn_voting(embedding_library, k=1, d="cosine", faiss_method=True):
+#     # if faiss_method:
+#     #    return faiss_knn_voting(embedding_library)
+#
+#     knn_model = neighbors.KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric=d)
+#     knn_model.fit(embedding_library.enrolled_embeddings, embedding_library.enrolled_labels)
+#
+#     y_preds = knn_model.predict(embedding_library.query_embeddings)
+#
+#     vote_scan_id = {}
+#     label_scan_id = {}
+#     for idx, y_pred in enumerate(y_preds):
+#         if embedding_library.query_scan_ids[idx] in vote_scan_id.keys():
+#             vote_scan_id[embedding_library.query_scan_ids[idx]].append(y_pred)
+#         else:
+#             vote_scan_id[embedding_library.query_scan_ids[idx]] = [y_pred]
+#             label_scan_id[embedding_library.query_scan_ids[idx]] = embedding_library.query_labels[idx]
+#
+#     y_pred_scan = []
+#     y_true_scan = []
+#     for key, value in vote_scan_id.items():
+#         votes = vote_scan_id[key]
+#         vote = max(set(votes), key=votes.count)
+#         y_true = label_scan_id[key]
+#         y_true_scan.append(y_true)
+#         y_pred_scan.append(vote)
+#
+#     return np.array(y_true_scan), np.array(y_pred_scan)
 
 # def normalize_embeddings(embeddings):
 #    return embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
@@ -285,7 +283,7 @@ def accuracy_front_perspective(embedding_library, pre_sorted=False):
         # enrolled_labels.shape -> (num_samples,)
         # enrolled_perspectives.shape -> (num_samples, views)
 
-        # Important Assume all enrolled_perspectives are identical across samples
+        # Important: Assume all enrolled_perspectives are identical across samples
         view_mask = np.array(embedding_library.enrolled_perspectives[0]) == "0_0"
         selected_view_index = np.argmax(view_mask)
         enrolled_embeddings = embedding_library.enrolled_embeddings[selected_view_index]
