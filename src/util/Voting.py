@@ -1,18 +1,14 @@
 import os
 
-# import faiss
 import numpy as np
-from sklearn import neighbors
+from numpy.linalg import norm
 from sklearn.decomposition import PCA, IncrementalPCA
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 import numba
-from sklearn.metrics import accuracy_score, roc_curve, auc, DetCurveDisplay, precision_recall_curve, \
-    average_precision_score
+from sklearn.metrics import accuracy_score, roc_curve, auc, precision_recall_curve, average_precision_score
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import normalize
 from tqdm import tqdm
 
-from src.util.EmbeddingsUtils import process_unsorted_embeddings
 from src.util.Plotter import plot_verification
 
 # Set environment variables to avoid OpenBLAS conflicts
@@ -186,19 +182,12 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
     return similarity_matrix
 
 
-def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with=""):
-    if pre_sorted:
-        enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
-        enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
-        query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
-        query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
-    else:
-        enrolled_embedding, enrolled_label = process_unsorted_embeddings(
-            embedding_library.enrolled_scan_ids, embedding_library.enrolled_embeddings,
-            embedding_library.enrolled_labels, embedding_library.enrolled_perspectives)
-        query_embedding, query_label = process_unsorted_embeddings(
-            embedding_library.query_scan_ids, embedding_library.query_embeddings,
-            embedding_library.query_labels, embedding_library.query_perspectives)
+def concat(embedding_library, disable_bar: bool, reduce_with=""):
+
+    enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
+    enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+    query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
+    query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
 
     if reduce_with == "pca":
         if enrolled_embedding.shape[0] <= 512:
@@ -220,93 +209,127 @@ def concat(embedding_library, disable_bar: bool, pre_sorted=False, reduce_with="
     predicted_labels = enrolled_label[top_indices[:, 0]]
     return result, similarity_matrix, top_indices, predicted_labels, query_label
 
-#
-# def knn_voting(embedding_library, k=1, d="cosine", faiss_method=True):
-#     # if faiss_method:
-#     #    return faiss_knn_voting(embedding_library)
-#
-#     knn_model = neighbors.KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric=d)
-#     knn_model.fit(embedding_library.enrolled_embeddings, embedding_library.enrolled_labels)
-#
-#     y_preds = knn_model.predict(embedding_library.query_embeddings)
-#
-#     vote_scan_id = {}
-#     label_scan_id = {}
-#     for idx, y_pred in enumerate(y_preds):
-#         if embedding_library.query_scan_ids[idx] in vote_scan_id.keys():
-#             vote_scan_id[embedding_library.query_scan_ids[idx]].append(y_pred)
-#         else:
-#             vote_scan_id[embedding_library.query_scan_ids[idx]] = [y_pred]
-#             label_scan_id[embedding_library.query_scan_ids[idx]] = embedding_library.query_labels[idx]
-#
-#     y_pred_scan = []
-#     y_true_scan = []
-#     for key, value in vote_scan_id.items():
-#         votes = vote_scan_id[key]
-#         vote = max(set(votes), key=votes.count)
-#         y_true = label_scan_id[key]
-#         y_true_scan.append(y_true)
-#         y_pred_scan.append(vote)
-#
-#     return np.array(y_true_scan), np.array(y_pred_scan)
 
-# def normalize_embeddings(embeddings):
-#    return embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+def calculate_embedding_similarity_per_view(query_embeddings, enrolled_embeddings, num_views=8, disable_bar=True):
+    """
+    query_embeddings: (num_queries, num_views*dim)
+    enrolled_embeddings: (num_enrolled, num_views*dim)
+    returns similarity_matrix: (num_queries, num_enrolled, num_views)
+    """
+    dim = query_embeddings.shape[1] // num_views
 
-# def faiss_knn_voting(embedding_library, k=1):
-#
-#     enrolled_embeddings = normalize_embeddings(embedding_library.enrolled_embeddings)
-#     query_embeddings = normalize_embeddings(embedding_library.query_embeddings)
-#
-#     index = faiss.IndexFlatIP(enrolled_embeddings.shape[1])
-#     index.add(enrolled_embeddings)
-#
-#     _, indices = index.search(query_embeddings, k)
-#     y_preds = embedding_library.enrolled_labels[indices.flatten()]
-#
-#     # Majority voting
-#     vote_scan_id = {}
-#     label_scan_id = {}
-#     for scan_id, y_pred, y_true in zip(embedding_library.query_scan_ids, y_preds, embedding_library.query_labels):
-#         vote_scan_id.setdefault(scan_id, []).append(y_pred)
-#         label_scan_id[scan_id] = y_true
-#
-#     y_pred_scan = np.array([max(set(votes), key=votes.count) for votes in vote_scan_id.values()])
-#     y_true_scan = np.array([label_scan_id[key] for key in vote_scan_id.keys()])
-#
-#     return y_true_scan, y_pred_scan
+    # reshape back into (N, V, D)
+    query_embeddings = query_embeddings.reshape(query_embeddings.shape[0], num_views, dim)
+    enrolled_embeddings = enrolled_embeddings.reshape(enrolled_embeddings.shape[0], num_views, dim)
+
+    num_queries, _, _ = query_embeddings.shape
+    num_enrolled = enrolled_embeddings.shape[0]
+
+    similarity_matrix = np.empty((num_queries, num_enrolled, num_views), dtype=np.float32)
+
+    for v in range(num_views):
+        qv = query_embeddings[:, v, :] / np.linalg.norm(query_embeddings[:, v, :], axis=1, keepdims=True)
+        ev = enrolled_embeddings[:, v, :] / np.linalg.norm(enrolled_embeddings[:, v, :], axis=1, keepdims=True)
+        similarity_matrix[:, :, v] = np.dot(qv, ev.T)
+
+    return similarity_matrix
 
 
-def accuracy_front_perspective(embedding_library, pre_sorted=False):
-    if pre_sorted:
-        # enrolled_embeddings.shape -> (views, num_samples, embedding_dim)
-        # enrolled_labels.shape -> (num_samples,)
-        # enrolled_perspectives.shape -> (num_samples, views)
+def score_fusion(embedding_library, disable_bar: bool, method="product"):
 
-        # Important: Assume all enrolled_perspectives are identical across samples
-        view_mask = np.array(embedding_library.enrolled_perspectives[0]) == "0_0"
-        selected_view_index = np.argmax(view_mask)
-        enrolled_embeddings = embedding_library.enrolled_embeddings[selected_view_index]
-        enrolled_labels = embedding_library.enrolled_labels
+    enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
+    enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+    query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
+    query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
 
-        view_mask = np.array(embedding_library.query_perspectives[0]) == "0_0"
-        selected_view_index = np.argmax(view_mask)
-        query_embeddings = embedding_library.query_embeddings[selected_view_index]
-        query_labels = embedding_library.query_labels
+    similarity_matrix = calculate_embedding_similarity_per_view(query_embedding, enrolled_embedding, disable_bar=disable_bar)
+
+    if method == "sum":
+        fused_scores = np.sum(similarity_matrix, axis=-1)
+    elif method == "product":
+        fused_scores = np.prod(similarity_matrix, axis=-1)
+    elif method == "max":
+        fused_scores = np.max(similarity_matrix, axis=-1)
+    elif method == "geom_mean":
+        # geometric mean: avoid underflow by working in log-space
+        fused_scores = np.exp(np.mean(np.log(np.clip(similarity_matrix, 1e-12, None)), axis=-1))
+    elif method == "lse":
+        # log-sum-exp fusion
+        fused_scores = np.log(np.sum(np.exp(similarity_matrix), axis=-1))
+    elif method == "borda":
+        # rank-based fusion: high similarity = high rank
+        ranks = np.argsort(np.argsort(-similarity_matrix, axis=1), axis=1)  # (Q, E, V)
+        # convert ranks to scores: best rank=E-1 points, worst=0
+        borda_scores = (similarity_matrix.shape[1] - 1) - ranks
+        fused_scores = np.sum(borda_scores, axis=-1)
+    elif method == "majority":
+        # argmax per view, then vote
+        winners = np.argmax(similarity_matrix, axis=1)  # (Q, V)
+        num_queries, num_views = winners.shape
+        num_enrolled = similarity_matrix.shape[1]
+        fused_scores = np.zeros((num_queries, num_enrolled), dtype=np.float32)
+        for i in range(num_queries):
+            votes = np.bincount(winners[i], minlength=num_enrolled)
+            fused_scores[i] = votes  # class with most votes gets largest score
+    elif method == "mean":
+        fused_scores = np.mean(similarity_matrix, axis=-1)
+    elif method == "trimmed_mean":
+        k = 1  # Remove most outer elements
+        sorted_scores = np.sort(similarity_matrix, axis=-1)
+        trimmed = sorted_scores[:, :, k:-k] if k < similarity_matrix.shape[-1] // 2 else similarity_matrix
+        fused_scores = np.mean(trimmed, axis=-1)
     else:
-        # enrolled_embeddings.shape -> (num_samples, embedding_dim)
-        # enrolled_labels.shape -> (num_samples,)
-        # enrolled_perspectives.shape -> (num_samples,)
+        raise ValueError(f"Unknown fusion method '{method}'")
 
-        # Mask rows where the enrolled_perspectives contain the specific string
-        mask = np.array(["0_0" in perspective for perspective in embedding_library.enrolled_perspectives])
-        enrolled_embeddings = embedding_library.enrolled_embeddings[mask]
-        enrolled_labels = embedding_library.enrolled_labels[mask]
+    # get rankings from fused scores
+    top_indices, top_values = compute_ranking_matrices(fused_scores)
+    result = analyze_result(fused_scores, top_indices, enrolled_label, query_label, top_k_acc_k=5)
+    predicted_labels = enrolled_label[top_indices[:, 0]]
 
-        # Mask rows where the query_perspectives contain the specific string
-        mask = np.array(["0_0" in perspective for perspective in embedding_library.query_perspectives])
-        query_embeddings = embedding_library.query_embeddings[mask]
-        query_labels = embedding_library.query_labels[mask]
+    return result, fused_scores, top_indices, predicted_labels, query_label
+
+
+def fuse_pairwise_scores(emb1_reg, emb2_reg, method="sum"):
+    """
+    emb1_reg, emb2_reg: (num_views, dim)
+    returns fused similarity score (float)
+    """
+    sims = []
+    for v in range(emb1_reg.shape[0]):
+        s = np.dot(emb1_reg[v], emb2_reg[v]) / norm(emb1_reg[v] * norm(emb2_reg[v]))
+        sims.append(s)
+    sims = np.array(sims)
+
+    if method == "sum":
+        return np.sum(sims)
+    elif method == "product":
+        return np.prod(sims)
+    elif method == "max":
+        return np.max(sims)
+    elif method == "geomean":  # geometric mean
+        return np.exp(np.mean(np.log(np.clip(sims, 1e-12, None))))
+    elif method == "lse":
+        return np.log(np.sum(np.exp(sims)))
+    elif method == "mean":
+        return np.mean(sims)
+    else:
+        raise ValueError(f"Unknown fusion method '{method}'")
+
+
+def accuracy_front_perspective(embedding_library):
+    # enrolled_embeddings.shape -> (views, num_samples, embedding_dim)
+    # enrolled_labels.shape -> (num_samples,)
+    # enrolled_perspectives.shape -> (num_samples, views)
+
+    view_mask = np.array(embedding_library.enrolled_perspectives[0]) == "0_0"
+    selected_view_index = np.argmax(view_mask)
+    enrolled_embeddings = embedding_library.enrolled_embeddings[selected_view_index]
+    enrolled_labels = embedding_library.enrolled_labels
+
+    view_mask = np.array(embedding_library.query_perspectives[0]) == "0_0"
+    selected_view_index = np.argmax(view_mask)
+    query_embeddings = embedding_library.query_embeddings[selected_view_index]
+    query_labels = embedding_library.query_labels
 
     similarity_matrix = calculate_embedding_similarity(query_embeddings, enrolled_embeddings)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
