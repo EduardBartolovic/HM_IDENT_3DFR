@@ -10,6 +10,7 @@ import torchvision.transforms as transforms
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.aggregator.ConvAggregator import make_conv_aggregator
+from src.aggregator.IgnorantMeanAggregator import make_ignorantmean_aggregator
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.MedianAggregator import make_median_aggregator
 from src.aggregator.RobustMeanAggregator import make_rma
@@ -65,6 +66,7 @@ def main(cfg):
     use_face_corr = cfg['USE_FACE_CORR']
     EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']  # embedding dimension
     BATCH_SIZE = cfg['BATCH_SIZE']  # Batch size in training
+    ACCUMULATION_STEPS = cfg.get('ACCUMULATION_STEPS', 1)
     DROP_LAST = cfg['DROP_LAST']  # whether drop the last batch to ensure consistent batch_norm statistics
     SHUFFLE_PERSPECTIVES = cfg.get('SHUFFLE_PERSPECTIVES', False)  # shuffle perspectives during train loop
     LR = cfg['LR']  # initial LR
@@ -82,6 +84,7 @@ def main(cfg):
     GPU_ID = cfg['GPU_ID']  # specify your GPU ids
     PIN_MEMORY = cfg['PIN_MEMORY']
     NUM_WORKERS = cfg['NUM_WORKERS']
+    TORCH_COMPILE_MODE = cfg.get('TORCH_COMPILE_MODE', None)  # [None, default, reduce-overhead, max-autotune-no-cudagraphs, max-autotune]
     print("=" * 60)
     print("Overall Configurations:")
     print(cfg)
@@ -142,6 +145,7 @@ def main(cfg):
 
         AGG_DICT = {'WeightedSumAggregator': lambda: make_weighted_sum_aggregator(AGG_CONFIG),
                     'MeanAggregator': lambda: make_mean_aggregator([NUM_VIEWS]*5),
+                    'IgnorantMeanAggregator': lambda: make_ignorantmean_aggregator([NUM_VIEWS]*5),
                     'RobustMeanAggregator': lambda: make_rma([NUM_VIEWS]*5),
                     'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS]*5),
                     'ConvAggregator': lambda: make_conv_aggregator(AGG_CONFIG),
@@ -162,6 +166,8 @@ def main(cfg):
                      'SphereFace': lambda: SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
         HEAD = HEAD_DICT[HEAD_NAME]().to(DEVICE)
+        if TORCH_COMPILE_MODE:
+            HEAD = torch.compile(HEAD, mode=TORCH_COMPILE_MODE)
         model_stats_head = summary(HEAD, input_size=[(BATCH_SIZE, EMBEDDING_SIZE), (BATCH_SIZE,)], dtypes=[torch.float, torch.long], verbose=0)
         print(colorstr('magenta', str(model_stats_head)))
         print(colorstr('blue', f"{HEAD_NAME} Head Generated"))
@@ -270,7 +276,8 @@ def main(cfg):
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
-            for inputs, labels, perspectives, face_corrs, _ in tqdm(iter(train_loader)):
+            #OPTIMIZER.zero_grad()
+            for step, (inputs, labels, perspectives, face_corrs, _) in enumerate(tqdm(iter(train_loader))):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
                     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
@@ -283,15 +290,20 @@ def main(cfg):
                 _, embeddings = BACKBONE_reg.execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs, perspectives, face_corrs, use_face_corr)
                 outputs = HEAD(embeddings, labels)
                 loss = LOSS(outputs, labels)
+                # loss = loss / ACCUMULATION_STEPS
 
                 prec1, prec5 = train_accuracy(outputs.data, labels, topk=(1, 5))
                 losses.update(loss.item(), inputs[0].size(0))
                 top1.update(prec1.item(), inputs[0].size(0))
                 top5.update(prec5.item(), inputs[0].size(0))
+                # mlflow.log_metric('train_batch_loss', losses.val, step=batch)
 
                 OPTIMIZER.zero_grad()
                 loss.backward()
-                OPTIMIZER.step()
+
+                # if (step + 1) % ACCUMULATION_STEPS == 0:
+                #    OPTIMIZER.step()
+                #    OPTIMIZER.zero_grad()
 
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     print("=" * 60)
