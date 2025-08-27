@@ -345,15 +345,14 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     metrics_mv = all_metrics["metrics_mvfa"]
     mlflow.log_metric(f'{neutral_dataset}_MV-RR1', metrics_mv['Rank-1 Rate'], step=epoch)
     mlflow.log_metric(f'{neutral_dataset}_MV-RR5', metrics_mv['Rank-5 Rate'], step=epoch)
-    mlflow.log_metric(f'{neutral_dataset}_MV-MRR', metrics_mv['MRR'], step=epoch)  # ← new
-
-    if all_metrics["metrics_front"]:
+    mlflow.log_metric(f'{neutral_dataset}_MV-MRR', metrics_mv['MRR'], step=epoch)
+    if "metrics_front" in all_metrics.keys():
         metrics_front = all_metrics["metrics_front"]
         mlflow.log_metric(f'{neutral_dataset}_Front-RR1', metrics_front['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Front-RR5', metrics_front['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Front-MRR', metrics_front['MRR'], step=epoch)
 
-    if all_metrics["metrics_concat"]:
+    if "metrics_concat" in all_metrics.keys():
         metrics_concat = all_metrics["metrics_concat"]
         metrics_concat_mean = all_metrics["metrics_concat_mean"]
         mlflow.log_metric(f'{neutral_dataset}_Concat-RR1', metrics_concat['Rank-1 Rate'], step=epoch)
@@ -363,43 +362,37 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
         mlflow.log_metric(f'{neutral_dataset}_Concat-MRR', metrics_concat['MRR'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-MRR', metrics_concat_mean['MRR'], step=epoch)
 
-    if all_metrics["metrics_concat_pca"]:
+    if "metrics_concat_pca" in all_metrics.keys() and all_metrics["metrics_concat_pca"]:
         metrics_concat_pca = all_metrics["metrics_concat_pca"]
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR1', metrics_concat_pca['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR5', metrics_concat_pca['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-MRR', metrics_concat_pca['MRR'], step=epoch)
 
-    if all_metrics["metrics_concat_pca"]:
-        metrics_concat_pca = all_metrics["metrics_concat_pca"]
-        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR1', metrics_concat_pca['Rank-1 Rate'], step=epoch)
-        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-RR5', metrics_concat_pca['Rank-5 Rate'], step=epoch)
-        mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-MRR', metrics_concat_pca['MRR'], step=epoch)
-
-    if all_metrics["metrics_score_sum"]:
+    if "metrics_score_sum" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_sum-RR1', all_metrics["metrics_score_sum"]['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_sum-RR5', all_metrics["metrics_score_sum"]['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_sum-MRR', all_metrics["metrics_score_sum"]['MRR'], step=epoch)
-    if all_metrics["metrics_score_product"]:
+    if "metrics_score_product" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_product-RR1', all_metrics["metrics_score_product"]['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_product-RR5', all_metrics["metrics_score_product"]['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_product-MRR', all_metrics["metrics_score_product"]['MRR'], step=epoch)
-    if all_metrics["metrics_score_max"]:
+    if "metrics_score_max" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_max-RR1', all_metrics["metrics_score_max"]['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_max-RR5', all_metrics["metrics_score_max"]['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_max-MRR', all_metrics["metrics_score_max"]['MRR'], step=epoch)
-    if all_metrics["metrics_score_geomean"]:
+    if "metrics_score_geomean" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_geom_mean-RR1', all_metrics["metrics_score_geomean"]['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_geom_mean-RR5', all_metrics["metrics_score_geomean"]['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_geom_mean-MRR', all_metrics["metrics_score_geomean"]['MRR'], step=epoch)
-    if all_metrics["metrics_score_lse"]:
+    if "metrics_score_lse" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_lse-RR1', all_metrics["metrics_score_lse"]['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_lse-RR5', all_metrics["metrics_score_lse"]['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_lse-MRR', all_metrics["metrics_score_lse"]['MRR'], step=epoch)
-    if all_metrics["metrics_score_majority"]:
+    if "metrics_score_majority" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_majority-RR1', all_metrics["metrics_score_majority"]['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_majority-RR5', all_metrics["metrics_score_majority"]['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_majority-MRR', all_metrics["metrics_score_majority"]['MRR'], step=epoch)
-    if all_metrics["metrics_score_mean"]:
+    if "metrics_score_mean" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_majority-RR1', all_metrics["metrics_score_majority"]['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_majority-RR5', all_metrics["metrics_score_majority"]['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_majority-MRR', all_metrics["metrics_score_majority"]['MRR'], step=epoch)
@@ -442,15 +435,15 @@ def evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggrega
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-AUC', all_metrics["metrics_concat_pca"]["AUC"], step=epoch)
     if "metrics_score_sum" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_sum-AUC', all_metrics["metrics_score_sum"]['AUC'], step=epoch)
-    if all_metrics["metrics_score_product"]:
+    if "metrics_score_product" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_product-AUC', all_metrics["metrics_score_product"]['AUC'], step=epoch)
-    if all_metrics["metrics_score_max"]:
+    if "metrics_score_max" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_max-AUC', all_metrics["metrics_score_max"]['AUC'], step=epoch)
-    if all_metrics["metrics_score_geomean"]:
+    if "metrics_score_geomean" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_geom_mean-AUC', all_metrics["metrics_score_geomean"]['AUC'], step=epoch)
-    if all_metrics["metrics_score_lse"]:
+    if "metrics_score_lse" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_lse-AUC', all_metrics["metrics_score_lse"]['AUC'], step=epoch)
-    if all_metrics["metrics_score_mean"]:
+    if "metrics_score_mean" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_mean-AUC', all_metrics["metrics_score_mean"]['AUC'], step=epoch)
 
     print_results_verification(neutral_dataset, dataset_enrolled, all_metrics, eval_all)
@@ -460,33 +453,32 @@ def evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggrega
 
 def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics, eval_all):
 
-    rank_1_front = smart_round(all_metrics["metrics_front"].get('Rank-1 Rate', 'N/A'))
-    rank_5_front = smart_round(all_metrics["metrics_front"].get('Rank-5 Rate', 'N/A'))
-    mrr_front = smart_round(all_metrics["metrics_front"].get('MRR', 'N/A'))
-
-    rank_1_concat = smart_round(all_metrics["metrics_concat"].get('Rank-1 Rate', 'N/A'))
-    rank_5_concat = smart_round(all_metrics["metrics_concat"].get('Rank-5 Rate', 'N/A'))
-    mrr_concat = smart_round(all_metrics["metrics_concat"].get('MRR', 'N/A'))
-
-    rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
-    rank_5_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-5 Rate', 'N/A'))
-    mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
-
-    rank_1_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('Rank-1 Rate', 'N/A'))
-    rank_5_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('Rank-5 Rate', 'N/A'))
-    mrr_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('MRR', 'N/A'))
-
     rank_1_mv = smart_round(all_metrics["metrics_mvfa"].get('Rank-1 Rate', 'N/A'))
     rank_5_mv = smart_round(all_metrics["metrics_mvfa"].get('Rank-5 Rate', 'N/A'))
-
     mrr_mv = smart_round(all_metrics["metrics_mvfa"].get('MRR', 'N/A'))
-    mrr_score_sum = smart_round(all_metrics["metrics_score_sum"].get('MRR', 'N/A'))
-    mrr_score_max = smart_round(all_metrics["metrics_score_max"].get('MRR', 'N/A'))
-    mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
-    mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
-    mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
 
     if eval_all:
+        rank_1_front = smart_round(all_metrics["metrics_front"].get('Rank-1 Rate', 'N/A'))
+        rank_5_front = smart_round(all_metrics["metrics_front"].get('Rank-5 Rate', 'N/A'))
+        mrr_front = smart_round(all_metrics["metrics_front"].get('MRR', 'N/A'))
+
+        rank_1_concat = smart_round(all_metrics["metrics_concat"].get('Rank-1 Rate', 'N/A'))
+        rank_5_concat = smart_round(all_metrics["metrics_concat"].get('Rank-5 Rate', 'N/A'))
+        mrr_concat = smart_round(all_metrics["metrics_concat"].get('MRR', 'N/A'))
+
+        rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
+        rank_5_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-5 Rate', 'N/A'))
+        mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
+
+        rank_1_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('Rank-1 Rate', 'N/A'))
+        rank_5_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('Rank-5 Rate', 'N/A'))
+        mrr_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('MRR', 'N/A'))
+
+        mrr_score_sum = smart_round(all_metrics["metrics_score_sum"].get('MRR', 'N/A'))
+        mrr_score_max = smart_round(all_metrics["metrics_score_max"].get('MRR', 'N/A'))
+        mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
+        mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
+        mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
         string = (
             colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
             f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} | "
@@ -511,17 +503,17 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
 
 def print_results_verification(neutral_dataset, dataset_enrolled, all_metrics, eval_all):
 
-    auc_front = smart_round(all_metrics["metrics_front"].get("AUC", 'N/A'))
-    auc_concat = smart_round(all_metrics["metrics_concat"].get("AUC", 'N/A'))
-    auc_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get("AUC", 'N/A'))
-    auc_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get("AUC", 'N/A'))
     auc_mvfa = smart_round(all_metrics["metrics_mvfa"].get("AUC", 'N/A'))
-    auc_score_sum = smart_round(all_metrics["metrics_score_sum"].get('AUC', 'N/A'))
-    auc_score_max = smart_round(all_metrics["metrics_score_max"].get('AUC', 'N/A'))
-    auc_score_prod = smart_round(all_metrics["metrics_score_product"].get('AUC', 'N/A'))
-    auc_score_mean = smart_round(all_metrics["metrics_score_mean"].get('AUC', 'N/A'))
 
     if eval_all:
+        auc_front = smart_round(all_metrics["metrics_front"].get("AUC", 'N/A'))
+        auc_concat = smart_round(all_metrics["metrics_concat"].get("AUC", 'N/A'))
+        auc_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get("AUC", 'N/A'))
+        auc_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get("AUC", 'N/A'))
+        auc_score_sum = smart_round(all_metrics["metrics_score_sum"].get('AUC', 'N/A'))
+        auc_score_max = smart_round(all_metrics["metrics_score_max"].get('AUC', 'N/A'))
+        auc_score_prod = smart_round(all_metrics["metrics_score_product"].get('AUC', 'N/A'))
+        auc_score_mean = smart_round(all_metrics["metrics_score_mean"].get('AUC', 'N/A'))
         string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}: ") +
                   f"{bold('Front-AUC')}: {underscore(auc_front)} "
                   f"{bold('Concat-AUC')}: {underscore(auc_concat)} "
