@@ -215,15 +215,14 @@ class MultiviewIResnet(Module):
         raise ValueError("Illegal State")
 
     def execute_model(self, device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr):
-        # Dictionary to hold stage features for all views
-        stage_to_index = {
-            "input_stage": 0,
-            "block_2": 1,
-            "block_6": 2,
-            "block_20": 3,
-            "block_23": 4,
-            "output_stage": 5,
-        }
+        """
+        inputs: list of every view: [(B,C,H,W), (B,C,H,W), (B,C,H,W), ...]
+
+        output:
+            embeddings_reg: (B, V*512)
+            embeddings_agg  (B, 512)
+        """
+        stage_to_index = {"input_stage": 0, "block_2": 1, "block_6": 2, "block_20": 3, "block_23": 4, "output_stage": 5}
         with torch.no_grad():
             all_views_stage_features = [[] for _ in stage_to_index]
             for view in inputs:
