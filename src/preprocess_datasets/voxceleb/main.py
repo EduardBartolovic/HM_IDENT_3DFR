@@ -12,15 +12,15 @@ from src.preprocess_datasets.rendering import PrepareDataset
 
 
 def preprocessing():
-    root = "F:\\Face\\data\\datasets9\\"
+    root = "/home/gustav/voxceleb2/test/"
     folder_root = root+"vox2test_raw"
-    dataset_output_folder = root+"vox2test_out-2"
-    dataset_output_folder_crop = root+"vox2test_crop-2"
-    dataset_output_folder_filtered = root+"vox2test_crop8-2"
-    output_test_dataset = root+"test_vox2test_crop8-2"
+    dataset_output_folder = root+"vox2test_out"
+    dataset_output_folder_crop = root+"vox2test_crop"
+    dataset_output_folder_filtered = root+"vox2test_crop8"
+    output_test_dataset = root+"test_vox2test_crop8"
     model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     batch_size = 8 # 256 for 24GB  # 48 for 8 GB VRAM
-    poses = 25  # Number of poses
+    poses = 8  # Number of poses
     device = torch.device("cuda")
 
     print("##################################")

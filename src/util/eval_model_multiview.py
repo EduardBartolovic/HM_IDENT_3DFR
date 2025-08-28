@@ -21,6 +21,7 @@ from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.misc import colorstr, bold, underscore, smart_round
 
+#torch.set_float32_matmul_precision('high')
 
 @torch.no_grad()
 def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr: bool, disable_bar=False):
