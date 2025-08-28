@@ -90,6 +90,8 @@ def main(cfg):
     print(cfg)
     print("=" * 60)
 
+    #torch.set_float32_matmul_precision('high')
+
     # ===== ML FLOW Set up ============
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
     mlflow.set_experiment(RUN_NAME)
@@ -110,6 +112,7 @@ def main(cfg):
         train_transform = transforms.Compose([
             transforms.Resize(INPUT_SIZE),
             # transforms.RandomCrop((112, 112)),
+            transforms.CenterCrop([112, 112]),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
@@ -199,7 +202,8 @@ def main(cfg):
 
         # ======= Optimizer Settings =======
         OPTIMIZER_DICT = {'SGD': lambda: optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
-                          'ADAM': lambda: torch.optim.Adam(params_list, lr=LR)}
+                          'ADAM': lambda: optim.Adam(params_list, lr=LR),
+                          'ADAMW': lambda: optim.AdamW(params_list, lr=LR)}
         OPTIMIZER = OPTIMIZER_DICT[OPTIMIZER_NAME]()
         print(colorstr('magenta', OPTIMIZER))
         print("=" * 60)
@@ -211,6 +215,9 @@ def main(cfg):
         # ======= GPU Settings =======
         BACKBONE_reg = BACKBONE_reg.to(DEVICE)
         BACKBONE_agg = BACKBONE_agg.to(DEVICE)
+
+        if TORCH_COMPILE_MODE:
+            BACKBONE_reg = torch.compile(BACKBONE_reg, mode=TORCH_COMPILE_MODE)
 
         # ======= Freezing Parameter Settings =======
         for agg in aggregators:
