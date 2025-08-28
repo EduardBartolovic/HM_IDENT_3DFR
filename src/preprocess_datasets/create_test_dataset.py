@@ -84,7 +84,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
         groups = defaultdict(list)
         for filename in os.listdir(class_path):
             if (not filter_strings or any(fstr in filename for fstr in filter_strings)) and filename.endswith(file_ext):
-                hash_prefix = filename[:40]
+                hash_prefix = filename[:20]
                 groups[hash_prefix].append(os.path.join(class_path, filename))
 
         # Remove groups that do not match the required number of poses

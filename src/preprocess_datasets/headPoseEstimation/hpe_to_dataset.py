@@ -8,8 +8,6 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from src.preprocess_datasets.blazeface.face_crop import resize_with_padding
-
 
 def read_file(file_path, remove_header=True):
     data = []
@@ -75,7 +73,7 @@ def process_txt_file_to_video_voxceleb(args):
             video_name, frame_index = info[7].split('#')
             frame_index = int(frame_index)
             #x_min, y_min, x_max, y_max = map(int, info[8:])
-            dst_filename = f'{hash_name[:20]}_{info[3].split(".")[0]}_{info[4].split(".")[0]}_{info[0]}_{info[1]}.jpg'
+            dst_filename = f'{hash_name[:20]}_{info[3].split(".")[0]}_{info[4].split(".")[0]}#{info[0]}_{info[1]}.jpg'
             dst_path = os.path.join(destination, dst_filename)
         except ValueError as e:
             print("Error in :", file_path)

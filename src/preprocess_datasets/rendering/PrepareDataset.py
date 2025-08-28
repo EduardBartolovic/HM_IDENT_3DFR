@@ -620,7 +620,7 @@ def filter_views(dataset_folder, output_folder, filter_keywords, target_views=8)
             # group files by scan_id = first 40 chars
             scan_groups = {}
             for f in os.listdir(class_path):
-                scan_id = f[:40]
+                scan_id = f[:20]
                 scan_groups.setdefault(scan_id, []).append(f)
 
             output_class_path = os.path.join(output_folder, class_name)
@@ -630,9 +630,9 @@ def filter_views(dataset_folder, output_folder, filter_keywords, target_views=8)
                 total_scans += 1
                 # pick only files whose keyword is in filter_keywords
                 filtered_files = [
-                    f for f in files if f[40:-10] in filter_keywords
+                    f for f in files if f[20:-3].split("#")[1] in filter_keywords
                 ]
-                keywords_present = set(f[40:-10] for f in filtered_files)
+                keywords_present = set(f[20:-3].split("#")[1] for f in filtered_files)
 
                 # check completeness
                 if all(k in keywords_present for k in filter_keywords):
