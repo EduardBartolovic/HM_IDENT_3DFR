@@ -617,7 +617,7 @@ def filter_views(dataset_folder, output_folder, filter_keywords, target_views=8)
         class_path = os.path.join(dataset_folder, class_name)
         if os.path.isdir(class_path):
 
-            # group files by scan_id = first 40 chars
+            # group files by scan_id = first 20 chars
             scan_groups = {}
             for f in os.listdir(class_path):
                 scan_id = f[:20]
@@ -653,3 +653,4 @@ def filter_views(dataset_folder, output_folder, filter_keywords, target_views=8)
     print(f"  ➤ Scans copied:         {copied_scans}")
     print(f"  ➤ Scans skipped:        {skipped_scans}")
     print(f"\n✅ Filtered dataset saved in: {output_folder}")
+    assert copied_scans > 0

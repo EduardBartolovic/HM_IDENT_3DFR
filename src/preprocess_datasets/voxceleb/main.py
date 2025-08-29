@@ -14,12 +14,12 @@ from src.preprocess_datasets.rendering import PrepareDataset
 def preprocessing():
     root = "/home/gustav/voxceleb2/test/"
     folder_root = root+"vox2test_raw"
-    dataset_output_folder = root+"vox2test_out"
-    dataset_output_folder_crop = root+"vox2test_crop"
-    dataset_output_folder_filtered = root+"vox2test_crop8"
-    output_test_dataset = root+"test_vox2test_crop8"
+    dataset_output_folder = root+"vox2test_out-v11"
+    dataset_output_folder_crop = root+"vox2test_crop-v11"
+    dataset_output_folder_filtered = root+"vox2test_crop8-v11"
+    output_test_dataset = root+"test_vox2test_crop8-v11"
     model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
-    batch_size = 8 # 256 for 24GB  # 48 for 8 GB VRAM
+    batch_size = 8  # 256 for 24GB  # 48 for 8 GB VRAM
     poses = 8  # Number of poses
     device = torch.device("cuda")
 
@@ -49,7 +49,7 @@ def preprocessing():
     face_crop_and_alignment(dataset_output_folder, dataset_output_folder_crop, face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(224, 224), det_threshold=0.05)
 
     perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
-    PrepareDataset.filter_views(dataset_output_folder_crop, dataset_output_folder_filtered, perspective_filter, target_views=8)
+    PrepareDataset.filter_views(dataset_output_folder_crop, dataset_output_folder_filtered, perspective_filter, target_views=poses)
 
     #print("##################################")
     #print("###### face_correspondences ######")

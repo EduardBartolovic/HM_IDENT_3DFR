@@ -67,7 +67,7 @@ def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_fli
         matches.append((reference, data[closest_index], min_distance))
         used_indices.add(closest_index)
 
-        return matches
+    return matches
 
 
 def correct_angle_pair(x, y):
