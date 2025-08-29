@@ -96,12 +96,6 @@ def process_txt_file_to_video_voxceleb(args):
             errors += 1
             continue
 
-        #pad_size = 16  # Since (256-224)/2 = 16
-        #padded_image = cv2.copyMakeBorder(frame, pad_size, pad_size, pad_size, pad_size, cv2.BORDER_CONSTANT, value=[0, 0, 0])
-        #face_crop = padded_image[y_min:y_max, x_min:x_max]
-        #assert face_crop.size > 0
-
-        #face_crop_resized = cv2.resize(face_crop, (112, 112), cv2.INTER_AREA)  # maybe better? cv2.INTER_LANCZOS4
         cv2.imwrite(dst_path, frame)
         success_count += 1
 
@@ -162,8 +156,8 @@ def process_txt_file_to_video_nersemble(args):
         try:
             video_name, frame_index = info[7].split('#')
             frame_index = int(frame_index)
-            x_min, y_min, x_max, y_max = map(int, info[8:])
-            dst_filename = f'{hash_name}{info[0]}_{info[1]}_image.jpg'
+            #x_min, y_min, x_max, y_max = map(int, info[8:])
+            dst_filename = f'{hash_name[:20]}_{info[3].split(".")[0]}_{info[4].split(".")[0]}#{info[0]}_{info[1]}.jpg'
             dst_path = os.path.join(destination, dst_filename)
         except ValueError:
             raise ValueError("Error in :", file_path)
@@ -185,11 +179,6 @@ def process_txt_file_to_video_nersemble(args):
             errors += 1
             continue
 
-        #padded_image, _, _ = resize_with_padding(frame)
-        #face_crop = padded_image[y_min:y_max, x_min:x_max]
-        #assert face_crop.size > 0
-
-        #face_crop_resized = cv2.resize(face_crop, (112, 112), interpolation=cv2.INTER_AREA)
         cv2.imwrite(dst_path, frame)
         success_count += 1
 
@@ -248,8 +237,8 @@ def process_txt_file_to_video_ytf(args):
     for info in data:
         try:
             img_name = info[7]
-            x_min, y_min, x_max, y_max = map(int, info[8:])
-            dst_filename = f'{hash_name}{info[0]}_{info[1]}_image.jpg'
+            #x_min, y_min, x_max, y_max = map(int, info[8:])
+            dst_filename = f'{hash_name[:20]}_{info[3].split(".")[0]}_{info[4].split(".")[0]}#{info[0]}_{info[1]}.jpg'
             dst_path = os.path.join(destination, dst_filename)
         except ValueError:
             raise ValueError("Error in :", file_path)

@@ -33,22 +33,41 @@ def parse_analysis_file(file_path, correct_angles=False):
     return np.array(parsed_lines, dtype=object)
 
 
-def match_hpe_angles_to_references(data, references, ignore_roll=True):
-    closest_rows = []
+def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_flip=True):
+    used_indices = set()
+    matches = []
     for reference in references:
+
+        # consider roll or not
         if ignore_roll:
-            distances = np.linalg.norm(np.array(data[:, :2], dtype=float) - reference[:2], axis=1)
+            ref_vec = np.array(reference[:2], dtype=float)
+            data_vecs = np.array(data[:, :2], dtype=float)
         else:
-            distances = np.linalg.norm(np.array(data[:, :3], dtype=float) - reference[:3], axis=1)
+            ref_vec = np.array(reference[:3], dtype=float)
+            data_vecs = np.array(data[:, :3], dtype=float)
 
-        min_distance = np.min(distances)
-        min_indices = np.where(distances == min_distance)[0]
-        closest_index = random.choice(min_indices)
+        # compute distances
+        distances = np.linalg.norm(data_vecs - ref_vec, axis=1)
 
-        closest_rows.append((reference, data[closest_index], min_distance))
-        assert closest_index < len(data)
+        if allow_flip:
+            # flipping means negating yaw (first angle, index 0)
+            flipped_ref = ref_vec.copy()
+            flipped_ref[0] = -flipped_ref[0]
+            flipped_distances = np.linalg.norm(data_vecs - flipped_ref, axis=1)
 
-    return closest_rows
+            # take whichever gives smaller distance
+            better_is_flipped = flipped_distances < distances
+            distances = np.where(better_is_flipped, flipped_distances, distances)
+            ref_vec = np.where(better_is_flipped[:, None], flipped_ref, ref_vec)  # keep ref consistent
+
+        # pick best index
+        closest_index = int(np.argmin(distances))
+        min_distance = distances[closest_index]
+
+        matches.append((reference, data[closest_index], min_distance))
+        used_indices.add(closest_index)
+
+        return matches
 
 
 def correct_angle_pair(x, y):
@@ -105,7 +124,7 @@ def save_matches(output_file, infos):
             writer.writerow(ref_angles + hpe_angles + [error] + [filename] + list(bbox))
 
 
-def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angles=False, remove_outliers=True, threshold_std=4.0):
+def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angles=False, remove_outliers=True, threshold_std=4.0, ignore_roll=True, allow_flip=True):
 
     start_time = time.time()
     all_errors = []
@@ -129,7 +148,7 @@ def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angl
                     if len(data) == 0:
                         continue
 
-                    infos = match_hpe_angles_to_references(data, references)
+                    infos = match_hpe_angles_to_references(data, references, ignore_roll=ignore_roll, allow_flip=allow_flip)
                     all_errors.extend([row[2] for row in infos])
 
                     output_file = os.path.join(root, "matched_angles.txt")
