@@ -189,19 +189,6 @@ class Backbone(Module):
                     m.bias.data.zero_()
 
 
-class IR_50_without_linear(nn.Module):
-    def __init__(self, backbone):
-        super(IR_50_without_linear, self).__init__()
-        self.input_layer = backbone.input_layer
-        self.body = backbone.body
-
-    def forward(self, x):
-        x = self.input_layer(x)
-        x = self.body(x)
-        return x
-
-
-
 def IR_50(input_size, embedding_size):
     """Constructs a ir-50 model.
     """
@@ -248,10 +235,3 @@ def IR_SE_152(input_size, embedding_size):
     model = Backbone(input_size, 152, 'ir_se', embedding_size)
 
     return model
-
-
-def IR_50_reduced(input_size, embedding_size):
-    """Constructs a ir-50 model.
-    """
-    modified_model = IR_50_without_linear(IR_50(input_size, embedding_size))
-    return modified_model
