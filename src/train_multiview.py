@@ -307,6 +307,7 @@ def main(cfg):
 
                 OPTIMIZER.zero_grad()
                 loss.backward()
+                OPTIMIZER.step()
 
                 # if (step + 1) % ACCUMULATION_STEPS == 0:
                 #    OPTIMIZER.step()
