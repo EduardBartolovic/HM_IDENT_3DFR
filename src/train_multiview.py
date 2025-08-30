@@ -23,8 +23,7 @@ from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mv, evaluate_and_log_mv_verification
 from src.util.load_checkpoint import load_checkpoint
 from src.util.misc import colorstr
-from util.utils import make_weights_for_balanced_classes, separate_irse_bn_paras, \
-    separate_resnet_bn_paras, warm_up_lr, schedule_lr, AverageMeter, train_accuracy
+from util.utils import make_weights_for_balanced_classes, separate_bn_paras, warm_up_lr, schedule_lr, AverageMeter, train_accuracy
 from torchinfo import summary
 from tqdm import tqdm
 import os
@@ -133,19 +132,7 @@ def main(cfg):
         NUM_CLASS = len(train_loader.dataset.classes)
         print("Number of Training Classes: {}".format(NUM_CLASS))
 
-        # ======= model & loss & optimizer =======
-        BACKBONE_DICT = {'IR_MV_50': lambda: IR_MV_50(INPUT_SIZE, EMBEDDING_SIZE),
-                         'IR_MV_V2_18': lambda: IR_MV_V2_18(EMBEDDING_SIZE),
-                         'IR_MV_V2_34': lambda: IR_MV_V2_34(EMBEDDING_SIZE),
-                         'IR_MV_V2_50': lambda: IR_MV_V2_50(EMBEDDING_SIZE),
-                         'IR_MV_V2_100': lambda: IR_MV_V2_100(EMBEDDING_SIZE)}
-        BACKBONE_reg = BACKBONE_DICT[BACKBONE_NAME]()
-        BACKBONE_agg = BACKBONE_DICT[BACKBONE_NAME]()
-        model_stats_backbone = summary(BACKBONE_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
-        print(colorstr('magenta', str(model_stats_backbone)))
-        print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
-        print("=" * 60)
-
+        # ======= Aggregator =======
         AGG_DICT = {'WeightedSumAggregator': lambda: make_weighted_sum_aggregator(AGG_CONFIG),
                     'MeanAggregator': lambda: make_mean_aggregator([NUM_VIEWS]*5),
                     'IgnorantMeanAggregator': lambda: make_ignorantmean_aggregator([NUM_VIEWS]*5),
@@ -155,27 +142,52 @@ def main(cfg):
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
                     'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG)}
         aggregators = AGG_DICT[AGG_NAME]()
-
         model_arch = [(BATCH_SIZE, NUM_VIEWS, 64, 112, 112), (BATCH_SIZE, NUM_VIEWS+1, 64, 56, 56), (BATCH_SIZE, NUM_VIEWS+1, 128, 28, 28), (BATCH_SIZE, NUM_VIEWS+1, 256, 14, 14), (BATCH_SIZE, NUM_VIEWS+1, 512, 7, 7)]
         model_stats_agg = []
         for agg, model_arch in zip(aggregators, model_arch):
+            agg.to(DEVICE)
             model_stat = summary(agg, model_arch, verbose=0)
             print(colorstr('magenta', str(model_stat)))
             model_stats_agg.append(model_stat)
-
         print("=" * 60)
+
+        # ======= Backbone =======
+        BACKBONE_DICT = {'IR_MV_50': lambda: IR_MV_50(DEVICE, aggregators, INPUT_SIZE, EMBEDDING_SIZE),
+                         'IR_MV_V2_18': lambda: IR_MV_V2_18(DEVICE, aggregators, EMBEDDING_SIZE),
+                         'IR_MV_V2_34': lambda: IR_MV_V2_34(DEVICE, aggregators, EMBEDDING_SIZE),
+                         'IR_MV_V2_50': lambda: IR_MV_V2_50(DEVICE, aggregators, EMBEDDING_SIZE),
+                         'IR_MV_V2_100': lambda: IR_MV_V2_100(DEVICE, aggregators, EMBEDDING_SIZE)}
+        BACKBONE = BACKBONE_DICT[BACKBONE_NAME]()
+        BACKBONE.backbone_reg.to(DEVICE)
+        BACKBONE.backbone_agg.to(DEVICE)
+        model_stats_backbone = summary(BACKBONE.backbone_agg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
+        print(colorstr('magenta', str(model_stats_backbone)))
+        print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
+        print("=" * 60)
+
+        # ======= HEAD & LOSS =======
         HEAD_DICT = {'ArcFace': lambda: ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'CosFace': lambda: CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'SphereFace': lambda: SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
         HEAD = HEAD_DICT[HEAD_NAME]().to(DEVICE)
-        if TORCH_COMPILE_MODE:
-            HEAD = torch.compile(HEAD, mode=TORCH_COMPILE_MODE)
+
+        #if TORCH_COMPILE_MODE:
+        #    HEAD = torch.compile(HEAD, mode=TORCH_COMPILE_MODE)
+
+        # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
+
         model_stats_head = summary(HEAD, input_size=[(BATCH_SIZE, EMBEDDING_SIZE), (BATCH_SIZE,)], dtypes=[torch.float, torch.long], verbose=0)
         print(colorstr('magenta', str(model_stats_head)))
         print(colorstr('blue', f"{HEAD_NAME} Head Generated"))
         print("=" * 60)
 
+        LOSS_DICT = {'Focal': FocalLoss(), 'Softmax': nn.CrossEntropyLoss()}
+        LOSS = LOSS_DICT[LOSS_NAME]
+        print(colorstr('blue', f"{LOSS_NAME} Loss Generated"))
+        print("=" * 60)
+
+        # ======= Write Summaries =======
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir = Path(tmp_dir)
             with open(os.path.join(tmp_dir, 'Head_Summary.txt'), "w", encoding="utf-8") as f:
@@ -187,20 +199,10 @@ def main(cfg):
                     f.write(str(i) + '\n')
             mlflow.log_artifacts(str(tmp_dir), artifact_path="ModelSummary")
 
-        LOSS_DICT = {'Focal': FocalLoss(), 'Softmax': nn.CrossEntropyLoss()}
-        LOSS = LOSS_DICT[LOSS_NAME]
-        print(colorstr('blue', f"{LOSS_NAME} Loss Generated"))
-        print("=" * 60)
-
-        # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
-        if BACKBONE_NAME.find("IR") >= 0:
-            _, head_paras_wo_bn = separate_irse_bn_paras(HEAD)
-        else:
-            _, head_paras_wo_bn = separate_resnet_bn_paras(HEAD)
+        # ======= Optimizer Settings =======
+        _, head_paras_wo_bn = separate_bn_paras(HEAD)
 
         params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
-
-        # ======= Optimizer Settings =======
         OPTIMIZER_DICT = {'SGD': lambda: optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
                           'ADAM': lambda: optim.Adam(params_list, lr=LR),
                           'ADAMW': lambda: optim.AdamW(params_list, lr=LR)}
@@ -208,25 +210,20 @@ def main(cfg):
         print(colorstr('magenta', OPTIMIZER))
         print("=" * 60)
 
-        load_checkpoint(BACKBONE_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
-        load_checkpoint(BACKBONE_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
+        load_checkpoint(BACKBONE.backbone_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
+        load_checkpoint(BACKBONE.backbone_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         print("=" * 60)
 
-        # ======= GPU Settings =======
-        BACKBONE_reg = BACKBONE_reg.to(DEVICE)
-        BACKBONE_agg = BACKBONE_agg.to(DEVICE)
-
-        if TORCH_COMPILE_MODE:
-            BACKBONE_reg = torch.compile(BACKBONE_reg, mode=TORCH_COMPILE_MODE)
+        #if TORCH_COMPILE_MODE:
+        #   torch.compile(BACKBONE.backbone_reg, mode=TORCH_COMPILE_MODE)
 
         # ======= Freezing Parameter Settings =======
         for agg in aggregators:
-            agg = agg.to(DEVICE)
             for param in agg.parameters():
                 param.requires_grad = False
-        for param in BACKBONE_agg.parameters():
+        for param in BACKBONE.backbone_agg.parameters():
             param.requires_grad = False
-        for param in BACKBONE_reg.parameters():
+        for param in BACKBONE.backbone_reg.parameters():
             param.requires_grad = False
 
         print(colorstr('magenta', f"Using face correspondences: {use_face_corr}"))
@@ -235,7 +232,7 @@ def main(cfg):
         print("=" * 60)
 
         # ======= Validation =======
-        eval_loop(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True)
+        eval_loop(BACKBONE, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True)
         print("=" * 60)
 
         # ======= train & early stopping parameters=======
@@ -262,9 +259,11 @@ def main(cfg):
             if epoch == UNFREEZE_AGG_BACKBONE_EPOCH:
                 print(colorstr('yellow', f"Unfreezing backbone-aggregator at epoch {epoch}"))
                 print(colorstr('yellow', "=" * 60))
-                for param in BACKBONE_agg.parameters():
+                for param in BACKBONE.backbone_agg.parameters():
                     param.requires_grad = True
-                OPTIMIZER.add_param_group({'params': BACKBONE_agg.parameters(), 'weight_decay': WEIGHT_DECAY})
+                backbone_agg_paras_only_bn, backbone_agg_paras_wo_bn = separate_bn_paras(BACKBONE.backbone_agg)
+                OPTIMIZER.add_param_group({'params': backbone_agg_paras_wo_bn, 'weight_decay': WEIGHT_DECAY})
+                OPTIMIZER.add_param_group({'params': backbone_agg_paras_only_bn})
 
             if epoch >= UNFREEZE_AGG_EPOCH:
                 [agg.train() for agg in aggregators]
@@ -272,11 +271,11 @@ def main(cfg):
                 [agg.eval() for agg in aggregators]
 
             if epoch >= UNFREEZE_AGG_BACKBONE_EPOCH:
-                BACKBONE_agg.train()
+                BACKBONE.backbone_agg.train()
             else:
-                BACKBONE_agg.eval()
+                BACKBONE.backbone_agg.eval()
 
-            BACKBONE_reg.eval()
+            BACKBONE.backbone_reg.eval()
             HEAD.train()
 
             # =========== Train Loop ========
@@ -294,7 +293,7 @@ def main(cfg):
                     use_face_corr = True
 
                 labels = labels.to(DEVICE).long()
-                _, embeddings = BACKBONE_reg.execute_model(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, inputs, perspectives, face_corrs, use_face_corr)
+                _, embeddings = BACKBONE(inputs, perspectives, face_corrs, use_face_corr)
                 outputs = HEAD(embeddings, labels)
                 loss = LOSS(outputs, labels)
                 # loss = loss / ACCUMULATION_STEPS
@@ -334,7 +333,7 @@ def main(cfg):
 
             #  ======= perform validation =======
             if epoch >= UNFREEZE_AGG_EPOCH or epoch >= UNFREEZE_AGG_BACKBONE_EPOCH:
-                eval_loop(DEVICE, BACKBONE_reg, BACKBONE_agg, aggregators, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False)
+                eval_loop(BACKBONE, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False)
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
                 print("=" * 60)

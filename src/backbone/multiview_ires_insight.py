@@ -7,50 +7,35 @@ from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18, iresne
 
 
 class IR_MV_V2(nn.Module):
-    def __init__(self, backbone_fn, embedding_size=512, fp16=True):
+    def __init__(self, device, aggregators, backbone_fn, embedding_size=512, fp16=True):
         super().__init__()
-        self.backbone = backbone_fn(num_features=embedding_size, fp16=fp16)
+        self.backbone_agg = backbone_fn(num_features=embedding_size, fp16=fp16)
+        self.backbone_reg = backbone_fn(num_features=embedding_size, fp16=fp16)
         self.fp16 = fp16
         self.precision = torch.float16 if fp16 else torch.float32
+        self.aggregators = aggregators
+        self.device = device
 
-    def forward(self, x, return_featuremaps=False, execute_stage=None):
-        if execute_stage is None:
-            execute_stage = {0, 1, 2, 3, 4, 5}
+    def forward(self, inputs, perspectives, face_corr, use_face_corr):
+        stage_to_index = {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}
 
-        feature_maps = {}
+        with torch.no_grad():
+            all_views_stage_features = [[] for _ in stage_to_index]
+            for view in inputs:
+                features_stages = self.backbone_reg(view.to(self.device), return_featuremaps=True)
+                for stage, index in stage_to_index.items():
+                    if stage in features_stages:
+                        all_views_stage_features[index].append(features_stages[stage])
 
-        with torch.amp.autocast('cuda', dtype=self.precision):
-            if 0 in execute_stage:
-                x = self.backbone.conv1(x)
-                x = self.backbone.bn1(x)
-                x = self.backbone.prelu(x)
-                feature_maps['input_stage'] = x
+        embeddings_agg = self.perform_aggregation_branch(all_views_stage_features, perspectives, face_corr, use_face_corr)
+        embeddings_reg = all_views_stage_features[5]
 
-            if 1 in execute_stage:
-                x = self.backbone.layer1(x)
-                feature_maps['stage_1'] = x
+        return embeddings_reg, embeddings_agg
 
-            if 2 in execute_stage:
-                x = self.backbone.layer2(x)
-                feature_maps['stage_2'] = x
-
-            if 3 in execute_stage:
-                x = self.backbone.layer3(x)
-                feature_maps['stage_3'] = x
-
-            if 4 in execute_stage:
-                x = self.backbone.layer4(x)
-                feature_maps['stage_4'] = x
-
-            if 5 in execute_stage:
-                x = self.backbone.bn2(x)
-                x = torch.flatten(x, 1)
-                x = self.backbone.dropout(x)
-                x = self.backbone.fc(x.float() if self.fp16 else x)
-                x = self.backbone.features(x)
-                feature_maps['output_stage'] = x
-
-        return feature_maps if return_featuremaps else x
+    def eval(self):
+        self.backbone_reg.eval()
+        self.backbone_agg.eval()
+        [i.eval() for i in self.aggregators]
 
     def align_featuremap(self, featuremap, grid):
         map_x, map_y = np.array(grid)
@@ -79,13 +64,13 @@ class IR_MV_V2(nn.Module):
                     aligned[b, v] = self.align_featuremap(featuremaps[b, v], face_corr[b][v])
         return aligned
 
-    def aggregator(self, aggregators, stage_index, all_view_stage, perspectives, face_corr, use_face_corr):
+    def aggregate(self, stage_index, all_view_stage, perspectives, face_corr, use_face_corr):
         if use_face_corr and stage_index in {0, 1, 2}:
             zero_position = np.where(np.array(perspectives)[:, 0] == '0_0')[0][0]
             all_view_stage = self.align_featuremaps(all_view_stage, face_corr, zero_position)
-        return aggregators[stage_index](all_view_stage)
+        return self.aggregators[stage_index](all_view_stage)
 
-    def perform_aggregation_branch(self, backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr):
+    def perform_aggregation_branch(self, all_views_stage_features, perspectives, face_corr, use_face_corr):
         x_1, x_2, x_3, x_4 = None, None, None, None
 
         for stage_index, stage_features in enumerate(all_views_stage_features):
@@ -100,54 +85,34 @@ class IR_MV_V2(nn.Module):
             elif all_view_stage.shape[-1] == 7 and x_4 is not None:
                 all_view_stage = torch.cat((all_view_stage, x_4.unsqueeze(1)), dim=1)
 
-            views_pooled_stage = self.aggregator(aggregators, stage_index, all_view_stage, perspectives, face_corr, use_face_corr)
+            views_pooled_stage = self.aggregate(stage_index, all_view_stage, perspectives, face_corr, use_face_corr)
 
             if views_pooled_stage.shape[-1] == 112:
-                x_1 = backbone_agg(views_pooled_stage, execute_stage={1})
+                x_1 = self.backbone_agg(views_pooled_stage, execute_stage={1})
             elif views_pooled_stage.shape[-1] == 56:
-                x_2 = backbone_agg(views_pooled_stage, execute_stage={2})
+                x_2 = self.backbone_agg(views_pooled_stage, execute_stage={2})
             elif views_pooled_stage.shape[-1] == 28:
-                x_3 = backbone_agg(views_pooled_stage, execute_stage={3})
+                x_3 = self.backbone_agg(views_pooled_stage, execute_stage={3})
             elif views_pooled_stage.shape[-1] == 14:
-                x_4 = backbone_agg(views_pooled_stage, execute_stage={4})
+                x_4 = self.backbone_agg(views_pooled_stage, execute_stage={4})
             elif views_pooled_stage.shape[-1] == 7:
-                embeddings = backbone_agg(views_pooled_stage, execute_stage={5})
+                embeddings = self.backbone_agg(views_pooled_stage, execute_stage={5})
                 return embeddings
 
         raise ValueError("Illegal State")
 
-    def execute_model(self, device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr):
-        stage_to_index = {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}
 
-        with torch.no_grad():
-            all_views_stage_features = [[] for _ in stage_to_index]
-            for view in inputs:
-                features_stages = backbone_reg(view.to(device), return_featuremaps=True)
-                for stage, index in stage_to_index.items():
-                    if stage in features_stages:
-                        all_views_stage_features[index].append(features_stages[stage])
-
-        embeddings_agg = self.perform_aggregation_branch(backbone_agg, aggregators, all_views_stage_features, perspectives, face_corr, use_face_corr)
-        embeddings_reg = all_views_stage_features[5]
-
-        if self.fp16:
-            embeddings_reg = [e.to(torch.float32) for e in embeddings_reg]
-            embeddings_agg = embeddings_agg.to(torch.float32)
-
-        return embeddings_reg, embeddings_agg
+def IR_MV_V2_100(device, aggregators, embedding_size=512, fp16=False):
+    return IR_MV_V2(device, aggregators, iresnet100, embedding_size, fp16)
 
 
-def IR_MV_V2_100(embedding_size=512, fp16=False):
-    return IR_MV_V2(iresnet100, embedding_size, fp16)
+def IR_MV_V2_50(device, aggregators, embedding_size=512, fp16=False):
+    return IR_MV_V2(device, aggregators, iresnet50, embedding_size, fp16)
 
 
-def IR_MV_V2_50(embedding_size=512, fp16=False):
-    return IR_MV_V2(iresnet50, embedding_size, fp16)
+def IR_MV_V2_34(device, aggregators, embedding_size=512, fp16=False):
+    return IR_MV_V2(device, aggregators, iresnet34, embedding_size, fp16)
 
 
-def IR_MV_V2_34(embedding_size=512, fp16=False):
-    return IR_MV_V2(iresnet34, embedding_size, fp16)
-
-
-def IR_MV_V2_18(embedding_size=512, fp16=False):
-    return IR_MV_V2(iresnet18, embedding_size, fp16)
+def IR_MV_V2_18(device, aggregators, embedding_size=512, fp16=False):
+    return IR_MV_V2(device, aggregators, iresnet18, embedding_size, fp16)

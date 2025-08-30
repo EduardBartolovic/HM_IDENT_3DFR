@@ -23,14 +23,13 @@ from src.util.misc import colorstr, bold, underscore, smart_round
 
 #torch.set_float32_matmul_precision('high')
 
+
 @torch.no_grad()
-def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr: bool, disable_bar=False):
+def get_embeddings_mv(backbone, enrolled_loader, query_loader, use_face_corr: bool, disable_bar=False):
     """
     Calculate Embeddings
     """
-    backbone_reg.eval()
-    backbone_agg.eval()
-    [i.eval() for i in aggregators]
+    backbone.eval()
 
     enrolled_embeddings_reg = []
     enrolled_embeddings_agg = []
@@ -42,7 +41,7 @@ def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_
         if use_face_corr and face_corr.shape[1] == 0:
             raise ValueError("Please provide face correspondences if use_face_corr is True")
 
-        embeddings_reg, embeddings_agg = backbone_reg.execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr)
+        embeddings_reg, embeddings_agg = backbone(inputs, perspectives, face_corr, use_face_corr)
         enrolled_embeddings_agg.extend(embeddings_agg.cpu().numpy())
         enrolled_embeddings_reg.append(np.array([t.cpu().numpy() for t in embeddings_reg]))
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
@@ -65,7 +64,7 @@ def get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_
     query_scan_ids = []
     query_perspectives = 0
     for inputs, labels, perspectives, face_corr, scan_id in tqdm(iter(query_loader), disable=disable_bar, desc="Generate Query Embeddings"):
-        embeddings_reg, embeddings_agg = backbone_reg.execute_model(device, backbone_reg, backbone_agg, aggregators, inputs, perspectives, face_corr, use_face_corr)
+        embeddings_reg, embeddings_agg = backbone(inputs, perspectives, face_corr, use_face_corr)
         query_embeddings_agg.extend(embeddings_agg.cpu().numpy())
         query_embeddings_reg.append(np.array([t.cpu().numpy() for t in embeddings_reg]))
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
@@ -115,7 +114,7 @@ def load_data_mv(data_dir, max_batch_size: int, num_views: int, transform, use_f
     return dataset, data_loader
 
 
-def evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
@@ -128,7 +127,7 @@ def evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, test_path, 
 
     time.sleep(0.1)
 
-    embedding_library = get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, query_loader, use_face_corr, disable_bar)
+    embedding_library = get_embeddings_mv(backbone, enrolled_loader, query_loader, use_face_corr, disable_bar)
 
     enrolled_labels = embedding_library.enrolled_labels
     query_labels = embedding_library.query_labels
@@ -197,7 +196,7 @@ def evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, test_path, 
     return all_metrics, embedding_library, dataset_enrolled, dataset_query
 
 
-def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, k_folds=10):
+def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, k_folds=10):
     """
     Evaluate 1:1 Model Performance on given test dataset
     """
@@ -215,7 +214,7 @@ def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, test_path, 
     dataset_enrolled, enrolled_loader = load_data_mv(test_path, batch_size, num_views, test_transform, use_face_corr)
     time.sleep(0.1)
 
-    embedding_library = get_embeddings_mv(device, backbone_reg, backbone_agg, aggregators, enrolled_loader, None, use_face_corr, disable_bar)
+    embedding_library = get_embeddings_mv(backbone, enrolled_loader, None, use_face_corr, disable_bar)
 
     embeddings_agg = embedding_library.enrolled_embeddings_agg
     embeddings_reg = embedding_library.enrolled_embeddings
@@ -326,7 +325,7 @@ def evaluate_mv_1_1(device, backbone_reg, backbone_agg, aggregators, test_path, 
     return all_metrics, embedding_library, dataset_enrolled
 
 
-def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+def evaluate_and_log_mv(backbone, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
 
     test_transform = transforms.Compose([
         transforms.Resize(transform_sizes),
@@ -336,7 +335,7 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     ])
 
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset} with cropping: {transform_sizes} and face_corr: {use_face_corr}"))
-    all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_1_n(device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size, num_views, use_face_corr, disable_bar, eval_all)
+    all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_1_n(backbone, os.path.join(data_root, dataset), test_transform, batch_size, num_views, use_face_corr, disable_bar, eval_all)
 
     neutral_dataset = dataset
     for prefix in ['depth_', 'rgbd_', 'rgb_', 'test_']:
@@ -406,7 +405,7 @@ def evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_ro
     return all_metrics
 
 
-def evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggregators, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, k_folds=10):
+def evaluate_and_log_mv_verification(backbone, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, k_folds=10):
 
     test_transform = transforms.Compose([
         transforms.Resize(transform_sizes),
@@ -416,9 +415,7 @@ def evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggrega
     ])
 
     print(colorstr('bright_green', f"Perform 1:1 Evaluation on {dataset} with cropping: {transform_sizes} and face_corr: {use_face_corr} and k_folds: {k_folds}"))
-    all_metrics, embedding_library, dataset_enrolled = evaluate_mv_1_1(
-        device, backbone_reg, backbone_agg, aggregators, os.path.join(data_root, dataset), test_transform, batch_size,
-        num_views, use_face_corr, disable_bar, eval_all, k_folds)
+    all_metrics, embedding_library, dataset_enrolled = evaluate_mv_1_1(backbone, os.path.join(data_root, dataset), test_transform, batch_size, num_views, use_face_corr, disable_bar, eval_all, k_folds)
 
     neutral_dataset = dataset
     for prefix in ['depth_', 'rgbd_', 'rgb_', 'test_']:

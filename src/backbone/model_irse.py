@@ -164,10 +164,43 @@ class Backbone(Module):
 
         self._initialize_weights()
 
-    def forward(self, x, return_featuremaps=False):
-        x = self.input_layer(x)
-        x = self.body(x)
-        x = self.output_layer(x)
+    def forward(self, x, return_featuremaps=False, execute_stage=None):
+        if execute_stage is None:
+            execute_stage = {0, 1, 2, 3, 4, 5}
+
+        feature_maps = {}
+
+        # Stage 0: Input Layer
+        if 0 in execute_stage:
+            x = self.input_layer(x)
+            feature_maps['input_stage'] = x
+
+        # Body Layer Execution
+        if {1, 2, 3, 4} & execute_stage:  # Check if body should be executed
+            body_layers_to_execute = set()
+
+            # Define layers to execute for each stage
+            if 1 in execute_stage:
+                body_layers_to_execute.update({0, 1, 2})  # Layers 0 to 2
+            if 2 in execute_stage:
+                body_layers_to_execute.update({3, 4, 5, 6})  # Layers 3 to 6
+            if 3 in execute_stage:
+                body_layers_to_execute.update(range(7, 21))  # Layers 7 to 20
+            if 4 in execute_stage:
+                body_layers_to_execute.update({21, 22, 23})
+            # Execute only selected layers
+            for i, layer in enumerate(self.body):
+                if i in body_layers_to_execute:
+                    x = layer(x)
+                    if return_featuremaps and i in {2, 6, 20, 23}:
+                        feature_maps[f'block_{i}'] = x
+
+        # Stage 4: Output Layer
+        if 5 in execute_stage:
+            x = self.output_layer(x)
+            if return_featuremaps:
+                feature_maps['output_stage'] = x
+                return feature_maps
 
         return x
 

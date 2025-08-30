@@ -1,3 +1,5 @@
+from torch import nn
+
 from .misc import colorstr
 import matplotlib.pyplot as plt
 
@@ -28,21 +30,20 @@ def make_weights_for_balanced_classes(images, nclasses):
     return weight
 
 
-def separate_irse_bn_paras(modules):
-    if not isinstance(modules, list):
-        modules = [*modules.modules()]
+def separate_bn_paras(module):
     paras_only_bn = []
     paras_wo_bn = []
-    for layer in modules:
-        if 'model' in str(layer.__class__):
-            continue
-        if 'container' in str(layer.__class__):
-            continue
+
+    for m in module.modules():
+        if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
+            paras_only_bn.extend(list(m.parameters()))
         else:
-            if 'batchnorm' in str(layer.__class__):
-                paras_only_bn.extend([*layer.parameters()])
-            else:
-                paras_wo_bn.extend([*layer.parameters()])
+            paras_wo_bn.extend(
+                [p for p in m.parameters(recurse=False)]  # only this module’s params
+            )
+
+    paras_only_bn = list({id(p): p for p in paras_only_bn}.values())
+    paras_wo_bn = list({id(p): p for p in paras_wo_bn}.values())
 
     return paras_only_bn, paras_wo_bn
 
