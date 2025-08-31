@@ -336,3 +336,35 @@ def accuracy_front_perspective(embedding_library):
     result = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
     predicted_labels = enrolled_labels[top_indices[:, 0]]
     return result, similarity_matrix, top_indices, predicted_labels, query_labels
+
+
+def accuracy_best_case(embedding_library):
+
+    # enrolled_embeddings.shape -> (views, num_samples, embedding_dim)
+    # enrolled_labels.shape -> (num_samples,)
+    # enrolled_perspectives.shape -> (num_samples, views)
+
+    enrolled_embeddings = embedding_library.enrolled_embeddings  # [V, N, D]
+    enrolled_labels = embedding_library.enrolled_labels          # [N]
+    query_embeddings = embedding_library.query_embeddings        # [V, M, D]
+    query_labels = embedding_library.query_labels                # [M]
+
+    # Flatten across views so each row is (sample, view)
+    V_enrolled, N, D = enrolled_embeddings.shape
+    V_query, M, _ = query_embeddings.shape
+
+    enrolled_embeddings = enrolled_embeddings.reshape(V_enrolled * N, D)
+    enrolled_labels = np.repeat(enrolled_labels, V_enrolled)
+
+    query_embeddings = query_embeddings.reshape(V_query * M, D)
+    query_labels = np.repeat(query_labels, V_query)
+
+    # Compute similarities across all possible query<->enrolled pairs
+    similarity_matrix = calculate_embedding_similarity(query_embeddings, enrolled_embeddings)
+
+    # For each *original query sample*, pick the best view (highest similarity)
+    top_indices, top_values = compute_ranking_matrices(similarity_matrix)
+    result = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
+    predicted_labels = enrolled_labels[top_indices[:, 0]]
+
+    return result, similarity_matrix, top_indices, predicted_labels, query_labels
