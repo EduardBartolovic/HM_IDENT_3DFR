@@ -128,7 +128,6 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     time.sleep(0.1)
 
     embedding_library = get_embeddings_mv(backbone, enrolled_loader, query_loader, use_face_corr, disable_bar)
-
     enrolled_labels = embedding_library.enrolled_labels
     query_labels = embedding_library.query_labels
 
@@ -148,49 +147,48 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     if not eval_all:
         return all_metrics, embedding_library, dataset_enrolled, dataset_query
 
-    # Single Front View
+    # --------- Single Front View ---------
     metrics_front, similarity_matrix_front, top_indices_front, y_true_front, y_pred_front = accuracy_front_perspective(embedding_library)
     plot_cmc(similarity_matrix_front, enrolled_labels, query_labels, os.path.basename(test_path), "front")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_front, os.path.basename(test_path), "front")
     error_rate_per_class(query_labels, enrolled_labels, top_indices_front, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_front, os.path.basename(test_path), "_front")
     all_metrics["metrics_front"] = metrics_front
     del similarity_matrix_front, top_indices_front, y_true_front, y_pred_front
-
-    # Concat
+    # --------- Concat Full ---------
     metrics_concat, similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar)
     plot_cmc(similarity_matrix_concat, enrolled_labels, query_labels, os.path.basename(test_path), "concat")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat, os.path.basename(test_path), "concat")
     error_rate_per_class(query_labels, enrolled_labels, top_indices_concat, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_concat, os.path.basename(test_path), "_concat")
     all_metrics["metrics_concat"] = metrics_concat
     del similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat
-
+    # --------- Concat Mean ---------
     metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
     plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, os.path.basename(test_path), "concat_mean")
     all_metrics["metrics_concat_mean"] = metrics_concat_mean
     del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
-
+    # --------- Concat PCA ---------
     metrics_concat_pca, similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, reduce_with="pca")
     plot_cmc(similarity_matrix_concat_pca, enrolled_labels, query_labels, os.path.basename(test_path), "concat_pca")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_pca, os.path.basename(test_path), "concat_pca")
     all_metrics["metrics_concat_pca"] = metrics_concat_pca
     del similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca
 
-    # Score fusion
-    metrics_score_sum, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="sum")
+    # --------- Score fusion ---------
+    metrics_score_sum, similarity_matrix_score, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="sum", similarity_matrix=None)
     all_metrics["metrics_score_sum"] = metrics_score_sum
-    metrics_score_max, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar,  method="max")
+    metrics_score_max, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar,  method="max", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_max"] = metrics_score_max
-    metrics_score_prod, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar,  method="product")
+    metrics_score_prod, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar,  method="product", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_product"] = metrics_score_prod
-    metrics_score_geomean, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="geom_mean")
+    metrics_score_geomean, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="geom_mean", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_geomean"] = metrics_score_geomean
-    metrics_score_lse, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="lse")
+    metrics_score_lse, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="lse", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_lse"] = metrics_score_lse
-    metrics_score_majority, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="majority")
+    metrics_score_majority, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="majority", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_majority"] = metrics_score_majority
-    metrics_score_mean, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="mean")
+    metrics_score_mean, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="mean", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_mean"] = metrics_score_mean
-    metrics_score_trimmedmean, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="trimmed_mean")
+    metrics_score_trimmedmean, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="trimmed_mean", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_trimmedmean"] = metrics_score_trimmedmean
 
     return all_metrics, embedding_library, dataset_enrolled, dataset_query

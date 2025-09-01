@@ -210,39 +210,45 @@ def concat(embedding_library, disable_bar: bool, reduce_with=""):
     return result, similarity_matrix, top_indices, predicted_labels, query_label
 
 
-def calculate_embedding_similarity_per_view(query_embeddings, enrolled_embeddings, num_views=8, disable_bar=True):
+def calculate_embedding_similarity_per_view(query_embeddings, enrolled_embeddings, disable_bar=True, batch_size=1024):
     """
-    query_embeddings: (num_queries, num_views*dim)
-    enrolled_embeddings: (num_enrolled, num_views*dim)
+    query_embeddings: (num_queries, num_views, dim)
+    enrolled_embeddings: (num_enrolled, num_views, dim)
     returns similarity_matrix: (num_queries, num_enrolled, num_views)
     """
-    dim = query_embeddings.shape[1] // num_views
-
-    # reshape back into (N, V, D)
-    query_embeddings = query_embeddings.reshape(query_embeddings.shape[0], num_views, dim)
-    enrolled_embeddings = enrolled_embeddings.reshape(enrolled_embeddings.shape[0], num_views, dim)
-
-    num_queries, _, _ = query_embeddings.shape
+    num_queries, num_views, dim = query_embeddings.shape
     num_enrolled = enrolled_embeddings.shape[0]
 
     similarity_matrix = np.empty((num_queries, num_enrolled, num_views), dtype=np.float32)
 
     for v in range(num_views):
-        qv = query_embeddings[:, v, :] / np.linalg.norm(query_embeddings[:, v, :], axis=1, keepdims=True)
-        ev = enrolled_embeddings[:, v, :] / np.linalg.norm(enrolled_embeddings[:, v, :], axis=1, keepdims=True)
-        similarity_matrix[:, :, v] = np.dot(qv, ev.T)
+        qv = query_embeddings[:, v, :]
+        qv /= np.linalg.norm(qv, axis=1, keepdims=True)
+
+        ev = enrolled_embeddings[:, v, :]
+        ev /= np.linalg.norm(ev, axis=1, keepdims=True)
+
+        # process queries in smaller chunks
+        for start in range(0, num_queries, batch_size):
+            end = min(start + batch_size, num_queries)
+            similarity_matrix[start:end, :, v] = np.dot(qv[start:end], ev.T)
 
     return similarity_matrix
 
 
-def score_fusion(embedding_library, disable_bar: bool, method="product"):
-
+def score_fusion(embedding_library, disable_bar=True, method="product", similarity_matrix=None):
+    """
+    enrolled_embedding: (views, ids, 512)
+    query_embedding: (views, ids, 512)
+    """
     enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
-    enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
     query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
-    query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
-
-    similarity_matrix = calculate_embedding_similarity_per_view(query_embedding, enrolled_embedding, disable_bar=disable_bar)
+    if similarity_matrix is None:
+        query_embedding = np.transpose(embedding_library.query_embeddings, (1, 0, 2))  # (views, ids, 512) -> (ids, views, 512)
+        enrolled_embedding = np.transpose(embedding_library.enrolled_embeddings, (1, 0, 2))  # (views, ids, 512) -> (ids, views, 512)
+        #enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+        #query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+        similarity_matrix = calculate_embedding_similarity_per_view(query_embedding, enrolled_embedding, disable_bar)
 
     if method == "sum":
         fused_scores = np.sum(similarity_matrix, axis=-1)
@@ -286,7 +292,7 @@ def score_fusion(embedding_library, disable_bar: bool, method="product"):
     result = analyze_result(fused_scores, top_indices, enrolled_label, query_label, top_k_acc_k=5)
     predicted_labels = enrolled_label[top_indices[:, 0]]
 
-    return result, fused_scores, top_indices, predicted_labels, query_label
+    return result, similarity_matrix, fused_scores, top_indices, predicted_labels, query_label
 
 
 def fuse_pairwise_scores(emb1_reg, emb2_reg, method="sum"):
