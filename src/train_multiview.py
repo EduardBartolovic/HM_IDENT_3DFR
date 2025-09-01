@@ -32,12 +32,13 @@ import yaml
 import argparse
 
 
-def eval_loop(device, backbone_reg, backbone_agg, aggregators, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2test_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(device, backbone_reg, backbone_agg, aggregators, data_root, "test_vox2train_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv_verification(device, backbone_reg, backbone_agg, aggregators, data_root, "test_ytf_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
+    evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_vox2test_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+
 
 def main(cfg):
     SEED = cfg['SEED']
