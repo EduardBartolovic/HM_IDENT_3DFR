@@ -8,7 +8,7 @@ from src.util.visualize_feature_maps import visualize_feature_maps, visualize_al
 
 
 class MultiviewIResnet(Module):
-    def __init__(self, device, aggregators, input_size, embedding_size=512):
+    def __init__(self, device, aggregators, input_size, embedding_size=512, active_stages=None):
         super(MultiviewIResnet, self).__init__()
         assert input_size[0] in [112], "input_size should be [112, 112]"
 
@@ -16,8 +16,13 @@ class MultiviewIResnet(Module):
         self.backbone_reg = IR_50(input_size, embedding_size)
         self.aggregators = aggregators
         self.device = device
+        if active_stages is None:
+            self.active_stages = {1, 2, 3, 4, 5}
+        else:
+            self.active_stages = active_stages
+        self.stage_to_index = {"input_stage": 0, "block_2": 1, "block_6": 2, "block_20": 3, "block_23": 4, "output_stage": 5}
 
-    def forward(self, inputs, perspectives, face_corr, use_face_corr, required_stages=None):
+    def forward(self, inputs, perspectives, face_corr, use_face_corr):
         """
         inputs: list of every view: [(B,C,H,W), (B,C,H,W), (B,C,H,W), ...]
 
@@ -25,17 +30,12 @@ class MultiviewIResnet(Module):
             embeddings_reg: (B, V*512)
             embeddings_agg  (B, 512)
         """
-        if required_stages is None:
-            required_stages = {2, 3, 4, 5}
-        elif len(required_stages) == 0:
-            raise AssertionError("required_stages is undefined")
 
-        stage_to_index = {"input_stage": 0, "block_2": 1, "block_6": 2, "block_20": 3, "block_23": 4, "output_stage": 5}
         with torch.no_grad():
-            all_views_stage_features = [[] for _ in stage_to_index]
+            all_views_stage_features = [[] for _ in self.stage_to_index]
             for view in inputs:
-                features_stages = self.backbone_reg(view.to(self.device), return_featuremaps=required_stages)
-                for stage, index in stage_to_index.items():
+                features_stages = self.backbone_reg(view.to(self.device), return_featuremaps=self.active_stages)
+                for stage, index in self.stage_to_index.items():
                     if stage in features_stages:
                         all_views_stage_features[index].append(features_stages[stage])
 
@@ -160,7 +160,7 @@ class MultiviewIResnet(Module):
         raise ValueError("Illegal state")
 
 
-def IR_MV_50(device, aggregators, input_size, embedding_size):
+def IR_MV_50(device, aggregators, input_size, embedding_size=512, active_stages=None):
     """Constructs a ir-50 model.
     """
-    return MultiviewIResnet(device, aggregators, input_size, embedding_size)
+    return MultiviewIResnet(device, aggregators, input_size, embedding_size, active_stages=active_stages)

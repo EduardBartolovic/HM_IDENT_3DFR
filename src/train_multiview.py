@@ -153,11 +153,11 @@ def main(cfg):
         print("=" * 60)
 
         # ======= Backbone =======
-        BACKBONE_DICT = {'IR_MV_50': lambda: IR_MV_50(DEVICE, aggregators, INPUT_SIZE, EMBEDDING_SIZE),
-                         'IR_MV_V2_18': lambda: IR_MV_V2_18(DEVICE, aggregators, EMBEDDING_SIZE),
-                         'IR_MV_V2_34': lambda: IR_MV_V2_34(DEVICE, aggregators, EMBEDDING_SIZE),
-                         'IR_MV_V2_50': lambda: IR_MV_V2_50(DEVICE, aggregators, EMBEDDING_SIZE),
-                         'IR_MV_V2_100': lambda: IR_MV_V2_100(DEVICE, aggregators, EMBEDDING_SIZE)}
+        BACKBONE_DICT = {'IR_MV_50': lambda: IR_MV_50(DEVICE, aggregators, INPUT_SIZE, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+                         'IR_MV_V2_18': lambda: IR_MV_V2_18(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+                         'IR_MV_V2_34': lambda: IR_MV_V2_34(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+                         'IR_MV_V2_50': lambda: IR_MV_V2_50(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+                         'IR_MV_V2_100': lambda: IR_MV_V2_100(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5})}
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]()
         BACKBONE.backbone_reg.to(DEVICE)
         BACKBONE.backbone_agg.to(DEVICE)
@@ -175,8 +175,6 @@ def main(cfg):
 
         #if TORCH_COMPILE_MODE:
         #    HEAD = torch.compile(HEAD, mode=TORCH_COMPILE_MODE)
-
-        # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
 
         model_stats_head = summary(HEAD, input_size=[(BATCH_SIZE, EMBEDDING_SIZE), (BATCH_SIZE,)], dtypes=[torch.float, torch.long], verbose=0)
         print(colorstr('magenta', str(model_stats_head)))
@@ -201,6 +199,7 @@ def main(cfg):
             mlflow.log_artifacts(str(tmp_dir), artifact_path="ModelSummary")
 
         # ======= Optimizer Settings =======
+        # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
         _, head_paras_wo_bn = separate_bn_paras(HEAD)
 
         params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]

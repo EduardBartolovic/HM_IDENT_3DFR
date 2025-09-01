@@ -7,7 +7,7 @@ from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18, iresne
 
 
 class IR_MV_V2(nn.Module):
-    def __init__(self, device, aggregators, backbone_fn, embedding_size=512, fp16=True):
+    def __init__(self, device, aggregators, backbone_fn, embedding_size=512, fp16=True, active_stages=None):
         super().__init__()
         self.backbone_agg = backbone_fn(num_features=embedding_size, fp16=fp16)
         self.backbone_reg = backbone_fn(num_features=embedding_size, fp16=fp16)
@@ -15,6 +15,12 @@ class IR_MV_V2(nn.Module):
         self.precision = torch.float16 if fp16 else torch.float32
         self.aggregators = aggregators
         self.device = device
+        if active_stages is None:
+            self.active_stages = {1, 2, 3, 4, 5}
+        else:
+            self.active_stages = active_stages
+
+        self.stage_to_index = {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}
 
     def forward(self, inputs, perspectives, face_corr, use_face_corr, required_stages=None):
         """
@@ -24,18 +30,11 @@ class IR_MV_V2(nn.Module):
             embeddings_reg: (B, V*512)
             embeddings_agg  (B, 512)
         """
-        if required_stages is None:
-            required_stages = {2, 3, 4, 5}
-        elif len(required_stages) == 0:
-            raise AssertionError("required_stages is undefined")
-
-        stage_to_index = {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}
-
         with torch.no_grad():
-            all_views_stage_features = [[] for _ in stage_to_index]
+            all_views_stage_features = [[] for _ in self.stage_to_index]
             for view in inputs:
-                features_stages = self.backbone_reg(view.to(self.device), return_featuremaps=required_stages)
-                for stage, index in stage_to_index.items():
+                features_stages = self.backbone_reg(view.to(self.device), return_featuremaps=self.active_stages)
+                for stage, index in self.stage_to_index.items():
                     if stage in features_stages:
                         all_views_stage_features[index].append(features_stages[stage])
 
@@ -119,17 +118,17 @@ class IR_MV_V2(nn.Module):
         raise ValueError("Illegal state")
 
 
-def IR_MV_V2_100(device, aggregators, embedding_size=512, fp16=False):
+def IR_MV_V2_100(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
     return IR_MV_V2(device, aggregators, iresnet100, embedding_size, fp16)
 
 
-def IR_MV_V2_50(device, aggregators, embedding_size=512, fp16=False):
+def IR_MV_V2_50(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
     return IR_MV_V2(device, aggregators, iresnet50, embedding_size, fp16)
 
 
-def IR_MV_V2_34(device, aggregators, embedding_size=512, fp16=False):
+def IR_MV_V2_34(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
     return IR_MV_V2(device, aggregators, iresnet34, embedding_size, fp16)
 
 
-def IR_MV_V2_18(device, aggregators, embedding_size=512, fp16=False):
+def IR_MV_V2_18(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
     return IR_MV_V2(device, aggregators, iresnet18, embedding_size, fp16)
