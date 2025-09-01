@@ -246,8 +246,6 @@ def score_fusion(embedding_library, disable_bar=True, method="product", similari
     if similarity_matrix is None:
         query_embedding = np.transpose(embedding_library.query_embeddings, (1, 0, 2))  # (views, ids, 512) -> (ids, views, 512)
         enrolled_embedding = np.transpose(embedding_library.enrolled_embeddings, (1, 0, 2))  # (views, ids, 512) -> (ids, views, 512)
-        #enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
-        #query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
         similarity_matrix = calculate_embedding_similarity_per_view(query_embedding, enrolled_embedding, disable_bar)
 
     if method == "sum":
