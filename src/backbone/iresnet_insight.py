@@ -146,25 +146,27 @@ class IResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def old_forward(self, x):
-        with torch.cuda.amp.autocast(self.fp16):
-            x = self.conv1(x)
-            x = self.bn1(x)
-            x = self.prelu(x)
-            x = self.layer1(x)
-            x = self.layer2(x)
-            x = self.layer3(x)
-            x = self.layer4(x)
-            x = self.bn2(x)
-            x = torch.flatten(x, 1)
-            x = self.dropout(x)
-        x = self.fc(x.float() if self.fp16 else x)
-        x = self.features(x)
-        return x
+    # def forward(self, x):
+    #     with torch.cuda.amp.autocast(self.fp16):
+    #         x = self.conv1(x)
+    #         x = self.bn1(x)
+    #         x = self.prelu(x)
+    #         x = self.layer1(x)
+    #         x = self.layer2(x)
+    #         x = self.layer3(x)
+    #         x = self.layer4(x)
+    #         x = self.bn2(x)
+    #         x = torch.flatten(x, 1)
+    #         x = self.dropout(x)
+    #     x = self.fc(x.float() if self.fp16 else x)
+    #     x = self.features(x)
+    #     return x
 
-    def forward(self, x, return_featuremaps=False, execute_stage=None):
+    def forward(self, x, return_featuremaps=None, execute_stage=None):
         if execute_stage is None:
             execute_stage = {0, 1, 2, 3, 4, 5}
+        if return_featuremaps is None:
+            return_featuremaps = {}
 
         feature_maps = {}
         with torch.amp.autocast('cuda', dtype=self.precision):
@@ -172,23 +174,28 @@ class IResNet(nn.Module):
                 x = self.conv1(x)
                 x = self.bn1(x)
                 x = self.prelu(x)
-                feature_maps['input_stage'] = x
+                if 0 in return_featuremaps:
+                    feature_maps['input_stage'] = x
 
             if 1 in execute_stage:
                 x = self.layer1(x)
-                feature_maps['stage_1'] = x
+                if 1 in return_featuremaps:
+                    feature_maps['stage_1'] = x
 
             if 2 in execute_stage:
                 x = self.layer2(x)
-                feature_maps['stage_2'] = x
+                if 2 in return_featuremaps:
+                    feature_maps['stage_2'] = x
 
             if 3 in execute_stage:
                 x = self.layer3(x)
-                feature_maps['stage_3'] = x
+                if 3 in return_featuremaps:
+                    feature_maps['stage_3'] = x
 
             if 4 in execute_stage:
                 x = self.layer4(x)
-                feature_maps['stage_4'] = x
+                if 4 in return_featuremaps:
+                    feature_maps['stage_4'] = x
 
             if 5 in execute_stage:
                 x = self.bn2(x)
@@ -198,7 +205,8 @@ class IResNet(nn.Module):
         if 5 in execute_stage:
             x = self.fc(x.float() if self.fp16 else x)
             x = self.features(x)
-            feature_maps['output_stage'] = x
+            if 5 in return_featuremaps:
+                feature_maps['output_stage'] = x
 
         return feature_maps if return_featuremaps else x
 

@@ -17,7 +17,7 @@ class MultiviewIResnet(Module):
         self.aggregators = aggregators
         self.device = device
 
-    def forward(self, inputs, perspectives, face_corr, use_face_corr):
+    def forward(self, inputs, perspectives, face_corr, use_face_corr, required_stages=None):
         """
         inputs: list of every view: [(B,C,H,W), (B,C,H,W), (B,C,H,W), ...]
 
@@ -25,11 +25,16 @@ class MultiviewIResnet(Module):
             embeddings_reg: (B, V*512)
             embeddings_agg  (B, 512)
         """
+        if required_stages is None:
+            required_stages = {2, 3, 4, 5}
+        elif len(required_stages) == 0:
+            raise AssertionError("required_stages is undefined")
+
         stage_to_index = {"input_stage": 0, "block_2": 1, "block_6": 2, "block_20": 3, "block_23": 4, "output_stage": 5}
         with torch.no_grad():
             all_views_stage_features = [[] for _ in stage_to_index]
             for view in inputs:
-                features_stages = self.backbone_reg(view.to(self.device), return_featuremaps=True)
+                features_stages = self.backbone_reg(view.to(self.device), return_featuremaps=required_stages)
                 for stage, index in stage_to_index.items():
                     if stage in features_stages:
                         all_views_stage_features[index].append(features_stages[stage])
@@ -119,41 +124,40 @@ class MultiviewIResnet(Module):
         return views_pooled_stage
 
     def perform_aggregation_branch(self, all_views_stage_features, perspectives, face_corr, use_face_corr):
+        x_prev = None
+        prev_res = None
 
-        x_1 = None  # 56
-        x_2 = None  # 28
-        x_3 = None  # 14
-        x_4 = None  # 7
         for stage_index, stage_features in enumerate(all_views_stage_features):
+            if len(stage_features) == 0:
+                continue
 
             all_view_stage = torch.stack(stage_features, dim=0)  # [view, batch, c, w, h]
             all_view_stage = all_view_stage.permute(1, 0, 2, 3, 4)  # [batch, view, c, w, h]
+            res = all_view_stage.shape[-1]
 
-            if all_view_stage.shape[-1] == 56:
-                all_view_stage = torch.cat((all_view_stage, x_1.unsqueeze(1)), dim=1)
-            elif all_view_stage.shape[-1] == 28:
-                all_view_stage = torch.cat((all_view_stage, x_2.unsqueeze(1)), dim=1)
-            elif all_view_stage.shape[-1] == 14:
-                all_view_stage = torch.cat((all_view_stage, x_3.unsqueeze(1)), dim=1)
-            elif all_view_stage.shape[-1] == 7:
-                all_view_stage = torch.cat((all_view_stage, x_4.unsqueeze(1)), dim=1)
+            # concat with previous stage if res matches
+            if x_prev is not None and res == prev_res:
+                all_view_stage = torch.cat((all_view_stage, x_prev.unsqueeze(1)), dim=1)
+                x_prev = None  # free reference
 
-            # Perform pooling across views
-            views_pooled_stage = self.aggregate(stage_index, all_view_stage, perspectives, face_corr, use_face_corr)  # [batch, c, w, h]
+            # aggregate views
+            views_pooled_stage = self.aggregate(stage_index, all_view_stage, perspectives, face_corr, use_face_corr)
+            res_out = views_pooled_stage.shape[-1]
 
-            if views_pooled_stage.shape[-1] == 112:
-                x_1 = self.backbone_agg(views_pooled_stage, execute_stage={1})
-            elif views_pooled_stage.shape[-1] == 56:
-                x_2 = self.backbone_agg(views_pooled_stage, execute_stage={2})
-            elif views_pooled_stage.shape[-1] == 28:
-                x_3 = self.backbone_agg(views_pooled_stage, execute_stage={3})
-            elif views_pooled_stage.shape[-1] == 14:
-                x_4 = self.backbone_agg(views_pooled_stage, execute_stage={4})
-            elif views_pooled_stage.shape[-1] == 7:
+            # pass through backbone_agg
+            if res_out == 112:
+                x_prev, prev_res = self.backbone_agg(views_pooled_stage, execute_stage={1}), 56
+            elif res_out == 56:
+                x_prev, prev_res = self.backbone_agg(views_pooled_stage, execute_stage={2}), 28
+            elif res_out == 28:
+                x_prev, prev_res = self.backbone_agg(views_pooled_stage, execute_stage={3}), 14
+            elif res_out == 14:
+                x_prev, prev_res = self.backbone_agg(views_pooled_stage, execute_stage={4}), 7
+            elif res_out == 7:
                 embeddings = self.backbone_agg(views_pooled_stage, execute_stage={5})
                 return embeddings
 
-        raise ValueError("Illegal State")
+        raise ValueError("Illegal state")
 
 
 def IR_MV_50(device, aggregators, input_size, embedding_size):

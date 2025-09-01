@@ -164,16 +164,19 @@ class Backbone(Module):
 
         self._initialize_weights()
 
-    def forward(self, x, return_featuremaps=False, execute_stage=None):
+    def forward(self, x, return_featuremaps=None, execute_stage=None):
         if execute_stage is None:
             execute_stage = {0, 1, 2, 3, 4, 5}
+        if return_featuremaps is None:
+            return_featuremaps = {}
 
         feature_maps = {}
 
         # Stage 0: Input Layer
         if 0 in execute_stage:
             x = self.input_layer(x)
-            feature_maps['input_stage'] = x
+            if 0 in return_featuremaps:
+                feature_maps['input_stage'] = x
 
         # Body Layer Execution
         if {1, 2, 3, 4} & execute_stage:  # Check if body should be executed
@@ -192,17 +195,20 @@ class Backbone(Module):
             for i, layer in enumerate(self.body):
                 if i in body_layers_to_execute:
                     x = layer(x)
-                    if return_featuremaps and i in {2, 6, 20, 23}:
+                    # Only save feature maps if corresponding stage is in return_featuremaps
+                    if (1 in return_featuremaps and i == 2) or \
+                            (2 in return_featuremaps and i == 6) or \
+                            (3 in return_featuremaps and i == 20) or \
+                            (4 in return_featuremaps and i == 23):
                         feature_maps[f'block_{i}'] = x
 
-        # Stage 4: Output Layer
+        # Stage 5: Output Layer
         if 5 in execute_stage:
             x = self.output_layer(x)
-            if return_featuremaps:
+            if 5 in return_featuremaps:
                 feature_maps['output_stage'] = x
-                return feature_maps
 
-        return x
+        return feature_maps if return_featuremaps else x
 
     def _initialize_weights(self):
         for m in self.modules():
