@@ -22,7 +22,7 @@ class IR_MV_V2(nn.Module):
 
         self.stage_to_index = {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}
 
-    def forward(self, inputs, perspectives, face_corr, use_face_corr, required_stages=None):
+    def forward(self, inputs, perspectives, face_corr, use_face_corr):
         """
         inputs: list of every view: [(B,C,H,W), (B,C,H,W), (B,C,H,W), ...]
 
