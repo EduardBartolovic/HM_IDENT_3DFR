@@ -3,12 +3,13 @@ from torch import nn
 
 
 class MeanAggregator(nn.Module):
-    def __init__(self):
+    def __init__(self, use_aggregator_branch=True):
         """
         Initialize the MeanAggregator.
-
         """
         super(MeanAggregator, self).__init__()
+
+        self.use_aggregator_branch = use_aggregator_branch
 
     def forward(self, all_view_stage):
         """
@@ -20,11 +21,19 @@ class MeanAggregator(nn.Module):
         Returns:
             torch.Tensor: Aggregated tensor of shape [batch, c, w, h].
         """
-        return all_view_stage.mean(dim=1)
+        if self.use_aggregator_branch:
+            return all_view_stage.mean(dim=1)
+        else:
+            return all_view_stage[:, :-1, :, :, :].mean(dim=1)
 
 
-def make_mean_aggregator(view_list):
+def make_mean_aggregator(agg_config):
+
+    if agg_config["ACTIVE_STAGES"]:
+        activate_stages = agg_config["ACTIVE_STAGES"]
+    else:
+        activate_stages = (True, True, True, True, True)
     aggregators = []
-    for _ in view_list:
-        aggregators.append(MeanAggregator())
+    for active in activate_stages:
+        aggregators.append(MeanAggregator(active))
     return aggregators

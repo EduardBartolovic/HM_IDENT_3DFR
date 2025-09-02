@@ -105,6 +105,6 @@ def make_transformer_aggregator(channels_list, num_views, agg_config, use_mixed_
         elif idx == 0 and activate_stages[idx]:
             aggregators.append(TransformerAggregator(num_views=num_views, spatial_size=112, transformer_dim=64, feature_dim=64, num_layers=num_layers, use_mixed_precision=use_mixed_precision))
         else:
-            aggregators.append(MeanAggregator())
+            aggregators.append(MeanAggregator(use_aggregator_branch=True))
 
     return aggregators
