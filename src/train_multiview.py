@@ -294,7 +294,6 @@ def main(cfg):
                 _, embeddings = BACKBONE(inputs, perspectives, face_corrs, use_face_corr)
                 outputs = HEAD(embeddings, labels)
                 loss = LOSS(outputs, labels)
-                # loss = loss / ACCUMULATION_STEPS
 
                 prec1, prec5 = train_accuracy(outputs.data, labels, topk=(1, 5))
                 losses.update(loss.item(), inputs[0].size(0))
@@ -305,10 +304,6 @@ def main(cfg):
                 OPTIMIZER.zero_grad()
                 loss.backward()
                 OPTIMIZER.step()
-
-                # if (step + 1) % ACCUMULATION_STEPS == 0:
-                #    OPTIMIZER.step()
-                #    OPTIMIZER.zero_grad()
 
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     print("=" * 60)

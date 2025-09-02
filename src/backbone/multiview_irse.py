@@ -27,7 +27,7 @@ class MultiviewIResnet(Module):
         inputs: list of every view: [(B,C,H,W), (B,C,H,W), (B,C,H,W), ...]
 
         output:
-            embeddings_reg: (B, V*512)
+            embeddings_reg: (V, B, 512)
             embeddings_agg  (B, 512)
         """
 
