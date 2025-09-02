@@ -28,7 +28,7 @@ DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm s
 SHUFFLE_PERSPECTIVES: False
 OPTIMIZER_NAME: SGD
 LR: 0.004  # initial LR
-NUM_EPOCH: 0  # total epoch number (use the first 1/25 epochs to warm up)
+NUM_EPOCH: 30  # total epoch number (use the first 1/25 epochs to warm up)
 UNFREEZE_AGG_EPOCH: 15  # number of epochs to only train the head
 UNFREEZE_AGG_BACKBONE_EPOCH: 100  # number of epochs not to train the aggregator-backbone
 PATIENCE: 100  # patience for early stopping
