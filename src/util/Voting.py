@@ -268,6 +268,7 @@ def score_fusion(embedding_library, disable_bar=True, method="product", similari
         fused_scores = np.sum(borda_scores, axis=-1)
     elif method == "majority":
         # argmax per view, then vote
+        # Idea: winners = np.argmax(similarity_matrix + 1e-9 * np.arange(similarity_matrix.shape[1]), axis=1)
         winners = np.argmax(similarity_matrix, axis=1)  # (Q, V)
         num_queries, num_views = winners.shape
         num_enrolled = similarity_matrix.shape[1]
