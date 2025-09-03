@@ -1,12 +1,12 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP448-IR_MV_50_GLINT-BFF10K8-M234T5_1layers-ArcFace_m45-FocalLoss-epochs25-fro_agg_15-batch16'  # experiment_name
-DATA_ROOT: '/home/gustav/dataset10'  # the parent data root
+DATA_ROOT: '/mnt/md0/ebartolo/dataset10'  # the parent data root
 TRAIN_SET: 'rgb_bff_crop8'  # train dataset name
 
 MODEL_ROOT: './model'  # the root to buffer checkpoints
 LOG_ROOT: './log'  # the root to log
-BACKBONE_RESUME_ROOT: '/home/gustav/HM_IDENT_3DFR/pretrained/glint_cosface_r50_fp16.pth'  # the root to resume training from a saved checkpoint
+BACKBONE_RESUME_ROOT: '/mnt/md0/ebartolo/HM_IDENT_3DFR/pretrained/glint_cosface_r50_fp16.pth'  # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 USE_FACE_CORR: False
 BACKBONE_NAME: 'IR_MV_V2_50'
