@@ -55,6 +55,7 @@ def main(cfg):
     AGG_NAME = cfg['AGG']['AGG_NAME']  # support: ['WeightedSumAggregator', 'MeanAggregator', 'SEAggregator']
     AGG_CONFIG = cfg['AGG']['AGG_CONFIG']  # Aggregator Config
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
+    HEAD_PARAMS = cfg.get('HEAD_PARAMS', [64.0, 0.50])
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
 
@@ -65,7 +66,6 @@ def main(cfg):
     use_face_corr = cfg['USE_FACE_CORR']
     EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']  # embedding dimension
     BATCH_SIZE = cfg['BATCH_SIZE']  # Batch size in training
-    ACCUMULATION_STEPS = cfg.get('ACCUMULATION_STEPS', 1)
     DROP_LAST = cfg['DROP_LAST']  # whether drop the last batch to ensure consistent batch_norm statistics
     SHUFFLE_PERSPECTIVES = cfg.get('SHUFFLE_PERSPECTIVES', False)  # shuffle perspectives during train loop
     LR = cfg['LR']  # initial LR
@@ -88,8 +88,6 @@ def main(cfg):
     print("Overall Configurations:")
     print(cfg)
     print("=" * 60)
-
-    #torch.set_float32_matmul_precision('high')
 
     # ===== ML FLOW Set up ============
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
@@ -165,7 +163,7 @@ def main(cfg):
         print("=" * 60)
 
         # ======= HEAD & LOSS =======
-        HEAD_DICT = {'ArcFace': lambda: ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
+        HEAD_DICT = {'ArcFace': lambda: ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID, s=HEAD_PARAMS[0], m=HEAD_PARAMS[1]),
                      'CosFace': lambda: CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'SphereFace': lambda: SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
                      'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
