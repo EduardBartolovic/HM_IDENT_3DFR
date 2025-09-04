@@ -15,6 +15,7 @@ from src.aggregator.MedianAggregator import make_median_aggregator
 from src.aggregator.RobustMeanAggregator import make_rma
 from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_transformer_aggregator
+from src.aggregator.TransformerAggregatorV2 import make_transformerv2_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
 from src.backbone.multiview_irse import IR_MV_50
 from src.backbone.multiview_ires_insight import IR_MV_V2_50, IR_MV_V2_34, IR_MV_V2_18, IR_MV_V2_100
@@ -137,7 +138,8 @@ def main(cfg):
                     'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS]*5),
                     'ConvAggregator': lambda: make_conv_aggregator(AGG_CONFIG),
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
-                    'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG)}
+                    'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG),
+                    'TransformerAggregatorV2': lambda: make_transformerv2_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG)}
         aggregators = AGG_DICT[AGG_NAME]()
         model_arch = [(BATCH_SIZE, NUM_VIEWS, 64, 112, 112), (BATCH_SIZE, NUM_VIEWS+1, 64, 56, 56), (BATCH_SIZE, NUM_VIEWS+1, 128, 28, 28), (BATCH_SIZE, NUM_VIEWS+1, 256, 14, 14), (BATCH_SIZE, NUM_VIEWS+1, 512, 7, 7)]
         model_stats_agg = []
