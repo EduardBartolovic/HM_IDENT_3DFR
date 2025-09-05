@@ -109,14 +109,9 @@ class MultiviewIResnet(Module):
 
     def aggregate(self, stage_index, all_view_stage, perspectives, face_corr, use_face_corr):
 
-        if use_face_corr:
+        if use_face_corr and stage_index < 3:
             zero_position = np.where(np.array(perspectives)[:, 0] == '0_0')[0][0]
-            if stage_index == 0:
-                all_view_stage = self.align_featuremaps(all_view_stage, face_corr, zero_position)
-            if stage_index == 1:
-                all_view_stage = self.align_featuremaps(all_view_stage, face_corr, zero_position)
-            if stage_index == 2:
-                all_view_stage = self.align_featuremaps(all_view_stage, face_corr, zero_position)
+            all_view_stage = self.align_featuremaps(all_view_stage, face_corr, zero_position)
 
         views_pooled_stage = self.aggregators[stage_index](all_view_stage)
         #visualize_all_views_and_pooled(all_view_stage, views_pooled_stage, output_dir=f"feature_map_outputs_{stage_index}")
@@ -126,6 +121,7 @@ class MultiviewIResnet(Module):
     def perform_aggregation_branch(self, all_views_stage_features, perspectives, face_corr, use_face_corr):
         x_prev = None
         prev_res = None
+        print(prev_res)
 
         for stage_index, stage_features in enumerate(all_views_stage_features):
             if len(stage_features) == 0:
@@ -138,7 +134,7 @@ class MultiviewIResnet(Module):
             # concat with previous stage if res matches
             if x_prev is not None and res == prev_res:
                 all_view_stage = torch.cat((all_view_stage, x_prev.unsqueeze(1)), dim=1)
-                x_prev = None  # free reference
+                x_prev = None
 
             # aggregate views
             views_pooled_stage = self.aggregate(stage_index, all_view_stage, perspectives, face_corr, use_face_corr)

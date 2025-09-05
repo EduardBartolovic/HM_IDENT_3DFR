@@ -96,7 +96,7 @@ class IR_MV_V2(nn.Module):
             # concat with previous stage if res matches
             if x_prev is not None and res == prev_res:
                 all_view_stage = torch.cat((all_view_stage, x_prev.unsqueeze(1)), dim=1)
-                x_prev = None  # free reference
+                x_prev = None
 
             # aggregate views
             views_pooled_stage = self.aggregate(stage_index, all_view_stage, perspectives, face_corr, use_face_corr)
@@ -119,16 +119,16 @@ class IR_MV_V2(nn.Module):
 
 
 def IR_MV_V2_100(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
-    return IR_MV_V2(device, aggregators, iresnet100, embedding_size, fp16)
+    return IR_MV_V2(device, aggregators, iresnet100, embedding_size, fp16, active_stages)
 
 
 def IR_MV_V2_50(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
-    return IR_MV_V2(device, aggregators, iresnet50, embedding_size, fp16)
+    return IR_MV_V2(device, aggregators, iresnet50, embedding_size, fp16, active_stages)
 
 
 def IR_MV_V2_34(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
-    return IR_MV_V2(device, aggregators, iresnet34, embedding_size, fp16)
+    return IR_MV_V2(device, aggregators, iresnet34, embedding_size, fp16, active_stages)
 
 
 def IR_MV_V2_18(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
-    return IR_MV_V2(device, aggregators, iresnet18, embedding_size, fp16)
+    return IR_MV_V2(device, aggregators, iresnet18, embedding_size, fp16, active_stages)
