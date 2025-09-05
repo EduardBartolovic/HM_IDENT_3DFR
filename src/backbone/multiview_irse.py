@@ -121,7 +121,6 @@ class MultiviewIResnet(Module):
     def perform_aggregation_branch(self, all_views_stage_features, perspectives, face_corr, use_face_corr):
         x_prev = None
         prev_res = None
-        print(prev_res)
 
         for stage_index, stage_features in enumerate(all_views_stage_features):
             if len(stage_features) == 0:
