@@ -73,6 +73,7 @@ def main(cfg):
     NUM_EPOCH = cfg['NUM_EPOCH']
     PATIENCE = cfg.get('PATIENCE', 10)
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
+    WEIGHT_DECAY_HEAD = cfg.get('WEIGHT_DECAY_HEAD', 0.0005)
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
     UNFREEZE_AGG_EPOCH = cfg.get('UNFREEZE_AGG_EPOCH', 1)  # Unfreeze aggregators after X Epochs. Train Arcface Head first for smoother fine-tuning
@@ -200,7 +201,7 @@ def main(cfg):
         # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
         _, head_paras_wo_bn = separate_bn_paras(HEAD)
 
-        params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
+        params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY_HEAD}]
         OPTIMIZER_DICT = {'SGD': lambda: optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
                           'ADAM': lambda: optim.Adam(params_list, lr=LR),
                           'ADAMW': lambda: optim.AdamW(params_list, lr=LR)}
