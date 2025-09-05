@@ -142,7 +142,7 @@ def main(cfg):
                     'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG),
                     'TransformerAggregatorV2': lambda: make_transformerv2_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG)}
         aggregators = AGG_DICT[AGG_NAME]()
-        model_arch = [(BATCH_SIZE, NUM_VIEWS, 64, 112, 112), (BATCH_SIZE, NUM_VIEWS+1, 64, 56, 56), (BATCH_SIZE, NUM_VIEWS+1, 128, 28, 28), (BATCH_SIZE, NUM_VIEWS+1, 256, 14, 14), (BATCH_SIZE, NUM_VIEWS+1, 512, 7, 7)]
+        model_arch = [(BATCH_SIZE, NUM_VIEWS, 64, 112, 112), (BATCH_SIZE, NUM_VIEWS, 64, 56, 56), (BATCH_SIZE, NUM_VIEWS+1, 128, 28, 28), (BATCH_SIZE, NUM_VIEWS+1, 256, 14, 14), (BATCH_SIZE, NUM_VIEWS+1, 512, 7, 7)]
         model_stats_agg = []
         for agg, model_arch in zip(aggregators, model_arch):
             agg.to(DEVICE)

@@ -4,7 +4,7 @@ from torch import nn
 
 
 class WeightedSumAggregator(nn.Module):
-    def __init__(self, num_views, last_view_bias=2.0):
+    def __init__(self, num_views, last_view_bias=0.0):
         """
         Initialize the WeightedSumAggregator.
 
@@ -39,8 +39,7 @@ class WeightedSumAggregator(nn.Module):
 
 
 def make_weighted_sum_aggregator(view_list):
-    if view_list is None:
-        view_list = [[25, 0], [26, 2], [26, 2], [26, 2], [26, 2]]
+    view_list = [[8, 0], [8, 0], [9, 0], [9, 0], [9, 0]]
     aggregators = []
     for views, bias in view_list:
         aggregators.append(WeightedSumAggregator(views, last_view_bias=bias))
