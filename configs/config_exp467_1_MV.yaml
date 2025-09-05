@@ -34,7 +34,7 @@ UNFREEZE_AGG_EPOCH: 15  # number of epochs to only train the head
 UNFREEZE_AGG_BACKBONE_EPOCH: 100  # number of epochs not to train the aggregator-backbone
 PATIENCE: 100  # patience for early stopping
 WEIGHT_DECAY: 0.001
-WEIGHT_DECAY_HEAD: 0.0005 # Weightdecay for arcface head
+WEIGHT_DECAY_HEAD: 0.0005 # weight decay for arcface head
 MOMENTUM: 0.3
 STAGES: [20, 35, 39]  # epoch stages to decay learning rate
 
