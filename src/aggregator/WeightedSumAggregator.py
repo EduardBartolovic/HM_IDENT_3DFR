@@ -30,7 +30,10 @@ class WeightedSumAggregator(nn.Module):
         normalized_weights = f.softmax(self.weights, dim=0)
 
         # Apply weighted sum pooling
-        views_pooled_stage = torch.einsum('bvchw,v->bchw', all_view_stage, normalized_weights)
+        if all_view_stage.shape[1] == self.weights.shape[0]:
+            views_pooled_stage = torch.einsum('bvchw,v->bchw', all_view_stage, normalized_weights)
+        else:
+            views_pooled_stage = torch.einsum('bvchw,v->bchw', all_view_stage[:,:-1,:,:,:], normalized_weights)
 
         return views_pooled_stage
 
@@ -39,7 +42,7 @@ class WeightedSumAggregator(nn.Module):
 
 
 def make_weighted_sum_aggregator(view_list):
-    view_list = [[8, 0], [8, 0], [8, 0], [9, 0], [9, 0]]
+    view_list = [[8, 0], [8, 0], [8, 0], [8, 0], [8, 0]]
     aggregators = []
     for views, bias in view_list:
         aggregators.append(WeightedSumAggregator(views, last_view_bias=bias))
