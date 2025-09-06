@@ -70,7 +70,7 @@ class IResNet(nn.Module):
     fc_scale = 7 * 7
 
     def __init__(self,
-                 block, layers, dropout=0, num_features=512, zero_init_residual=False,
+                 block, layers, dropout=0, embedding_size=512, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None, fp16=False):
         super(IResNet, self).__init__()
         self.extra_gflops = 0.0
@@ -106,8 +106,8 @@ class IResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[2])
         self.bn2 = nn.BatchNorm2d(512 * block.expansion, eps=1e-05, )
         self.dropout = nn.Dropout(p=dropout, inplace=True)
-        self.fc = nn.Linear(512 * block.expansion * self.fc_scale, num_features)
-        self.features = nn.BatchNorm1d(num_features, eps=1e-05)
+        self.fc = nn.Linear(512 * block.expansion * self.fc_scale, embedding_size)
+        self.features = nn.BatchNorm1d(embedding_size, eps=1e-05)
         nn.init.constant_(self.features.weight, 1.0)
         self.features.weight.requires_grad = False
 

@@ -228,7 +228,7 @@ class Backbone(Module):
                     m.bias.data.zero_()
 
 
-def IR_50(input_size, embedding_size):
+def ir_50(input_size=(112, 112), embedding_size=512, fp16=False):
     """Constructs a ir-50 model.
     """
     model = Backbone(input_size, 50, 'ir', embedding_size)
@@ -236,7 +236,7 @@ def IR_50(input_size, embedding_size):
     return model
 
 
-def IR_101(input_size, embedding_size):
+def ir_101(input_size=(112, 112), embedding_size=512, fp16=False):
     """Constructs a ir-101 model.
     """
     model = Backbone(input_size, 100, 'ir', embedding_size)
@@ -244,7 +244,7 @@ def IR_101(input_size, embedding_size):
     return model
 
 
-def IR_152(input_size, embedding_size):
+def ir_152(input_size=(112, 112), embedding_size=512, fp16=False):
     """Constructs a ir-152 model.
     """
     model = Backbone(input_size, 152, 'ir', embedding_size)
@@ -252,7 +252,7 @@ def IR_152(input_size, embedding_size):
     return model
 
 
-def IR_SE_50(input_size, embedding_size):
+def ir_se_50(input_size=(112, 112), embedding_size=512, fp16=False):
     """Constructs a ir_se-50 model.
     """
     model = Backbone(input_size, 50, 'ir_se', embedding_size)
@@ -260,7 +260,7 @@ def IR_SE_50(input_size, embedding_size):
     return model
 
 
-def IR_SE_101(input_size, embedding_size):
+def ir_se_101(input_size=(112, 112), embedding_size=512, fp16=False):
     """Constructs a ir_se-101 model.
     """
     model = Backbone(input_size, 100, 'ir_se', embedding_size)
@@ -268,7 +268,7 @@ def IR_SE_101(input_size, embedding_size):
     return model
 
 
-def IR_SE_152(input_size, embedding_size):
+def ir_se_152(input_size=(112, 112), embedding_size=512, fp16=False):
     """Constructs a ir_se-152 model.
     """
     model = Backbone(input_size, 152, 'ir_se', embedding_size)

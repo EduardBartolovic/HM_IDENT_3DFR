@@ -4,15 +4,15 @@ import torch.nn.functional as F
 import torch.nn as nn
 
 from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18, iresnet100
+from src.backbone.model_irse import ir_50
 
 
-class IR_MV_V2(nn.Module):
-    def __init__(self, device, aggregators, backbone_fn, embedding_size=512, fp16=True, active_stages=None):
+class MultiviewIResnet(nn.Module):
+
+    def __init__(self, device, aggregators, backbone_fn, stage_to_index, embedding_size=512, fp16=True, active_stages=None):
         super().__init__()
-        self.backbone_agg = backbone_fn(num_features=embedding_size, fp16=fp16)
-        self.backbone_reg = backbone_fn(num_features=embedding_size, fp16=fp16)
-        self.fp16 = fp16
-        self.precision = torch.float16 if fp16 else torch.float32
+        self.backbone_agg = backbone_fn(embedding_size=embedding_size, fp16=fp16)
+        self.backbone_reg = backbone_fn(embedding_size=embedding_size, fp16=fp16)
         self.aggregators = aggregators
         self.device = device
         if active_stages is None:
@@ -20,7 +20,7 @@ class IR_MV_V2(nn.Module):
         else:
             self.active_stages = active_stages
 
-        self.stage_to_index = {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}
+        self.stage_to_index = stage_to_index
 
     def forward(self, inputs, perspectives, face_corr, use_face_corr):
         """
@@ -118,17 +118,21 @@ class IR_MV_V2(nn.Module):
         raise ValueError("Illegal state")
 
 
-def IR_MV_V2_100(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
-    return IR_MV_V2(device, aggregators, iresnet100, embedding_size, fp16, active_stages)
+def ir_mv_50(device, aggregators, embedding_size=512, active_stages=None):
+    return MultiviewIResnet(device, aggregators, ir_50, {"input_stage": 0, "block_2": 1, "block_6": 2, "block_20": 3, "block_23": 4, "output_stage": 5}, embedding_size, fp16=False, active_stages=active_stages)
 
 
-def IR_MV_V2_50(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
-    return IR_MV_V2(device, aggregators, iresnet50, embedding_size, fp16, active_stages)
+def ir_mv_v2_100(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
+    return MultiviewIResnet(device, aggregators, iresnet100, {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}, embedding_size, fp16, active_stages)
 
 
-def IR_MV_V2_34(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
-    return IR_MV_V2(device, aggregators, iresnet34, embedding_size, fp16, active_stages)
+def ir_mv_v2_50(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
+    return MultiviewIResnet(device, aggregators, iresnet50, {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}, embedding_size, fp16, active_stages)
 
 
-def IR_MV_V2_18(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
-    return IR_MV_V2(device, aggregators, iresnet18, embedding_size, fp16, active_stages)
+def ir_mv_v2_34(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
+    return MultiviewIResnet(device, aggregators, iresnet34, {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}, embedding_size, fp16, active_stages)
+
+
+def ir_mv_v2_18(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
+    return MultiviewIResnet(device, aggregators, iresnet18, {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}, embedding_size, fp16, active_stages)

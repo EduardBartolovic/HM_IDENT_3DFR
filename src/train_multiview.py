@@ -17,8 +17,7 @@ from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_transformer_aggregator
 from src.aggregator.TransformerAggregatorV2 import make_transformerv2_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
-from src.backbone.multiview_irse import IR_MV_50
-from src.backbone.multiview_ires_insight import IR_MV_V2_50, IR_MV_V2_34, IR_MV_V2_18, IR_MV_V2_100
+from src.backbone.multiview_ires import ir_mv_v2_50, ir_mv_v2_34, ir_mv_v2_18, ir_mv_v2_100, ir_mv_50
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mv, evaluate_and_log_mv_verification
 from src.util.load_checkpoint import load_checkpoint
@@ -152,11 +151,11 @@ def main(cfg):
         print("=" * 60)
 
         # ======= Backbone =======
-        BACKBONE_DICT = {'IR_MV_50': lambda: IR_MV_50(DEVICE, aggregators, INPUT_SIZE, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
-                         'IR_MV_V2_18': lambda: IR_MV_V2_18(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
-                         'IR_MV_V2_34': lambda: IR_MV_V2_34(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
-                         'IR_MV_V2_50': lambda: IR_MV_V2_50(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
-                         'IR_MV_V2_100': lambda: IR_MV_V2_100(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5})}
+        BACKBONE_DICT = {'IR_MV_50': lambda: ir_mv_50(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+                         'IR_MV_V2_18': lambda: ir_mv_v2_18(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+                         'IR_MV_V2_34': lambda: ir_mv_v2_34(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+                         'IR_MV_V2_50': lambda: ir_mv_v2_50(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+                         'IR_MV_V2_100': lambda: ir_mv_v2_100(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5})}
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]()
         BACKBONE.backbone_reg.to(DEVICE)
         BACKBONE.backbone_agg.to(DEVICE)
