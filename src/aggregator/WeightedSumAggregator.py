@@ -16,7 +16,7 @@ class WeightedSumAggregator(nn.Module):
         initial_weights[-1] += last_view_bias  # Boost view
         self.weights = nn.Parameter(initial_weights)
 
-    def forward(self, all_view_stage):
+    def forward(self, all_view_stage: torch.Tensor, *arg, **kwargs):
         """
         Perform weighted sum pooling.
 

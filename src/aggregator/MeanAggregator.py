@@ -11,7 +11,7 @@ class MeanAggregator(nn.Module):
 
         self.use_aggregator_branch = use_aggregator_branch
 
-    def forward(self, all_view_stage):
+    def forward(self, all_view_stage, *arg, **kwargs):
         """
         Perform mean pooling.
 

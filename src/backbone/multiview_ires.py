@@ -75,11 +75,17 @@ class MultiviewIResnet(nn.Module):
                     aligned[b, v] = self.align_featuremap(featuremaps[b, v], face_corr[b][v])
         return aligned
 
-    def aggregate(self, stage_index, all_view_stage, perspectives, face_corr, use_face_corr):
+    def aggregate(self, stage_index, all_view_stage, perspectives, face_corr, use_face_corr, embs=None):
         if use_face_corr and stage_index in {0, 1, 2}:
             zero_position = np.where(np.array(perspectives)[:, 0] == '0_0')[0][0]
             all_view_stage = self.align_featuremaps(all_view_stage, face_corr, zero_position)
-        return self.aggregators[stage_index](all_view_stage)
+
+        if embs:
+            all_view_embs = torch.stack(embs, dim=0)  # [view, batch, d]
+            all_view_embs = all_view_embs.permute(1, 0, 2)  # [batch, view, d]
+            return self.aggregators[stage_index](all_view_stage, all_view_embs)
+        else:
+            return self.aggregators[stage_index](all_view_stage)
 
     def perform_aggregation_branch(self, all_views_stage_features, perspectives, face_corr, use_face_corr):
         x_prev = None
@@ -99,7 +105,7 @@ class MultiviewIResnet(nn.Module):
                 x_prev = None
 
             # aggregate views
-            views_pooled_stage = self.aggregate(stage_index, all_view_stage, perspectives, face_corr, use_face_corr)
+            views_pooled_stage = self.aggregate(stage_index, all_view_stage, perspectives, face_corr, use_face_corr, embs=all_views_stage_features[5])
             res_out = views_pooled_stage.shape[-1]
 
             # pass through backbone_agg

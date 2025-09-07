@@ -10,6 +10,7 @@ import torchvision.transforms as transforms
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.aggregator.ConvAggregator import make_conv_aggregator
+from src.aggregator.EmbeddingWeightedAggregator import make_embeddingweighted_aggregator
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.MedianAggregator import make_median_aggregator
 from src.aggregator.RobustMeanAggregator import make_rma
@@ -34,9 +35,9 @@ import argparse
 def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
     evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(backbone, data_root, "test_vox2test_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    #evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    #evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    #evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
 
 def main(cfg):
@@ -128,24 +129,25 @@ def main(cfg):
             num_workers=NUM_WORKERS, drop_last=DROP_LAST
         )
 
-        NUM_CLASS = len(train_loader.dataset.classes)
-        print("Number of Training Classes: {}".format(NUM_CLASS))
+        num_class = len(dataset_train.classes)
+        print("Number of Training Classes: {}".format(num_class))
 
         # ======= Aggregator =======
-        AGG_DICT = {'WeightedSumAggregator': lambda: make_weighted_sum_aggregator(AGG_CONFIG),
+        agg_dict = {'WeightedSumAggregator': lambda: make_weighted_sum_aggregator(AGG_CONFIG),
                     'MeanAggregator': lambda: make_mean_aggregator(AGG_CONFIG),
                     'RobustMeanAggregator': lambda: make_rma([NUM_VIEWS]*5),
                     'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS]*5),
                     'ConvAggregator': lambda: make_conv_aggregator(AGG_CONFIG),
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
                     'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG),
-                    'TransformerAggregatorV2': lambda: make_transformerv2_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG)}
-        aggregators = AGG_DICT[AGG_NAME]()
+                    'TransformerAggregatorV2': lambda: make_transformerv2_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG),
+                    'EmbeddingWeightedAggregator': lambda: make_embeddingweighted_aggregator(AGG_CONFIG),}
+        aggregators = agg_dict[AGG_NAME]()
         model_arch = [(BATCH_SIZE, NUM_VIEWS, 64, 112, 112), (BATCH_SIZE, NUM_VIEWS, 64, 56, 56), (BATCH_SIZE, NUM_VIEWS, 128, 28, 28), (BATCH_SIZE, NUM_VIEWS+1, 256, 14, 14), (BATCH_SIZE, NUM_VIEWS+1, 512, 7, 7)]
         model_stats_agg = []
-        for agg, model_arch in zip(aggregators, model_arch):
+        for agg, arch in zip(aggregators, model_arch):
             agg.to(DEVICE)
-            model_stat = summary(agg, model_arch, verbose=0)
+            model_stat = summary(agg, (arch, (BATCH_SIZE, NUM_VIEWS, 512)), verbose=0, device=DEVICE)
             print(colorstr('magenta', str(model_stat)))
             model_stats_agg.append(model_stat)
         print("=" * 60)
@@ -165,10 +167,10 @@ def main(cfg):
         print("=" * 60)
 
         # ======= HEAD & LOSS =======
-        HEAD_DICT = {'ArcFace': lambda: ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID, s=HEAD_PARAMS[0], m=HEAD_PARAMS[1]),
-                     'CosFace': lambda: CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
-                     'SphereFace': lambda: SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
-                     'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
+        HEAD_DICT = {'ArcFace': lambda: ArcFace(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID, s=HEAD_PARAMS[0], m=HEAD_PARAMS[1]),
+                     'CosFace': lambda: CosFace(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID),
+                     'SphereFace': lambda: SphereFace(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID),
+                     'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID)}
         HEAD = HEAD_DICT[HEAD_NAME]().to(DEVICE)
 
         #if TORCH_COMPILE_MODE:
