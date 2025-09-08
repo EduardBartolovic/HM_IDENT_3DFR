@@ -31,7 +31,9 @@ import os
 import mlflow
 import yaml
 import argparse
+from dotenv import load_dotenv
 
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
     evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
@@ -40,17 +42,16 @@ def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, 
     #evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     #evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
-
 def main(cfg):
     SEED = cfg['SEED']
     torch.manual_seed(SEED)
 
     RUN_NAME = cfg['RUN_NAME']
-    DATA_ROOT = cfg['DATA_ROOT']  # the parent root where the datasets are stored
+    DATA_ROOT = os.path.join(os.getenv("DATA_ROOT"),cfg['DATA_ROOT_PATH'])  # the parent root where the datasets are stored
     TRAIN_SET = cfg['TRAIN_SET']
     MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
     LOG_ROOT = cfg['LOG_ROOT']
-    BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']  # the root to resume training from a saved checkpoint
+    BACKBONE_RESUME_ROOT = os.path.join(os.getenv("BACKBONE_RESUME_ROOT"), cfg['BACKBONE_RESUME_PATH'])  # the root to resume training from a saved checkpoint
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
 
     BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
