@@ -10,6 +10,7 @@ import torchvision.transforms as transforms
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.aggregator.ConvAggregator import make_conv_aggregator
+from src.aggregator.CosineDistanceWeightedAggregator import make_cosinedistance_weighted_aggregator
 from src.aggregator.EmbeddingWeightedAggregator import make_embeddingweighted_aggregator
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.MedianAggregator import make_median_aggregator
@@ -141,7 +142,8 @@ def main(cfg):
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
                     'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG),
                     'TransformerAggregatorV2': lambda: make_transformerv2_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG),
-                    'EmbeddingWeightedAggregator': lambda: make_embeddingweighted_aggregator(AGG_CONFIG),}
+                    'EmbeddingWeightedAggregator': lambda: make_embeddingweighted_aggregator(AGG_CONFIG),
+                    'CosineDistanceAggregator': lambda: make_cosinedistance_weighted_aggregator(AGG_CONFIG),}
         aggregators = agg_dict[AGG_NAME]()
         model_arch = [(BATCH_SIZE, NUM_VIEWS, 64, 112, 112), (BATCH_SIZE, NUM_VIEWS, 64, 56, 56), (BATCH_SIZE, NUM_VIEWS, 128, 28, 28), (BATCH_SIZE, NUM_VIEWS+1, 256, 14, 14), (BATCH_SIZE, NUM_VIEWS+1, 512, 7, 7)]
         model_stats_agg = []

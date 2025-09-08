@@ -1,6 +1,6 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP480-IR_MV_18_GLINT-Vox2Test-EWS5-ArcFace-FocalLoss-epochs25-fro_agg_15-batch16'  # experiment_name
+RUN_NAME: 'EXP480-IR_MV_18_GLINT-Vox2Test-CDW5-ArcFace-FocalLoss-epochs25-fro_agg_15-batch16'  # experiment_name
 DATA_ROOT: '/mnt/md0/ebartolo/dataset10'  # the parent data root
 TRAIN_SET: 'vox2test_crop8'  # train dataset name
 
@@ -11,7 +11,7 @@ HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 USE_FACE_CORR: False
 BACKBONE_NAME: 'IR_MV_V2_18'
 AGG:
-  AGG_NAME: 'EmbeddingWeightedAggregator'
+  AGG_NAME: 'CosineDistanceAggregator'
   AGG_CONFIG:
     ACTIVE_STAGES: [False, False, False, False, True]
     NUM_LAYERS: 1
