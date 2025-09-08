@@ -50,9 +50,11 @@ class MultiviewDataset(Dataset):
                     ext = os.path.splitext(filename)[1].lower()
                     if ext in self.valid_image_ext:
                         match = self.filename_regex.match(filename.name[40:-10])
+                        #match = self.filename_regex.match(filename.name[21:-4].split("#")[1])
                         if not match:
                             raise ValueError(f"Invalid filename format: {filename.name}")
                         sha_hash = filename.name[:40]
+                        #sha_hash = filename.name[:20]
                         sha_groups[sha_hash].append(filename.path)
 
                     elif ext == ".npz":
@@ -61,6 +63,7 @@ class MultiviewDataset(Dataset):
             # Append each grouped data point to the dataset
             for file_paths in sha_groups.values():
                 if len(file_paths) == self.num_views:
+                    #data.append((sorted(file_paths, key=_sort_key), class_idx))  # Sort the data so perspectives are always at the same position
                     data.append((sorted(file_paths), class_idx))  # Sort the data so perspectives are always at the same position
                 else:
                     raise ValueError(f"Incorrect number of views ({len(file_paths)}), expected {self.num_views}: {file_paths}")
@@ -93,6 +96,8 @@ class MultiviewDataset(Dataset):
         # Load all perspectives and Scan ids
         perspectives = [os.path.basename(img_path)[40:-10] for img_path in img_paths]
         scan_id = os.path.basename(img_paths[0])[:40]
+        #perspectives = [os.path.basename(img_path)[21:-4].split("#")[1] for img_path in img_paths]
+        #scan_id = os.path.basename(img_paths[0])[:20]
 
         if self.shuffle_views:
             if self.face_cor_exist:
@@ -108,3 +113,6 @@ class MultiviewDataset(Dataset):
             perspectives = list(perspectives)
 
         return images, class_idx, perspectives, facial_corr, scan_id
+
+def _sort_key(filepath):
+    return os.path.basename(filepath).split("#")[1]
