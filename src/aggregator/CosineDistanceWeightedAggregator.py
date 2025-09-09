@@ -47,7 +47,6 @@ class CosineDistanceAggregator(nn.Module):
         if all_view_stage.shape[1] == normalized_weights.shape[1]:
             views_pooled_stage = torch.einsum('bvchw,bv->bchw', all_view_stage, normalized_weights)
         else:
-            # safety if mismatch
             views_pooled_stage = torch.einsum(
                 'bvchw,bv->bchw', all_view_stage[:, :normalized_weights.shape[1]], normalized_weights
             )
@@ -58,7 +57,7 @@ def make_cosinedistance_weighted_aggregator(agg_config):
     view_list = [8, 8, 8, 8, 8]
     aggregators = []
     for idx, views in enumerate(view_list):
-        if idx == 5:
+        if idx == 4:
             aggregators.append(CosineDistanceAggregator(views))
         else:
             aggregators.append(MeanAggregator(use_aggregator_branch=False))
