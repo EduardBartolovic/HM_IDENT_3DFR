@@ -35,6 +35,7 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
+
 def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
     evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(backbone, data_root, "test_vox2test_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
@@ -285,7 +286,6 @@ def main(cfg):
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
-            #OPTIMIZER.zero_grad()
             for step, (inputs, labels, perspectives, face_corrs, _) in enumerate(tqdm(iter(train_loader))):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
