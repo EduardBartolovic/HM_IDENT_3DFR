@@ -9,8 +9,7 @@ import torchvision.transforms as transforms
 
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
-from src.backbone.multiview_ires_insight_lf import IR_MV_V2_18_LF, IR_MV_V2_34_LF, IR_MV_V2_50_LF, IR_MV_V2_100_LF
-from src.backbone.multiview_irse import IR_MV_50
+from src.backbone.multiview_ires_lf import ir_mv_v2_18_lf, ir_mv_v2_34_lf, ir_mv_v2_50_lf, ir_mv_v2_100_lf
 from src.fuser.fuser import make_mlp_fusion, make_transformer_fusion, make_softmax_fusion
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mv, evaluate_and_log_mv_verification
@@ -23,6 +22,9 @@ import os
 import mlflow
 import yaml
 import argparse
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 
 def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
@@ -38,17 +40,18 @@ def main(cfg):
     torch.manual_seed(SEED)
 
     RUN_NAME = cfg['RUN_NAME']
-    DATA_ROOT = cfg['DATA_ROOT']  # the parent root where the datasets are stored
+    DATA_ROOT = os.path.join(os.getenv("DATA_ROOT"), cfg['DATA_ROOT_PATH'])  # the parent root where the datasets are stored
     TRAIN_SET = cfg['TRAIN_SET']
     MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
     LOG_ROOT = cfg['LOG_ROOT']
-    BACKBONE_RESUME_ROOT = cfg['BACKBONE_RESUME_ROOT']  # the root to resume training from a saved checkpoint
+    BACKBONE_RESUME_ROOT = os.path.join(os.getenv("BACKBONE_RESUME_ROOT"), cfg['BACKBONE_RESUME_PATH'])  # the root to resume training from a saved checkpoint
     HEAD_RESUME_ROOT = cfg['HEAD_RESUME_ROOT']  # the root to resume training from a saved checkpoint
 
     BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
     AGG_NAME = cfg['AGG']['AGG_NAME']  # support: ['WeightedSumAggregator', 'MeanAggregator', 'SEAggregator']
     AGG_CONFIG = cfg['AGG']['AGG_CONFIG']  # Aggregator Config
     HEAD_NAME = cfg['HEAD_NAME']  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
+    HEAD_PARAMS = cfg.get('HEAD_PARAMS', [64.0, 0.50])
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
 
@@ -65,6 +68,7 @@ def main(cfg):
     NUM_EPOCH = cfg['NUM_EPOCH']
     PATIENCE = cfg.get('PATIENCE', 10)
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
+    WEIGHT_DECAY_HEAD = cfg.get('WEIGHT_DECAY_HEAD', 0.0005)
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
     UNFREEZE_AGG_EPOCH = cfg.get('UNFREEZE_AGG_EPOCH', 1)  # Unfreeze aggregators after X Epochs. Train Arcface Head first for smoother fine-tuning
@@ -80,8 +84,6 @@ def main(cfg):
     print("Overall Configurations:")
     print(cfg)
     print("=" * 60)
-
-    #torch.set_float32_matmul_precision('high')
 
     # ===== ML FLOW Set up ============
     mlflow.set_tracking_uri(f'file:{LOG_ROOT}/mlruns')
@@ -121,8 +123,8 @@ def main(cfg):
             num_workers=NUM_WORKERS, drop_last=DROP_LAST
         )
 
-        NUM_CLASS = len(train_loader.dataset.classes)
-        print("Number of Training Classes: {}".format(NUM_CLASS))
+        num_class = len(dataset_train.classes)
+        print("Number of Training Classes: {}".format(num_class))
 
         # ======= Aggregator =======
         AGG_DICT = {'MLPFusion': lambda: make_mlp_fusion(),
@@ -137,12 +139,11 @@ def main(cfg):
         print("=" * 60)
 
         # ======= Backbone =======
-        AGG_CONFIG = {"ACTIVE_STAGES": [False, False, False, False, False]}
-        BACKBONE_DICT = {'IR_MV_50': lambda: IR_MV_50(DEVICE, aggregator, INPUT_SIZE, EMBEDDING_SIZE),
-                         'IR_MV_V2_18': lambda: IR_MV_V2_18_LF(DEVICE, aggregator, EMBEDDING_SIZE),
-                         'IR_MV_V2_34': lambda: IR_MV_V2_34_LF(DEVICE, aggregator, EMBEDDING_SIZE),
-                         'IR_MV_V2_50': lambda: IR_MV_V2_50_LF(DEVICE, aggregator, EMBEDDING_SIZE),
-                         'IR_MV_V2_100': lambda: IR_MV_V2_100_LF(DEVICE, aggregator, EMBEDDING_SIZE)}
+        BACKBONE_DICT = {'IR_MV_50': lambda: ir_mv_v2_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
+                         'IR_MV_V2_18': lambda: ir_mv_v2_18_lf(DEVICE, aggregator, EMBEDDING_SIZE),
+                         'IR_MV_V2_34': lambda: ir_mv_v2_34_lf(DEVICE, aggregator, EMBEDDING_SIZE),
+                         'IR_MV_V2_50': lambda: ir_mv_v2_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
+                         'IR_MV_V2_100': lambda: ir_mv_v2_100_lf(DEVICE, aggregator, EMBEDDING_SIZE)}
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]()
         BACKBONE.backbone_reg.to(DEVICE)
         model_stats_backbone = summary(BACKBONE.backbone_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
@@ -151,10 +152,10 @@ def main(cfg):
         print("=" * 60)
 
         # ======= HEAD & LOSS =======
-        HEAD_DICT = {'ArcFace': lambda: ArcFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
-                     'CosFace': lambda: CosFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
-                     'SphereFace': lambda: SphereFace(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID),
-                     'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=NUM_CLASS, device_id=GPU_ID)}
+        HEAD_DICT = {'ArcFace': lambda: ArcFace(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID, s=HEAD_PARAMS[0], m=HEAD_PARAMS[1]),
+                     'CosFace': lambda: CosFace(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID),
+                     'SphereFace': lambda: SphereFace(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID),
+                     'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID)}
         HEAD = HEAD_DICT[HEAD_NAME]().to(DEVICE)
 
         #if TORCH_COMPILE_MODE:
@@ -185,7 +186,7 @@ def main(cfg):
         # separate batch_norm parameters from others; do not do weight decay for batch_norm parameters to improve the generalizability
         _, head_paras_wo_bn = separate_bn_paras(HEAD)
 
-        params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY}]
+        params_list = [{'params': head_paras_wo_bn, 'weight_decay': WEIGHT_DECAY_HEAD}]
         OPTIMIZER_DICT = {'SGD': lambda: optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
                           'ADAM': lambda: optim.Adam(params_list, lr=LR),
                           'ADAMW': lambda: optim.AdamW(params_list, lr=LR)}

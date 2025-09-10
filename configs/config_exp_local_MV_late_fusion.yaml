@@ -1,19 +1,19 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP_LOCAL_TEST'  # experiment_name
-DATA_ROOT: 'F:\\Face\\data\\dataset10'  # the parent root
+DATA_ROOT_PATH: 'dataset10'  # the parent root
 TRAIN_SET: 'mv_ms1mv3_5K'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: 'F:\\Face\\log'  # the root to log your train/val status
-#BACKBONE_RESUME_ROOT: 'F:\\Face\\\\HM_IDENT_3DFR\\pretrained\\backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
-BACKBONE_RESUME_ROOT: 'F:\\Face\\\\HM_IDENT_3DFR\\pretrained\\glint_cosface_r18_fp16.pth'# backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
+BACKBONE_RESUME_PATH: 'glint_cosface_r18_fp16.pth'# backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 USE_FACE_CORR: False
 #BACKBONE_NAME: 'IR_MV_50'
 BACKBONE_NAME: 'IR_MV_V2_18'
 AGG:
-  AGG_NAME: 'LinearFusion'
+  AGG_NAME: 'MLPFusion'
   AGG_CONFIG:
     ACTIVE_STAGES: [True, True, True, True, True]
     NUM_LAYERS: 1
