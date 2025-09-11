@@ -43,6 +43,7 @@ def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, 
     evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
+
 def main(cfg):
     SEED = cfg['SEED']
     torch.manual_seed(SEED)
