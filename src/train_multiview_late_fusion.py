@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
-from src.backbone.multiview_ires_lf import ir_mv_v2_18_lf, ir_mv_v2_34_lf, ir_mv_v2_50_lf, ir_mv_v2_100_lf
+from src.backbone.multiview_ires_lf import ir_mv_v2_18_lf, ir_mv_v2_34_lf, ir_mv_v2_50_lf, ir_mv_v2_100_lf, ir_mv_50_lf
 from src.fuser.CosineDistanceWeightedAggregator import make_cosinedistance_fusion
 from src.fuser.TransformerAggregator import make_transformer_fusion
 from src.fuser.fuser import make_mlp_fusion, make_softmax_fusion
@@ -32,7 +32,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
     evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(backbone, data_root, "test_vox2test_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    #evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
@@ -143,7 +143,7 @@ def main(cfg):
         print("=" * 60)
 
         # ======= Backbone =======
-        BACKBONE_DICT = {'IR_MV_50': lambda: ir_mv_v2_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
+        BACKBONE_DICT = {'IR_MV_50': lambda: ir_mv_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'IR_MV_V2_18': lambda: ir_mv_v2_18_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'IR_MV_V2_34': lambda: ir_mv_v2_34_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'IR_MV_V2_50': lambda: ir_mv_v2_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),

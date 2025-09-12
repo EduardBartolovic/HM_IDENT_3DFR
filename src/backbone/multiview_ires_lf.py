@@ -41,7 +41,7 @@ class MultiviewIResnetLF(nn.Module):
         self.aggregator.eval()
 
 
-def ir_mv_50(device, aggregator, embedding_size=512):
+def ir_mv_50_lf(device, aggregator, embedding_size=512):
     return MultiviewIResnetLF(device, aggregator, ir_50, {"input_stage": 0, "block_2": 1, "block_6": 2, "block_20": 3, "block_23": 4, "output_stage": 5}, embedding_size, fp16=False)
 
 
