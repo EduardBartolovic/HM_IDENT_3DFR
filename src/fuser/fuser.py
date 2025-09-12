@@ -49,8 +49,7 @@ def make_mlp_fusion():
     return MLPFusion(views=8, hidden=1024, out_dim=512, dim=512)
 
 
-def make_transformer_fusion():
-    return TransformerFusion(dim=512, num_heads=8, num_layers=2)
+
 
 
 def make_softmax_fusion():

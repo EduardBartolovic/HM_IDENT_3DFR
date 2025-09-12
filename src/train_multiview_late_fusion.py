@@ -10,7 +10,9 @@ import torchvision.transforms as transforms
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.backbone.multiview_ires_lf import ir_mv_v2_18_lf, ir_mv_v2_34_lf, ir_mv_v2_50_lf, ir_mv_v2_100_lf
-from src.fuser.fuser import make_mlp_fusion, make_transformer_fusion, make_softmax_fusion
+from src.fuser.CosineDistanceWeightedAggregator import make_cosinedistance_fusion
+from src.fuser.TransformerAggregator import make_transformer_fusion
+from src.fuser.fuser import make_mlp_fusion, make_softmax_fusion
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mv, evaluate_and_log_mv_verification
 from src.util.load_checkpoint import load_checkpoint
@@ -129,7 +131,9 @@ def main(cfg):
         # ======= Aggregator =======
         AGG_DICT = {'MLPFusion': lambda: make_mlp_fusion(),
                     'TransformerFusion': lambda: make_transformer_fusion(),
-                    'SoftmaxFusion': lambda: make_softmax_fusion()}
+                    'SoftmaxFusion': lambda: make_softmax_fusion(),
+                    'CosineDistanceAggregator': lambda: make_cosinedistance_fusion(NUM_VIEWS),
+                    }
         aggregator = AGG_DICT[AGG_NAME]()
         model_arch = (BATCH_SIZE, NUM_VIEWS, 512)
         aggregator.to(DEVICE)
