@@ -1,6 +1,6 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP502-IR_MVLF_50_MSCELEB-MS1MV3_10K-CDW5-ArcFace-FocalLoss-epochs25-fro_agg_15-batch32-shuffle_views'  # experiment_name
+RUN_NAME: 'EXP500-IR_MVLF_50_MSCELEB-MS1MV3_10K-CDW5-ArcFace-FocalLoss-epochs25-fro_agg_15-batch32-shuffle_views'  # experiment_name
 DATA_ROOT_PATH: 'dataset10'  # the parent data root
 TRAIN_SET: 'mv_ms1mv3_10K8'  # train dataset name
 
