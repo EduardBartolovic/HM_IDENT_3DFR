@@ -202,6 +202,9 @@ def concat(embedding_library, disable_bar: bool, reduce_with=""):
     elif reduce_with == "mean":
         enrolled_embedding = enrolled_embedding.reshape(enrolled_embedding.shape[0], -1, 512).mean(axis=1)
         query_embedding = query_embedding.reshape(query_embedding.shape[0], -1, 512).mean(axis=1)
+    elif reduce_with == "median":
+        enrolled_embedding = np.median(enrolled_embedding.reshape(enrolled_embedding.shape[0], -1, 512), axis=1)
+        query_embedding = np.median(query_embedding.reshape(query_embedding.shape[0], -1, 512), axis=1)
 
     similarity_matrix = calculate_embedding_similarity(query_embedding, enrolled_embedding, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
