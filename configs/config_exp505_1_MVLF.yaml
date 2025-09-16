@@ -1,0 +1,44 @@
+SEED: 1337  # random seed for reproduce results
+
+RUN_NAME: 'EXP505-IR_MVLF_50_GLINT-MS1MV3_10K-CDW5-ArcFace-FocalLoss-epochs25-fro_agg_15-batch64-shuffle_views'  # experiment_name
+DATA_ROOT_PATH: 'dataset10'  # the parent data root
+TRAIN_SET: 'mv_ms1mv3_10K8'  # train dataset name
+
+MODEL_ROOT: './model'  # the root to buffer checkpoints
+LOG_ROOT: './log'  # the root to log
+BACKBONE_RESUME_PATH: 'glint_cosface_r50_fp16.pth'  # the root to resume training from a saved checkpoint
+HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
+USE_FACE_CORR: False
+BACKBONE_NAME: 'IR_MV_V2_50'
+AGG:
+  AGG_NAME: 'CosineDistanceAggregator'
+  AGG_CONFIG:
+    ACTIVE_STAGES: [False, False, False, False, True]
+    NUM_LAYERS: 1
+HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
+HEAD_PARAMS: [68.0, 0.50]
+LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
+
+INPUT_SIZE: [112, 112]
+NUM_VIEWS: 8
+RGB_MEAN: [0.5, 0.5, 0.5]  # for normalize inputs to [-1, 1]
+RGB_STD: [0.5, 0.5, 0.5]
+EMBEDDING_SIZE: 512  # feature dimension
+BATCH_SIZE: 64  # batch size
+DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
+SHUFFLE_PERSPECTIVES: True
+OPTIMIZER_NAME: SGD
+LR: 0.02  # initial LR
+NUM_EPOCH: 25  # total epoch number (use the first 1/25 epochs to warm up)
+UNFREEZE_AGG_EPOCH: 15  # number of epochs to only train the head
+UNFREEZE_AGG_BACKBONE_EPOCH: 100  # number of epochs not to train the aggregator-backbone
+PATIENCE: 100  # patience for early stopping
+WEIGHT_DECAY: 0.001
+WEIGHT_DECAY_HEAD: 0.0005 # weight decay for arcface head
+MOMENTUM: 0.3
+STAGES: [20, 35, 39]  # epoch stages to decay learning rate
+
+MULTI_GPU: false
+GPU_ID: [0]  # GPU ids
+PIN_MEMORY: true
+NUM_WORKERS: 8
