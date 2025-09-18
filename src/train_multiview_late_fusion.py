@@ -33,7 +33,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all, transform_size=(112, 112), final_crop=(112,112)):
     evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(backbone, data_root, "test_vox2test_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    #evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(backbone, data_root, "test_multipie_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(backbone, data_root, "test_multipie8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)

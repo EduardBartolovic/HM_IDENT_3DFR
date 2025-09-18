@@ -19,7 +19,7 @@ from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_transformer_aggregator
 from src.aggregator.TransformerAggregatorV2 import make_transformerv2_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
-from src.backbone.multiview_ires import ir_mv_v2_50, ir_mv_v2_34, ir_mv_v2_18, ir_mv_v2_100, ir_mv_50
+from src.backbone.multiview_ires import ir_mv_v2_50, ir_mv_v2_34, ir_mv_v2_18, ir_mv_v2_100, ir_mv_50, ir_mv_facenet_50
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mv, evaluate_and_log_mv_verification
 from src.util.load_checkpoint import load_checkpoint
@@ -36,12 +36,14 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 
-def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
-    evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_vox2test_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all, transform_size=(112, 112), final_crop=(112, 112)):
+    evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_vox2test_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_multipie_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_multipie8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
 
 def main(cfg):
@@ -237,7 +239,7 @@ def main(cfg):
         print("=" * 60)
 
         # ======= Validation =======
-        eval_loop(BACKBONE, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True)
+        eval_loop(BACKBONE, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True, INPUT_SIZE, INPUT_SIZE)
         print("=" * 60)
 
         # ======= train & early stopping parameters=======
@@ -332,7 +334,7 @@ def main(cfg):
 
             #  ======= perform validation =======
             if epoch >= UNFREEZE_AGG_EPOCH or epoch >= UNFREEZE_AGG_BACKBONE_EPOCH:
-                eval_loop(BACKBONE, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False)
+                eval_loop(BACKBONE, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False, INPUT_SIZE, INPUT_SIZE)
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
                 print("=" * 60)
