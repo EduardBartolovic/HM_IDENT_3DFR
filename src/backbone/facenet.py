@@ -260,38 +260,67 @@ class InceptionResnetV1(nn.Module):
             self.to(device)
 
     def forward(self, x, return_featuremaps=None, execute_stage=None):
-        """Calculate embeddings or logits given a batch of input image tensors.
+        """Calculate embeddings given a batch of input image tensors.
 
         Arguments:
             x {torch.tensor} -- Batch of image tensors representing faces.
+            return_featuremaps {set} -- Stages to return feature maps from.
+            execute_stage {set} -- Stages to actually execute.
 
         Returns:
-            torch.tensor -- Batch of embedding vectors or multinomial logits.
+            torch.tensor or dict -- Embeddings or intermediate feature maps.
         """
-        assert x.shape[2] == 160
+        if execute_stage is None:
+            execute_stage = {0, 1, 2, 3, 4, 5}
+            assert x.shape[2] == 160
+        if return_featuremaps is None:
+            return_featuremaps = {}
 
-        x = self.conv2d_1a(x)
-        x = self.conv2d_2a(x)
-        x = self.conv2d_2b(x)
-        x = self.maxpool_3a(x)
-        x = self.conv2d_3b(x)
-        x = self.conv2d_4a(x)
-        x = self.conv2d_4b(x)
-        x = self.repeat_1(x)
-        x = self.mixed_6a(x)
-        x = self.repeat_2(x)
-        x = self.mixed_7a(x)
-        x = self.repeat_3(x)
-        x = self.block8(x)
-        x = self.avgpool_1a(x)
-        x = self.dropout(x)
-        x = self.last_linear(x.view(x.shape[0], -1))
-        x = self.last_bn(x)
-        if self.classify:
-            x = self.logits(x)
-        else:
+        feature_maps = {}
+
+        if 0 in execute_stage:
+            x = self.conv2d_1a(x)
+            x = self.conv2d_2a(x)
+            x = self.conv2d_2b(x)
+            x = self.maxpool_3a(x)
+            if 0 in return_featuremaps:
+                feature_maps["input_stage"] = x
+
+        if 1 in execute_stage:
+            x = self.conv2d_3b(x)
+            x = self.conv2d_4a(x)
+            x = self.conv2d_4b(x)
+            if 1 in return_featuremaps:
+                feature_maps["stage_1"] = x
+
+        if 2 in execute_stage:
+            x = self.repeat_1(x)
+            if 2 in return_featuremaps:
+                feature_maps["stage_2"] = x
+
+        if 3 in execute_stage:
+            x = self.mixed_6a(x)
+            x = self.repeat_2(x)
+            if 3 in return_featuremaps:
+                feature_maps["stage_3"] = x
+
+        if 4 in execute_stage:
+            x = self.mixed_7a(x)
+            x = self.repeat_3(x)
+            x = self.block8(x)
+            if 4 in return_featuremaps:
+                feature_maps["stage_4"] = x
+
+        if 5 in execute_stage:
+            x = self.avgpool_1a(x)
+            x = self.dropout(x)
+            x = self.last_linear(x.view(x.shape[0], -1))
+            x = self.last_bn(x)
             x = F.normalize(x, p=2, dim=1)
-        return x
+            if 5 in return_featuremaps:
+                feature_maps["output_stage"] = x
+
+        return feature_maps if return_featuremaps else x
 
 
 def ir_facenet_50(input_size=(112, 112), embedding_size=512, fp16=False):

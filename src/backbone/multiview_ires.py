@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from src.backbone.facenet import ir_facenet_50
 from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18, iresnet100
 from src.backbone.model_irse import ir_50
 from src.util.align_featuremaps import align_featuremaps
@@ -62,7 +63,7 @@ class MultiviewIResnet(nn.Module):
 
     def perform_aggregation_branch(self, all_views_stage_features, perspectives, face_corr, use_face_corr):
         x_prev = None
-        prev_res = None
+        prev_stage = None
 
         for stage_index, stage_features in enumerate(all_views_stage_features):
             if len(stage_features) == 0:
@@ -70,27 +71,18 @@ class MultiviewIResnet(nn.Module):
 
             all_view_stage = torch.stack(stage_features, dim=0)  # [view, batch, c, w, h]
             all_view_stage = all_view_stage.permute(1, 0, 2, 3, 4)  # [batch, view, c, w, h]
-            res = all_view_stage.shape[-1]
 
             # concat with previous stage if res matches
-            if x_prev is not None and res == prev_res:
+            if x_prev is not None and prev_stage == stage_index:
                 all_view_stage = torch.cat((all_view_stage, x_prev.unsqueeze(1)), dim=1)
-                x_prev = None
 
             # aggregate views
             views_pooled_stage = self.aggregate(stage_index, all_view_stage, perspectives, face_corr, use_face_corr, embs=all_views_stage_features[5])
-            res_out = views_pooled_stage.shape[-1]
 
-            # pass through backbone_agg
-            if res_out == 112:
-                x_prev, prev_res = self.backbone_agg(views_pooled_stage, execute_stage={1}), 56
-            elif res_out == 56:
-                x_prev, prev_res = self.backbone_agg(views_pooled_stage, execute_stage={2}), 28
-            elif res_out == 28:
-                x_prev, prev_res = self.backbone_agg(views_pooled_stage, execute_stage={3}), 14
-            elif res_out == 14:
-                x_prev, prev_res = self.backbone_agg(views_pooled_stage, execute_stage={4}), 7
-            elif res_out == 7:
+            # run through backbone_agg for the *next* stage
+            if stage_index < 4:  # stages 0–4 produce features
+                x_prev, prev_stage = self.backbone_agg(views_pooled_stage, execute_stage={stage_index + 1}), stage_index + 1
+            else:  # if next stage 5 -> produce embeddings
                 embeddings = self.backbone_agg(views_pooled_stage, execute_stage={5})
                 return embeddings
 
@@ -115,3 +107,7 @@ def ir_mv_v2_34(device, aggregators, embedding_size=512, fp16=False, active_stag
 
 def ir_mv_v2_18(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
     return MultiviewIResnet(device, aggregators, iresnet18, {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}, embedding_size, fp16, active_stages)
+
+
+def ir_mv_facenet_50(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
+    return MultiviewIResnet(device, aggregators, ir_facenet_50, {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}, embedding_size, fp16, active_stages)

@@ -160,7 +160,8 @@ def main(cfg):
         print("=" * 60)
 
         # ======= Backbone =======
-        BACKBONE_DICT = {'IR_MV_50': lambda: ir_mv_50(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+        BACKBONE_DICT = {'IR_MV_Facenet_50': lambda: ir_mv_facenet_50(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+                         'IR_MV_50': lambda: ir_mv_50(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
                          'IR_MV_V2_18': lambda: ir_mv_v2_18(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
                          'IR_MV_V2_34': lambda: ir_mv_v2_34(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
                          'IR_MV_V2_50': lambda: ir_mv_v2_50(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),

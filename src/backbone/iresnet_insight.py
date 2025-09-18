@@ -163,8 +163,19 @@ class IResNet(nn.Module):
     #     return x
 
     def forward(self, x, return_featuremaps=None, execute_stage=None):
+        """Calculate embeddings given a batch of input image tensors.
+
+        Arguments:
+            x {torch.tensor} -- Batch of image tensors representing faces.
+            return_featuremaps {set} -- Stages to return feature maps from.
+            execute_stage {set} -- Stages to actually execute.
+
+        Returns:
+            torch.tensor or dict -- Embeddings or intermediate feature maps.
+        """
         if execute_stage is None:
             execute_stage = {0, 1, 2, 3, 4, 5}
+            assert x.shape[2] == 112
         if return_featuremaps is None:
             return_featuremaps = {}
 
