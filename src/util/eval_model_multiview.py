@@ -323,11 +323,11 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
     return all_metrics, embedding_library, dataset_enrolled
 
 
-def evaluate_and_log_mv(backbone, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+def evaluate_and_log_mv(backbone, data_root, dataset, epoch, transform_sizes, final_crop, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
 
     test_transform = transforms.Compose([
         transforms.Resize(transform_sizes),
-        transforms.CenterCrop([112, 112]),
+        transforms.CenterCrop(final_crop),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ])
@@ -403,11 +403,11 @@ def evaluate_and_log_mv(backbone, data_root, dataset, epoch, transform_sizes, ba
     return all_metrics
 
 
-def evaluate_and_log_mv_verification(backbone, data_root, dataset, epoch, transform_sizes, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, k_folds=10):
+def evaluate_and_log_mv_verification(backbone, data_root, dataset, epoch, transform_sizes, final_crop, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, k_folds=10):
 
     test_transform = transforms.Compose([
         transforms.Resize(transform_sizes),
-        transforms.CenterCrop([112, 112]),
+        transforms.CenterCrop(final_crop),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ])

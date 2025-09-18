@@ -9,7 +9,8 @@ import torchvision.transforms as transforms
 
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
-from src.backbone.multiview_ires_lf import ir_mv_v2_18_lf, ir_mv_v2_34_lf, ir_mv_v2_50_lf, ir_mv_v2_100_lf, ir_mv_50_lf
+from src.backbone.multiview_ires_lf import ir_mv_v2_18_lf, ir_mv_v2_34_lf, ir_mv_v2_50_lf, ir_mv_v2_100_lf, ir_mv_50_lf, \
+    ir_mv_facenet_50_lf
 from src.fuser.CosineDistanceWeightedAggregator import make_cosinedistance_fusion
 from src.fuser.TransformerAggregator import make_transformer_fusion
 from src.fuser.fuser import make_mlp_fusion, make_softmax_fusion
@@ -29,12 +30,14 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 
-def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all):
-    evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_vox2test_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, (112, 112), batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all, transform_size=(112, 112), final_crop=(112,112)):
+    evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_vox2test_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    #evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_multipie_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv(backbone, data_root, "test_multipie8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
 
 def main(cfg):
@@ -107,7 +110,7 @@ def main(cfg):
         train_transform = transforms.Compose([
             transforms.Resize(INPUT_SIZE),
             # transforms.RandomCrop((112, 112)),
-            transforms.CenterCrop([112, 112]),
+            transforms.CenterCrop(INPUT_SIZE),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
@@ -143,7 +146,8 @@ def main(cfg):
         print("=" * 60)
 
         # ======= Backbone =======
-        BACKBONE_DICT = {'IR_MV_50': lambda: ir_mv_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
+        BACKBONE_DICT = {'IR_MV_Facenet_50': lambda: ir_mv_facenet_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
+                         'IR_MV_50': lambda: ir_mv_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'IR_MV_V2_18': lambda: ir_mv_v2_18_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'IR_MV_V2_34': lambda: ir_mv_v2_34_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'IR_MV_V2_50': lambda: ir_mv_v2_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
@@ -215,7 +219,7 @@ def main(cfg):
         print("=" * 60)
 
         # ======= Validation =======
-        eval_loop(BACKBONE, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True)
+        eval_loop(BACKBONE, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True, INPUT_SIZE, INPUT_SIZE)
         print("=" * 60)
 
         # ======= train & early stopping parameters=======
@@ -296,7 +300,7 @@ def main(cfg):
 
             #  ======= perform validation =======
             if epoch >= UNFREEZE_AGG_EPOCH:
-                eval_loop(BACKBONE, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False)
+                eval_loop(BACKBONE, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False, INPUT_SIZE, INPUT_SIZE)
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
                 print("=" * 60)

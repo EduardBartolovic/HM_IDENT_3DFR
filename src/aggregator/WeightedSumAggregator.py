@@ -42,6 +42,7 @@ class WeightedSumAggregator(nn.Module):
 
 
 def make_weighted_sum_aggregator(view_list):
+    # view_list = [[8, 0], [8, 0], [8, 0], [9, 2], [9, 2]]
     view_list = [[8, 0], [8, 0], [8, 0], [8, 0], [8, 0]]
     aggregators = []
     for views, bias in view_list:

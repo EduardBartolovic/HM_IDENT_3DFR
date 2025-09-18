@@ -61,8 +61,11 @@ def load_checkpoint(model, head, backbone_resume_path, head_resume_path, rgbd=Fa
 
 
 def adapt_state_dict_for_backbone(state_dict, prefix="backbone."):
-    new_state_dict = {}
-    for k, v in state_dict.items():
-        new_key = prefix + k if not k.startswith(prefix) else k
-        new_state_dict[new_key] = v
-    return new_state_dict
+    del state_dict["logits.weight"]
+    del state_dict["logits.bias"]
+    return state_dict
+    #new_state_dict = {}
+    #for k, v in state_dict.items():
+    #    new_key = prefix + k if not k.startswith(prefix) else k
+    #    new_state_dict[new_key] = v
+    #return new_state_dict
