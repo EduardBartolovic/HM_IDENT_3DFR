@@ -89,7 +89,7 @@ class MultiviewDataset(Dataset):
             facial_corr = torch.stack([
                 torch.from_numpy(np.load(p.replace("_image.jpg", "_corr.npz"))["corr"])
                 for p in img_paths
-            ])
+            ])  #torch.from_numpy(np.load(p.replace(".jpg", "_corr.npz"))["corr"]) for p in img_paths
         else:
             facial_corr = torch.empty(0)
 
@@ -113,6 +113,7 @@ class MultiviewDataset(Dataset):
             perspectives = list(perspectives)
 
         return images, class_idx, perspectives, facial_corr, scan_id
+
 
 def _sort_key(filepath):
     return os.path.basename(filepath).split("#")[1]
