@@ -1,10 +1,10 @@
 import numpy as np
 import torch
-import torch.nn.functional as F
 import torch.nn as nn
 
 from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18, iresnet100
 from src.backbone.model_irse import ir_50
+from src.util.align_featuremaps import align_featuremaps
 
 
 class MultiviewIResnet(nn.Module):
@@ -48,37 +48,10 @@ class MultiviewIResnet(nn.Module):
         self.backbone_agg.eval()
         [i.eval() for i in self.aggregators]
 
-    def align_featuremap(self, featuremap, grid):
-        map_x, map_y = np.array(grid)
-        C, H, W = featuremap.shape
-
-        grid = np.stack((map_y, map_x), axis=-1)
-        grid = torch.from_numpy(grid).unsqueeze(0)
-        grid = grid * 2 / torch.tensor([W - 1, H - 1], dtype=torch.float32, device=featuremap.device) - 1
-
-        grid = F.interpolate(grid.permute(0, 3, 1, 2), size=(H, W), mode='bilinear', align_corners=True)
-        grid = grid.permute(0, 2, 3, 1)[..., [1, 0]].to(featuremap.device).float()
-
-        input_tensor = featuremap.unsqueeze(0)
-        remapped = F.grid_sample(input_tensor, grid, mode='bilinear', padding_mode='zeros', align_corners=True)
-        return remapped.squeeze(0)
-
-    def align_featuremaps(self, featuremaps, face_corr, zero_position, device="cuda"):
-        batch_size, num_views, num_channels, h, w = featuremaps.shape
-        aligned = torch.empty((batch_size, num_views, num_channels, h, w), dtype=featuremaps.dtype, device=device)
-
-        for b in range(batch_size):
-            for v in range(num_views):
-                if v == zero_position or v >= face_corr[b].shape[0]:
-                    aligned[b, v] = featuremaps[b, v]
-                else:
-                    aligned[b, v] = self.align_featuremap(featuremaps[b, v], face_corr[b][v])
-        return aligned
-
     def aggregate(self, stage_index, all_view_stage, perspectives, face_corr, use_face_corr, embs=None):
         if use_face_corr and stage_index in {0, 1, 2}:
             zero_position = np.where(np.array(perspectives)[:, 0] == '0_0')[0][0]
-            all_view_stage = self.align_featuremaps(all_view_stage, face_corr, zero_position)
+            all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
 
         if embs:
             all_view_embs = torch.stack(embs, dim=0)  # [view, batch, d]
