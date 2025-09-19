@@ -199,18 +199,19 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     return all_metrics, embedding_library, dataset_enrolled, dataset_query
 
 
-def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, k_folds=10):
+def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
     """
     Evaluate 1:1 Model Performance on given test dataset
     """
     pair_list = []
+    folds = []
     unique_sample_paths = set()
-
     with open(os.path.join(test_path, "split.txt"), "r") as f:
         next(f)  # skip header
         for line in f:
-            _, _, name1, name2, is_same, is_same_corrected = line.strip().split(",")
+            split, pair, name1, name2, is_same, is_same_corrected = line.strip().split(",")
             pair_list.append((name1, name2, int(is_same_corrected)))
+            folds.append(int(split))
             unique_sample_paths.add(name1)
             unique_sample_paths.add(name2)
 
@@ -311,18 +312,18 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
             sim_fused = fuse_pairwise_scores(emb1_reg, emb2_reg, method=m)
             similarities_fusion[m].append(sim_fused)
 
-    all_metrics = {"metrics_mvfa": analyze_result_verification(labels, similarities_mv, os.path.basename(test_path), "_mv", k_folds=k_folds)}
+    all_metrics = {"metrics_mvfa": analyze_result_verification(labels, similarities_mv, os.path.basename(test_path), "_mv", folds=folds)}
 
     if not eval_all:
         return all_metrics, embedding_library, dataset_enrolled
 
-    all_metrics["metrics_front"] = analyze_result_verification(labels, similarities_front, os.path.basename(test_path), "_front", k_folds=k_folds)
-    all_metrics["metrics_concat"] = analyze_result_verification(labels, similarities_concat, os.path.basename(test_path), "_concat", k_folds=k_folds)
-    all_metrics["metrics_concat_mean"] = analyze_result_verification(labels, similarities_concat_mean, os.path.basename(test_path), "_mean", k_folds=k_folds)
-    all_metrics["metrics_concat_pca"] = analyze_result_verification(labels, similarities_concat_pca, os.path.basename(test_path), "_pca", k_folds=k_folds)
+    all_metrics["metrics_front"] = analyze_result_verification(labels, similarities_front, os.path.basename(test_path), "_front", folds=folds)
+    all_metrics["metrics_concat"] = analyze_result_verification(labels, similarities_concat, os.path.basename(test_path), "_concat", folds=folds)
+    all_metrics["metrics_concat_mean"] = analyze_result_verification(labels, similarities_concat_mean, os.path.basename(test_path), "_mean", folds=folds)
+    all_metrics["metrics_concat_pca"] = analyze_result_verification(labels, similarities_concat_pca, os.path.basename(test_path), "_pca", folds=folds)
 
     for m in fusion_methods:
-        metrics = analyze_result_verification(labels, similarities_fusion[m], os.path.basename(test_path), f"_{m}", k_folds=k_folds)
+        metrics = analyze_result_verification(labels, similarities_fusion[m], os.path.basename(test_path), f"_{m}", folds=folds)
         all_metrics[f"metrics_score_{m}"] = metrics
 
     return all_metrics, embedding_library, dataset_enrolled
@@ -408,7 +409,7 @@ def evaluate_and_log_mv(backbone, data_root, dataset, epoch, transform_sizes, fi
     return all_metrics
 
 
-def evaluate_and_log_mv_verification(backbone, data_root, dataset, epoch, transform_sizes, final_crop, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, k_folds=10):
+def evaluate_and_log_mv_verification(backbone, data_root, dataset, epoch, transform_sizes, final_crop, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
 
     test_transform = transforms.Compose([
         transforms.Resize(transform_sizes),
@@ -417,8 +418,8 @@ def evaluate_and_log_mv_verification(backbone, data_root, dataset, epoch, transf
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ])
 
-    print(colorstr('bright_green', f"Perform 1:1 Evaluation on {dataset} with cropping: {transform_sizes} and face_corr: {use_face_corr} and k_folds: {k_folds}"))
-    all_metrics, embedding_library, dataset_enrolled = evaluate_mv_1_1(backbone, os.path.join(data_root, dataset), test_transform, batch_size, num_views, use_face_corr, disable_bar, eval_all, k_folds)
+    print(colorstr('bright_green', f"Perform 1:1 Evaluation on {dataset} with cropping: {transform_sizes} and face_corr: {use_face_corr} and folds: {10}"))
+    all_metrics, embedding_library, dataset_enrolled = evaluate_mv_1_1(backbone, os.path.join(data_root, dataset), test_transform, batch_size, num_views, use_face_corr, disable_bar, eval_all)
 
     neutral_dataset = dataset
     for prefix in ['depth_', 'rgbd_', 'rgb_', 'test_']:
@@ -426,12 +427,14 @@ def evaluate_and_log_mv_verification(backbone, data_root, dataset, epoch, transf
             neutral_dataset = neutral_dataset[len(prefix):]
 
     mlflow.log_metric(f'{neutral_dataset}_MV-AUC', all_metrics["metrics_mvfa"]["AUC"], step=epoch)
+    mlflow.log_metric(f'{neutral_dataset}_MV-ACC', all_metrics["metrics_mvfa"]["Accuracy"], step=epoch)
 
     if "metrics_front" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_Front-AUC', all_metrics["metrics_front"]["AUC"], step=epoch)
     if "metrics_concat" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_Concat-AUC', all_metrics["metrics_concat"]["AUC"], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-AUC', all_metrics["metrics_concat_mean"]["AUC"], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-ACC', all_metrics["metrics_concat_mean"]["Accuracy"], step=epoch)
     if "metrics_concat_pca" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-AUC', all_metrics["metrics_concat_pca"]["AUC"], step=epoch)
     if "metrics_score_sum" in all_metrics.keys():
@@ -504,29 +507,46 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
 
 def print_results_verification(neutral_dataset, dataset_enrolled, all_metrics, eval_all):
 
+    def fmt_metric(metrics, key):
+        """Format mean ± std string if available, otherwise fallback."""
+        mean = metrics.get(key, 'N/A')
+        std = metrics.get(f"{key}_std", None)
+        if mean == 'N/A':
+            return 'N/A'
+        if std is not None:
+            return f"{smart_round(mean)}±{smart_round(std)}"
+        return smart_round(mean)
+
     auc_mvfa = smart_round(all_metrics["metrics_mvfa"].get("AUC", 'N/A'))
+    acc_mvfa = fmt_metric(all_metrics["metrics_mvfa"], "Accuracy")
 
     if eval_all:
         auc_front = smart_round(all_metrics["metrics_front"].get("AUC", 'N/A'))
+        acc_front = fmt_metric(all_metrics["metrics_front"], "Accuracy")
         auc_concat = smart_round(all_metrics["metrics_concat"].get("AUC", 'N/A'))
+        acc_concat = fmt_metric(all_metrics["metrics_concat"], "Accuracy")
         auc_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get("AUC", 'N/A'))
+        acc_concat_mean = fmt_metric(all_metrics["metrics_concat_mean"], "Accuracy")
         auc_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get("AUC", 'N/A'))
         auc_score_sum = smart_round(all_metrics["metrics_score_sum"].get('AUC', 'N/A'))
         auc_score_max = smart_round(all_metrics["metrics_score_max"].get('AUC', 'N/A'))
         auc_score_prod = smart_round(all_metrics["metrics_score_product"].get('AUC', 'N/A'))
         auc_score_mean = smart_round(all_metrics["metrics_score_mean"].get('AUC', 'N/A'))
-        string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}: ") +
-                  f"{bold('Front-AUC')}: {underscore(auc_front)} "
-                  f"{bold('Concat-AUC')}: {underscore(auc_concat)} "
-                  f"{bold('Concat_Mean-AUC')}: {underscore(auc_concat_mean)} "
-                  f"{bold('Concat_PCA-AUC')}: {underscore(auc_concat_pca)} "
-                  f"{bold('Score_sum MRR')}: {underscore(auc_score_sum)} | "
-                  f"{bold('Score_prod MRR')}: {underscore(auc_score_prod)} | "
-                  f"{bold('Score_mean MRR')}: {underscore(auc_score_mean)} | "
-                  f"{bold('Score_max MRR')}: {underscore(auc_score_max)} | "
-                  f"{bold('MV-AUC')}: {underscore(auc_mvfa)}"
-                  )
+        string = (
+                colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}: ") +
+                f"{bold('Front-AUC/Acc')}: {underscore(auc_front)} / {acc_front} | "
+                f"{bold('Concat-AUC/Acc')}: {underscore(auc_concat)} / {acc_concat} | "
+                f"{bold('Concat_Mean-AUC/Acc')}: {underscore(auc_concat_mean)} / {acc_concat_mean} | "
+                f"{bold('Concat_PCA-AUC')}: {underscore(auc_concat_pca)} | "
+                f"{bold('Score_sum-AUC')}: {underscore(auc_score_sum)} | "
+                f"{bold('Score_prod-AUC')}: {underscore(auc_score_prod)} | "
+                f"{bold('Score_mean-AUC')}: {underscore(auc_score_mean)} | "
+                f"{bold('Score_max-AUC')}: {underscore(auc_score_max)} | "
+                f"{bold('MV-AUC/Acc')}: {underscore(auc_mvfa)} / {acc_mvfa}"
+        )
     else:
-        string = (colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}: ") +
-                  f"{bold('MV-AUC')}: {underscore(auc_mvfa)}")
+        string = (
+                colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}: ") +
+                f"{bold('MV-AUC/Acc')}: {underscore(auc_mvfa)} / {acc_mvfa}"
+        )
     print(string)

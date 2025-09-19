@@ -73,7 +73,7 @@ def analyze_result_verification(labels, similarities_mv,
                                 dataset_name,
                                 method_appendix="",
                                 far_targets=(1e-6, 1e-4),
-                                k_folds=10,
+                                folds=None,
                                 random_state=42,
                                 plot=True,
                                 ):
@@ -86,7 +86,7 @@ def analyze_result_verification(labels, similarities_mv,
         dataset_name: Name of the dataset (for logging/plotting)
         method_appendix: Extra string for logging/plotting
         far_targets: Tuple of FARs to compute TAR at (default: 1e-6 and 1e-4)
-        k_folds: Number of cross-validation folds (default: 10)
+        folds: Array of fold indices (same length as labels/scores). If None, falls back to random 10-fold CV.
         random_state: Random seed for reproducibility
         plot: If True, plots for the first fold only
 
@@ -96,20 +96,46 @@ def analyze_result_verification(labels, similarities_mv,
 
     labels = np.array(labels)
     similarities_mv = np.array(similarities_mv)
-    kf = KFold(n_splits=k_folds, shuffle=True, random_state=random_state)
+
+    if folds is None:
+        # fallback: random split (not standard YTF!)
+        kf = KFold(n_splits=10, shuffle=True, random_state=42)
+        split_indices = [(train_idx, test_idx) for train_idx, test_idx in kf.split(similarities_mv)]
+    else:
+        # use predefined folds
+        split_indices = []
+        for f in np.unique(folds):
+            test_idx = np.where(folds == f)[0]
+            train_idx = np.where(folds != f)[0]
+            split_indices.append((train_idx, test_idx))
+
+    all_fold_results = []
 
     all_metrics = []
-
-    for fold_idx, (train_idx, test_idx) in enumerate(kf.split(similarities_mv)):
+    for fold_idx, (train_idx, test_idx) in enumerate(split_indices):
         train_labels = labels[train_idx]
         train_scores = similarities_mv[train_idx]
         test_labels = labels[test_idx]
         test_scores = similarities_mv[test_idx]
 
-        # Threshold selection on train set using Youden’s J
+        # ============ Threshold selection on train set ============
+
         fpr_train, tpr_train, thresholds_train = roc_curve(train_labels, train_scores)
-        best_idx = np.argmax(tpr_train - fpr_train)
-        best_thresh = thresholds_train[best_idx]
+
+        # using Youden’s J
+        #best_idx = np.argmax(tpr_train - fpr_train)
+        #best_thresh = thresholds_train[best_idx]
+
+        # using Equal Error Rate (EER)
+        fnr = 1 - tpr_train
+        eer_idx = np.nanargmin(np.abs(fnr - fpr_train))
+        best_thresh = thresholds_train[eer_idx]
+
+        # using Accuracy-maximizing threshold
+        #acc_scores = [(t, accuracy_score(train_labels, train_scores > t)) for t in thresholds_train]
+        #best_thresh = max(acc_scores, key=lambda x: x[1])[0]
+
+        # ============
 
         # Evaluate on test set
         test_preds = (test_scores > best_thresh).astype(int)
@@ -134,15 +160,6 @@ def analyze_result_verification(labels, similarities_mv,
                 tar_at_far = 0.0
             tar_results[f"TAR@FAR={far:.0e}"] = tar_at_far
 
-        # Optionally plot only for the first fold
-        if plot and fold_idx == 0:
-            plot_verification(
-                recall, precision, avg_precision,
-                fpr, tpr, thresholds, best_idx, best_thresh,
-                accuracy, eer, roc_auc, test_scores, test_labels,
-                dataset_name, method_appendix + f"_fold{fold_idx}"
-            )
-
         metrics = {
             "AUC": roc_auc * 100,
             "Best_thresh": best_thresh,
@@ -154,12 +171,24 @@ def analyze_result_verification(labels, similarities_mv,
 
         all_metrics.append(metrics)
 
+        all_fold_results.append({
+            "fold": fold_idx,
+            "fpr": fpr, "tpr": tpr, "roc_auc": roc_auc,
+            "precision": precision, "recall": recall, "avg_precision": avg_precision,
+            "eer": eer, "accuracy": accuracy,
+            "test_scores": test_scores, "test_labels": test_labels
+        })
+
     # Aggregate metrics: mean and std
     summary = {}
     for key in all_metrics[0].keys():
         values = [m[key] for m in all_metrics]
-        summary[key] = round(np.mean(values), 4)
-        summary[key + "_std"] = round(np.std(values), 4)
+        summary[key] = np.mean(values)
+        summary[key + "_std"] = np.std(values)
+
+    # Plot everything together
+    if plot:
+        plot_verification(all_fold_results, dataset_name, method_appendix)
 
     return summary
 

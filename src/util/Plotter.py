@@ -1,9 +1,6 @@
-import time
-
 import itertools
 import os
 from pathlib import Path
-from typing import List, Dict
 
 import mlflow
 import numpy as np
@@ -14,19 +11,6 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix, DetCurveDisplay, auc
 import seaborn as sns
 import tempfile
-
-
-def plot_metric(output_path, epochs, metric_values: List[float], metric_name: str, ylabel: str) -> None:
-    plt.figure(figsize=(10, 5))
-    plt.plot(np.arange(0, len(metric_values)), metric_values, label=metric_name, marker='o')
-    plt.title(f'{metric_name} Over Epochs')
-    plt.xlabel('Epochs')
-    plt.ylabel(ylabel)
-    plt.xticks(epochs)
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(output_path, f'{metric_name.lower().replace(" ", "_")}.jpg'))
-    plt.close('all')
 
 
 def plot_rrk_histogram(true_labels, enrolled_labels, similarity_matrix, dataset_name, method_appendix=""):
@@ -75,7 +59,7 @@ def plot_rrk_histogram(true_labels, enrolled_labels, similarity_matrix, dataset_
 
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.savefig(os.path.join(tmp_dir, 'RRK_Histogram-' +dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.savefig(os.path.join(tmp_dir, 'RRK_Histogram-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
         plt.close()
         mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
 
@@ -106,55 +90,89 @@ def plot_rrk_histogram(true_labels, enrolled_labels, similarity_matrix, dataset_
         mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
 
 
-def plot_verification(recall, precision, avg_precision, fpr, tpr, thresholds, best_idx, best_thresh, accuracy, eer, roc_auc, test_scores, test_labels, dataset_name, method_appendix):
+def plot_verification(all_fold_results, dataset_name, method_appendix):
+    """
+    Plot combined verification results across all folds with average curves.
+    """
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
 
+        # --- Score distributions ---
         plt.figure(figsize=(7, 5))
-        sns.kdeplot(test_scores[test_labels == 1], label="Genuine", fill=False)
-        sns.kdeplot(test_scores[test_labels == 0], label="Imposter", fill=False)
+        genuine_scores = []
+        imposter_scores = []
+        for res in all_fold_results:
+            gs = res["test_scores"][res["test_labels"] == 1]
+            is_ = res["test_scores"][res["test_labels"] == 0]
+            genuine_scores.append(gs)
+            imposter_scores.append(is_)
+            sns.kdeplot(gs, label=f"Genuine Fold {res['fold']}", fill=False)
+            sns.kdeplot(is_, label=f"Imposter Fold {res['fold']}", fill=False)
+
+        # plot average KDE
+        all_genuine = np.concatenate(genuine_scores)
+        all_imposter = np.concatenate(imposter_scores)
+        sns.kdeplot(all_genuine, label="Genuine Average", color="black", lw=3)
+        sns.kdeplot(all_imposter, label="Imposter Average", color="black", lw=3)
+
         plt.title(f"{dataset_name} {method_appendix} - Score Distributions")
         plt.xlabel("Similarity / Distance")
         plt.ylabel("Density")
         plt.legend()
-        plt.savefig(os.path.join(tmp_dir, 'Distribution-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.savefig(tmp_dir / f'Distribution-{dataset_name}_{method_appendix}.svg', format='svg')
         plt.close()
 
-        # Precision-Recall
-        plt.plot(recall, precision, label=f"AP={avg_precision:.4f}")
+        # --- Precision-Recall ---
+        plt.figure(figsize=(7, 5))
+        recall_list = []
+        precision_list = []
+        for res in all_fold_results:
+            plt.plot(res["recall"], res["precision"], label=f"Fold {res['fold']} (AP={res['avg_precision']:.3f})")
+            recall_list.append(res["recall"])
+            precision_list.append(res["precision"])
+
+        # average precision curve
         plt.xlabel("Recall")
         plt.ylabel("Precision")
-        plt.title("Precision-Recall Curve")
+        plt.title("Precision-Recall Curves")
         plt.legend()
         plt.grid()
-        plt.savefig(os.path.join(tmp_dir, 'AP_Curve-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.savefig(tmp_dir / f'PR_Curve-{dataset_name}_{method_appendix}.svg', format='svg')
         plt.close()
 
-        # DET Curve
-        DetCurveDisplay(fpr=fpr, fnr=1 - tpr).plot()
-        plt.title("DET Curve")
+        # --- DET Curve ---
+        plt.figure(figsize=(7, 5))
+        fpr_list = []
+        fnr_list = []
+        for res in all_fold_results:
+            DetCurveDisplay(fpr=res["fpr"], fnr=1 - res["tpr"]).plot(ax=plt.gca(), name=f"Fold {res['fold']}")
+            fpr_list.append(res["fpr"])
+            fnr_list.append(1 - res["tpr"])
+
+        DetCurveDisplay(fpr=res["fpr"], fnr=1 - res["tpr"]).plot(ax=plt.gca(), name="Average", color='black', linewidth=3)
+        plt.title("DET Curves across folds")
         plt.grid(True)
-        plt.savefig(os.path.join(tmp_dir, 'DET_Curve-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.legend()
+        plt.savefig(tmp_dir / f'DET_Curve-{dataset_name}_{method_appendix}.svg', format='svg')
         plt.close()
 
-        # ROC Curve
+        # --- ROC Curve ---
         plt.figure(figsize=(8, 6))
-        plt.plot(fpr, tpr, label=f"ROC (AUC = {roc_auc:.4f})", linewidth=2)
-        plt.plot([0, 1], [0, 1], "k--", label="Random guess")
-        # Find nearest threshold index in test ROC
-        best_idx_test = np.argmin(np.abs(thresholds - best_thresh))
-        plt.scatter(fpr[best_idx_test], tpr[best_idx_test], color="red", label=f"Best Threshold = {best_thresh:.4f}")
+        for res in all_fold_results:
+            plt.plot(res["fpr"], res["tpr"], lw=1.5, label=f"Fold {res['fold']} (AUC={res['roc_auc']:.3f}, EER={res['eer']:.3f})")
+
+        plt.plot([0, 1], [0, 1], "k:", label="Random guess")
         plt.xlabel("False Positive Rate (FPR)")
         plt.ylabel("True Positive Rate (TPR)")
-        plt.title("1:1 Verification ROC Curve")
+        plt.title("1:1 Verification ROC across folds")
+        plt.legend(loc="lower right", fontsize=8)
         plt.grid(True)
-        plt.legend(loc="lower right")
-        plt.annotate(f"Accuracy: {accuracy:.4f}", xy=(0.6, 0.2), xycoords='axes fraction')
-        plt.annotate(f"EER: {eer:.4f}", xy=(0.6, 0.15), xycoords='axes fraction')
         plt.tight_layout()
-        plt.savefig(os.path.join(tmp_dir, 'ROC_Curve-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.savefig(tmp_dir / f'ROC_Curve-{dataset_name}_{method_appendix}.svg', format='svg')
         plt.close()
 
+        # log to mlflow
         mlflow.log_artifacts(tmp_dir, artifact_path="Verification")
 
 
@@ -283,7 +301,6 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
     # Broadcast comparison: shape (num_queries, num_gallery)
     matches = query_labels[:, None] == enrolled_labels[None, :]
 
-    # Extract scores directly
     genuine_scores = similarity_matrix[matches]
     impostor_scores = similarity_matrix[~matches]
 
@@ -488,21 +505,6 @@ def plot_embeddings(output_path, embeddings_train, class_labels, embeddings_val,
                   filename=f'{sub_name}-all.svg',
                   output_path=plot_output_path,
                   annotations_flag=True)
-
-
-def plot_metrics(output_path, num_epochs, train_loss_list: List, val_loss_list: List, metrics_list: Dict):
-    """Plot training loss and validation accuracy"""
-    metrics = {
-        "Training Loss": train_loss_list,
-        "Validation Loss": val_loss_list,
-        "Validation Accuracy": metrics_list["accuracy_list"],
-        "Validation Precision": metrics_list["precision_list"],
-        "Validation Recall": metrics_list["recall_list"],
-        "Validation F1-Score": metrics_list["f1_list"]
-    }
-    epochs = range(1, num_epochs + 1)
-    for metric_name, metric_values in metrics.items():
-        plot_metric(output_path, epochs, metric_values, metric_name, ylabel=metric_name.split()[-1])
 
 
 def write_embeddings(embedding_library, dataset, epoch):
