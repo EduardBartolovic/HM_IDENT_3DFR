@@ -117,7 +117,7 @@ def main(cfg):
         train_transform = transforms.Compose([
             transforms.Resize(INPUT_SIZE),
             # transforms.RandomCrop((112, 112)),
-            transforms.CenterCrop([112, 112]),
+            transforms.CenterCrop(INPUT_SIZE),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
