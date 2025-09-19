@@ -75,7 +75,7 @@ def analyze_result_verification(labels, similarities_mv,
                                 far_targets=(1e-6, 1e-4),
                                 k_folds=10,
                                 random_state=42,
-                                plot=False
+                                plot=True,
                                 ):
     """
     K-Fold evaluation for 1:1 face verification.
@@ -138,8 +138,8 @@ def analyze_result_verification(labels, similarities_mv,
         if plot and fold_idx == 0:
             plot_verification(
                 recall, precision, avg_precision,
-                fpr, tpr, best_idx, best_thresh,
-                accuracy, eer, roc_auc,
+                fpr, tpr, thresholds, best_idx, best_thresh,
+                accuracy, eer, roc_auc, test_scores, test_labels,
                 dataset_name, method_appendix + f"_fold{fold_idx}"
             )
 

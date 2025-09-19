@@ -104,9 +104,19 @@ def plot_rrk_histogram(true_labels, enrolled_labels, similarity_matrix, dataset_
         mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
 
 
-def plot_verification(recall, precision, avg_precision, fpr, tpr, best_idx, best_thresh, accuracy, eer, roc_auc, dataset_name, method_appendix):
+def plot_verification(recall, precision, avg_precision, fpr, tpr, thresholds, best_idx, best_thresh, accuracy, eer, roc_auc, test_scores, test_labels, dataset_name, method_appendix):
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
+
+        plt.figure(figsize=(7, 5))
+        sns.kdeplot(test_scores[test_labels == 1], label="Same", fill=False)
+        sns.kdeplot(test_scores[test_labels == 0], label="Different", fill=False)
+        plt.title(f"{dataset_name} {method_appendix} - Score Distributions")
+        plt.xlabel("Similarity / Distance")
+        plt.ylabel("Density")
+        plt.legend()
+        plt.savefig(os.path.join(tmp_dir, 'Distribution-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.close()
 
         # Precision-Recall
         plt.plot(recall, precision, label=f"AP={avg_precision:.4f}")
@@ -129,7 +139,9 @@ def plot_verification(recall, precision, avg_precision, fpr, tpr, best_idx, best
         plt.figure(figsize=(8, 6))
         plt.plot(fpr, tpr, label=f"ROC (AUC = {roc_auc:.4f})", linewidth=2)
         plt.plot([0, 1], [0, 1], "k--", label="Random guess")
-        plt.scatter(fpr[best_idx], tpr[best_idx], color="red", label=f"Best Threshold = {best_thresh:.4f}")
+        # Find nearest threshold index in test ROC
+        best_idx_test = np.argmin(np.abs(thresholds - best_thresh))
+        plt.scatter(fpr[best_idx_test], tpr[best_idx_test], color="red", label=f"Best Threshold = {best_thresh:.4f}")
         plt.xlabel("False Positive Rate (FPR)")
         plt.ylabel("True Positive Rate (TPR)")
         plt.title("1:1 Verification ROC Curve")
