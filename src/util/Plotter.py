@@ -1,3 +1,5 @@
+import time
+
 import itertools
 import os
 from pathlib import Path
@@ -109,8 +111,8 @@ def plot_verification(recall, precision, avg_precision, fpr, tpr, thresholds, be
         tmp_dir = Path(tmp_dir)
 
         plt.figure(figsize=(7, 5))
-        sns.kdeplot(test_scores[test_labels == 1], label="Same", fill=False)
-        sns.kdeplot(test_scores[test_labels == 0], label="Different", fill=False)
+        sns.kdeplot(test_scores[test_labels == 1], label="Genuine", fill=False)
+        sns.kdeplot(test_scores[test_labels == 0], label="Imposter", fill=False)
         plt.title(f"{dataset_name} {method_appendix} - Score Distributions")
         plt.xlabel("Similarity / Distance")
         plt.ylabel("Density")
@@ -153,7 +155,7 @@ def plot_verification(recall, precision, avg_precision, fpr, tpr, thresholds, be
         plt.savefig(os.path.join(tmp_dir, 'ROC_Curve-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
         plt.close()
 
-        mlflow.log_artifacts(tmp_dir, artifact_path="verification")
+        mlflow.log_artifacts(tmp_dir, artifact_path="Verification")
 
 
 def plot_cmc(similarity_matrix, gallery_labels, probe_labels, dataset, extension='', top_k=100):
@@ -262,6 +264,49 @@ def plot_cmc(similarity_matrix, gallery_labels, probe_labels, dataset, extension
         plt.close()
 
         mlflow.log_artifacts(tmp_dir, artifact_path="CMC_Curve")
+
+
+def analyze_identification_distribution(similarity_matrix, query_labels, enrolled_labels, dataset_name, extension="", plot=True):
+    """
+    Analyze 1:N identification results by plotting score distributions
+    for genuine (correct) vs impostor (incorrect) matches.
+
+    Args:
+        similarity_matrix: (num_queries x num_gallery) similarity scores
+        query_labels: Labels of query samples
+        enrolled_labels: Labels of gallery samples
+        dataset_name: Name of the dataset (for logging/plotting)
+        extension: Extra string for logging/plotting
+        plot: If True, makes the KDE plot of distributions
+    """
+
+    # Broadcast comparison: shape (num_queries, num_gallery)
+    matches = query_labels[:, None] == enrolled_labels[None, :]
+
+    # Extract scores directly
+    genuine_scores = similarity_matrix[matches]
+    impostor_scores = similarity_matrix[~matches]
+
+    if plot:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = Path(tmp_dir)
+            plt.figure(figsize=(7, 5))
+            sns.kdeplot(genuine_scores, label="Genuine", fill=False)
+            sns.kdeplot(impostor_scores, label="Impostor", fill=False)
+            plt.title(f"{dataset_name} {extension} - Identification Distributions")
+            plt.xlabel("Similarity / Distance")
+            plt.ylabel("Density")
+            plt.legend()
+            plt.savefig(os.path.join(tmp_dir, 'CMC_Curve_-' + dataset_name + '_' + extension + '.svg'), format='svg')
+
+            mlflow.log_artifacts(tmp_dir, artifact_path="IdentificationDistributions")
+
+    # return { # TODO: Maybe use these
+    #    "genuine_mean": np.mean(genuine_scores),
+    #    "genuine_std": np.std(genuine_scores),
+    #    "impostor_mean": np.mean(impostor_scores),
+    #    "impostor_std": np.std(impostor_scores)
+    # }
 
 
 def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matplotlib=True):

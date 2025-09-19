@@ -14,7 +14,7 @@ from torchvision.transforms import transforms
 from tqdm import tqdm
 
 from src.util.Metrics import error_rate_per_class
-from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram, plot_cmc
+from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram, plot_cmc, analyze_identification_distribution
 from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, \
     accuracy_front_perspective, analyze_result_verification, score_fusion, fuse_pairwise_scores
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
@@ -137,10 +137,11 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     similarity_matrix_mvfa = calculate_embedding_similarity(embedding_library.query_embeddings_agg, embedding_library.enrolled_embeddings_agg, chunk_size=batch_size, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix_mvfa)
     metrics_mvfa = analyze_result(similarity_matrix_mvfa, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
-    plot_cmc(similarity_matrix_mvfa, enrolled_labels, query_labels, os.path.basename(test_path), "mv")
-    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_mvfa, os.path.basename(test_path), "mv")
+    plot_cmc(similarity_matrix_mvfa, enrolled_labels, query_labels, os.path.basename(test_path), "mvfa")
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_mvfa, os.path.basename(test_path), "mvfa")
+    analyze_identification_distribution(similarity_matrix_mvfa, query_labels, enrolled_labels, os.path.basename(test_path), "mvfa", plot=True)
     plot_confusion_matrix(query_labels, enrolled_labels[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
-    error_rate_per_class(query_labels, enrolled_labels, top_indices, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_mvfa, os.path.basename(test_path), "_mv")
+    error_rate_per_class(query_labels, enrolled_labels, top_indices, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_mvfa, os.path.basename(test_path), "_mvfa")
     all_metrics["metrics_mvfa"] = metrics_mvfa
     del similarity_matrix_mvfa, top_indices, top_values
 
@@ -152,6 +153,7 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     plot_cmc(similarity_matrix_front, enrolled_labels, query_labels, os.path.basename(test_path), "front")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_front, os.path.basename(test_path), "front")
     error_rate_per_class(query_labels, enrolled_labels, top_indices_front, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_front, os.path.basename(test_path), "_front")
+    analyze_identification_distribution(similarity_matrix_front, query_labels, enrolled_labels, os.path.basename(test_path), "front", plot=True)
     all_metrics["metrics_front"] = metrics_front
     del similarity_matrix_front, top_indices_front, y_true_front, y_pred_front
     # --------- Concat Full ---------
@@ -159,11 +161,14 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     plot_cmc(similarity_matrix_concat, enrolled_labels, query_labels, os.path.basename(test_path), "concat")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat, os.path.basename(test_path), "concat")
     error_rate_per_class(query_labels, enrolled_labels, top_indices_concat, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_concat, os.path.basename(test_path), "_concat")
+    analyze_identification_distribution(similarity_matrix_concat, query_labels, enrolled_labels, os.path.basename(test_path), "concat", plot=True)
     all_metrics["metrics_concat"] = metrics_concat
     del similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat
     # --------- Concat Mean ---------
     metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
     plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, os.path.basename(test_path), "concat_mean")
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_mean, os.path.basename(test_path), "concat_mean")
+    analyze_identification_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, os.path.basename(test_path), "concat_mean", plot=True)
     all_metrics["metrics_concat_mean"] = metrics_concat_mean
     del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
     # --------- Concat PCA ---------
