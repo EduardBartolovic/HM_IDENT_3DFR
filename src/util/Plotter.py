@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from pycm import ConfusionMatrix, ROCCurve
 from openTSNE import TSNE
 from sklearn.decomposition import PCA
-from sklearn.metrics import confusion_matrix, DetCurveDisplay, auc
+from sklearn.metrics import confusion_matrix, DetCurveDisplay
 import seaborn as sns
 import tempfile
 
@@ -62,9 +62,6 @@ def plot_rrk_histogram(true_labels, enrolled_labels, similarity_matrix, dataset_
         plt.savefig(os.path.join(tmp_dir, 'RRK_Histogram-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
         plt.close()
         mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
-
-        # Log scale
-
         plt.figure(figsize=(10, 6))
         bins = np.arange(1, 33) - 0.5  # Bin edges from 0.5 to 31.5 to center bins on integers 1–31
         plt.hist(ranks, bins=bins, edgecolor='black', color='skyblue')
@@ -94,7 +91,6 @@ def plot_verification(all_fold_results, dataset_name, method_appendix):
     """
     Plot combined verification results across all folds with average curves.
     """
-
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
 
@@ -172,7 +168,7 @@ def plot_verification(all_fold_results, dataset_name, method_appendix):
         plt.savefig(tmp_dir / f'ROC_Curve-{dataset_name}_{method_appendix}.svg', format='svg')
         plt.close()
 
-        # log to mlflow
+        # # --- log to mlflow ---
         mlflow.log_artifacts(tmp_dir, artifact_path="Verification")
 
 
