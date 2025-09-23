@@ -14,7 +14,8 @@ from torchvision.transforms import transforms
 from tqdm import tqdm
 
 from src.util.Metrics import error_rate_per_class
-from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram, plot_cmc, analyze_identification_distribution
+from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram, plot_cmc, analyze_identification_distribution, \
+    plot_all_cmc_from_txt
 from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, \
     accuracy_front_perspective, analyze_result_verification, score_fusion, fuse_pairwise_scores
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
@@ -195,6 +196,8 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     all_metrics["metrics_score_mean"] = metrics_score_mean
     metrics_score_trimmedmean, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="trimmed_mean", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_trimmedmean"] = metrics_score_trimmedmean
+
+    plot_all_cmc_from_txt(os.path.basename(test_path))
 
     return all_metrics, embedding_library, dataset_enrolled, dataset_query
 

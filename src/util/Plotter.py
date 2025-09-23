@@ -274,10 +274,63 @@ def plot_cmc(similarity_matrix, gallery_labels, probe_labels, dataset, extension
             bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="gray", alpha=0.9)
         )
         plt.tight_layout()
-        plt.savefig(os.path.join(tmp_dir, 'CMC_Curve_-' + dataset + '_' + extension + '.svg'), format='svg')
+        plt.savefig(os.path.join(tmp_dir, 'CMC_Curve-' + dataset + '-' + extension + '.svg'), format='svg')
         plt.close()
 
+        # ---- Save accuracy per rank as TXT ----
+        txt_path = os.path.join(tmp_dir, f'CMC_Curve-{dataset}-{extension}.txt')
+        with open(txt_path, "w") as f:
+            f.write("Rank\tAccuracy(%)\n")
+            for r in range(top_k):
+                f.write(f"{r+1}\t{cmc_curve[r]*100:.4f}\n")
+
         mlflow.log_artifacts(tmp_dir, artifact_path="CMC_Curve")
+
+
+def plot_all_cmc_from_txt(dataset, top_k=100, title="CMC Curves Comparison"):
+    """
+    Read all CMC TXT files in a directory and plot all curves in a single plot.
+
+    Args:
+        dataset: str - dataset name for title/saving
+        top_k (int): Maximum rank to plot.
+        title (str): Title of the plot.
+    """
+    directory = mlflow.get_artifact_uri("CMC_Curve").replace("file:", "")
+
+    cmc_files = [f for f in os.listdir(directory) if f.endswith('.txt') and dataset == f.split("-")[1]]
+    if not cmc_files:
+        print("No CMC TXT files found in the directory!")
+        return
+
+    plt.figure(figsize=(10, 6))
+
+    markers = ['o', 's', 'D', '^', 'v', '<', '>', 'p', '*', 'h', 'H', '+', 'x']
+
+    for idx, f in enumerate(cmc_files):
+        file_path = os.path.join(directory, f)
+        data = np.loadtxt(file_path, skiprows=1)  # skip header
+        ranks = data[:, 0]
+        accuracy = data[:, 1]
+
+        # Ensure we only plot up to top_k
+        mask = ranks <= top_k
+        ranks = ranks[mask]
+        accuracy = accuracy[mask]
+
+        label_name = os.path.splitext(f)[0].split("-")[-1]
+        marker = markers[idx % len(markers)]
+        plt.plot(ranks, accuracy, marker=marker, linewidth=2, label=label_name)
+
+    plt.xlabel("Rank", fontsize=12)
+    plt.ylabel("Identification Rate (%)", fontsize=12)
+    plt.title(title, fontsize=14)
+    plt.xticks([1, 5, 10, 25, 50, 100])
+    plt.grid(True, linestyle="--", alpha=0.6)
+    plt.legend(loc='lower right')
+    plt.tight_layout()
+    plt.savefig(os.path.join(directory, 'CMC_Curve-' + dataset + '-combined.svg'), format='svg')
+    plt.close()
 
 
 def analyze_identification_distribution(similarity_matrix, query_labels, enrolled_labels, dataset_name, extension="", plot=True):
