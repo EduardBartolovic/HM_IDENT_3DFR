@@ -109,5 +109,5 @@ def ir_mv_v2_18(device, aggregators, embedding_size=512, fp16=False, active_stag
     return MultiviewIResnet(device, aggregators, iresnet18, {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}, embedding_size, fp16, active_stages)
 
 
-def ir_mv_facenet_50(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
+def ir_mv_facenet(device, aggregators, embedding_size=512, fp16=False, active_stages=None):
     return MultiviewIResnet(device, aggregators, ir_facenet_50, {"input_stage": 0, "stage_1": 1, "stage_2": 2, "stage_3": 3, "stage_4": 4, "output_stage": 5}, embedding_size, fp16, active_stages)

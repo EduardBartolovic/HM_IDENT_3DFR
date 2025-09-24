@@ -19,7 +19,7 @@ from src.aggregator.SEAggregator import make_se_aggregator
 from src.aggregator.TransformerAggregator import make_transformer_aggregator
 from src.aggregator.TransformerAggregatorV2 import make_transformerv2_aggregator
 from src.aggregator.WeightedSumAggregator import make_weighted_sum_aggregator
-from src.backbone.multiview_ires import ir_mv_v2_50, ir_mv_v2_34, ir_mv_v2_18, ir_mv_v2_100, ir_mv_50, ir_mv_facenet_50
+from src.backbone.multiview_ires import ir_mv_v2_50, ir_mv_v2_34, ir_mv_v2_18, ir_mv_v2_100, ir_mv_50, ir_mv_facenet
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.eval_model_multiview import evaluate_and_log_mv, evaluate_and_log_mv_verification
 from src.util.load_checkpoint import load_checkpoint
@@ -42,7 +42,6 @@ def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, 
     evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv(backbone, data_root, "test_multipie_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_multipie8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
     evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
 
@@ -51,7 +50,7 @@ def main(cfg):
     torch.manual_seed(SEED)
 
     RUN_NAME = cfg['RUN_NAME']
-    DATA_ROOT = os.path.join(os.getenv("DATA_ROOT"),cfg['DATA_ROOT_PATH'])  # the parent root where the datasets are stored
+    DATA_ROOT = os.path.join(os.getenv("DATA_ROOT"), cfg['DATA_ROOT_PATH'])  # the parent root where the datasets are stored
     TRAIN_SET = cfg['TRAIN_SET']
     MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
     LOG_ROOT = cfg['LOG_ROOT']
@@ -160,7 +159,7 @@ def main(cfg):
         print("=" * 60)
 
         # ======= Backbone =======
-        BACKBONE_DICT = {'IR_MV_Facenet_50': lambda: ir_mv_facenet_50(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
+        BACKBONE_DICT = {'IR_MV_Facenet': lambda: ir_mv_facenet(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
                          'IR_MV_50': lambda: ir_mv_50(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
                          'IR_MV_V2_18': lambda: ir_mv_v2_18(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
                          'IR_MV_V2_34': lambda: ir_mv_v2_34(DEVICE, aggregators, EMBEDDING_SIZE, active_stages={2, 3, 4, 5}),
