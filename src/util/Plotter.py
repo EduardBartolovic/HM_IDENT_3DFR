@@ -59,7 +59,7 @@ def plot_rrk_histogram(true_labels, enrolled_labels, similarity_matrix, dataset_
 
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.savefig(os.path.join(tmp_dir, 'RRK_Histogram-' + dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.savefig(os.path.join(tmp_dir, 'RRK_Histogram-' + dataset_name + '-' + method_appendix + '.svg'), format='svg')
         plt.close()
         mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
         plt.figure(figsize=(10, 6))
@@ -82,7 +82,7 @@ def plot_rrk_histogram(true_labels, enrolled_labels, similarity_matrix, dataset_
 
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         plt.tight_layout()
-        plt.savefig(os.path.join(tmp_dir, 'RRK_Histogram_log_scale-' +dataset_name + '_' + method_appendix + '.svg'), format='svg')
+        plt.savefig(os.path.join(tmp_dir, 'RRK_Histogram_log_scale-' +dataset_name + '-' + method_appendix + '.svg'), format='svg')
         plt.close()
         mlflow.log_artifacts(tmp_dir, artifact_path="errorhistogram")
 
@@ -116,7 +116,7 @@ def plot_verification(all_fold_results, dataset_name, method_appendix):
         plt.xlabel("Similarity / Distance")
         plt.ylabel("Density")
         plt.legend()
-        plt.savefig(tmp_dir / f'Distribution-{dataset_name}_{method_appendix}.svg', format='svg')
+        plt.savefig(tmp_dir / f'Distribution-{dataset_name}-{method_appendix}.svg', format='svg')
         plt.close()
 
         # --- Precision-Recall ---
@@ -134,7 +134,7 @@ def plot_verification(all_fold_results, dataset_name, method_appendix):
         plt.title("Precision-Recall Curves")
         plt.legend()
         plt.grid()
-        plt.savefig(tmp_dir / f'PR_Curve-{dataset_name}_{method_appendix}.svg', format='svg')
+        plt.savefig(tmp_dir / f'PR_Curve-{dataset_name}-{method_appendix}.svg', format='svg')
         plt.close()
 
         # --- DET Curve ---
@@ -150,7 +150,7 @@ def plot_verification(all_fold_results, dataset_name, method_appendix):
         plt.title("DET Curves across folds")
         plt.grid(True)
         plt.legend()
-        plt.savefig(tmp_dir / f'DET_Curve-{dataset_name}_{method_appendix}.svg', format='svg')
+        plt.savefig(tmp_dir / f'DET_Curve-{dataset_name}-{method_appendix}.svg', format='svg')
         plt.close()
 
         # --- ROC Curve ---
@@ -165,7 +165,7 @@ def plot_verification(all_fold_results, dataset_name, method_appendix):
         plt.legend(loc="lower right", fontsize=8)
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(tmp_dir / f'ROC_Curve-{dataset_name}_{method_appendix}.svg', format='svg')
+        plt.savefig(tmp_dir / f'ROC_Curve-{dataset_name}-{method_appendix}.svg', format='svg')
         plt.close()
 
         # # --- log to mlflow ---
@@ -363,7 +363,7 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
             plt.xlabel("Similarity / Distance")
             plt.ylabel("Density")
             plt.legend()
-            plt.savefig(os.path.join(tmp_dir, 'CMC_Curve_-' + dataset_name + '_' + extension + '.svg'), format='svg')
+            plt.savefig(os.path.join(tmp_dir, 'CMC_Curve-' + dataset_name + '-' + extension + '.svg'), format='svg')
 
             mlflow.log_artifacts(tmp_dir, artifact_path="IdentificationDistributions")
 
