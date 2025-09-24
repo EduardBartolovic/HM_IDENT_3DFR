@@ -357,8 +357,21 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir = Path(tmp_dir)
             plt.figure(figsize=(7, 5))
-            sns.kdeplot(genuine_scores, label="Genuine", fill=False)
-            sns.kdeplot(impostor_scores, label="Impostor", fill=False)
+
+            max_points = 500_000
+            if len(genuine_scores) > max_points:
+                genuine_scores_red = np.random.choice(genuine_scores, max_points, replace=False)
+                sns.kdeplot(genuine_scores_red, label="Genuine", fill=False)
+            else:
+                sns.kdeplot(genuine_scores, label="Genuine", fill=False)
+            if len(impostor_scores) > max_points:
+                impostor_scores_red = np.random.choice(impostor_scores, max_points, replace=False)
+                sns.kdeplot(impostor_scores_red, label="Impostor", fill=False)
+            else:
+                sns.kdeplot(impostor_scores, label="Impostor", fill=False)
+
+            #sns.histplot(genuine_scores, bins=250, stat="density", kde=False, color="tab:blue", alpha=0.3, label="Genuine")
+            #sns.histplot(impostor_scores,bins=250, stat="density",kde=False,color="tab:orange",alpha=0.3,label="Impostor")
             plt.title(f"{dataset_name} {extension} - Identification Distributions")
             plt.xlabel("Similarity / Distance")
             plt.ylabel("Density")
