@@ -377,6 +377,7 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
             plt.ylabel("Density")
             plt.legend()
             plt.savefig(os.path.join(tmp_dir, 'CMC_Curve-' + dataset_name + '-' + extension + '.svg'), format='svg')
+            plt.close()
 
             mlflow.log_artifacts(tmp_dir, artifact_path="IdentificationDistributions")
 
