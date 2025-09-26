@@ -73,7 +73,7 @@ def process_txt_file_to_video_voxceleb(args):
             video_name, frame_index = info[7].split('#')
             frame_index = int(frame_index)
             #x_min, y_min, x_max, y_max = map(int, info[8:])
-            dst_filename = f'{hash_name[:20]}_{info[3].split(".")[0]}_{info[4].split(".")[0]}#{info[0]}_{info[1]}.jpg'
+            dst_filename = f'{hash_name[:15]}#{info[0]}_{info[1]}#{info[3].split(".")[0]}_{info[4].split(".")[0]}.jpg'
             dst_path = os.path.join(destination, dst_filename)
         except ValueError as e:
             print("Error in :", file_path)
@@ -157,7 +157,7 @@ def process_txt_file_to_video_nersemble(args):
             video_name, frame_index = info[7].split('#')
             frame_index = int(frame_index)
             #x_min, y_min, x_max, y_max = map(int, info[8:])
-            dst_filename = f'{hash_name[:20]}_{info[3].split(".")[0]}_{info[4].split(".")[0]}#{info[0]}_{info[1]}.jpg'
+            dst_filename = f'{hash_name[:15]}#{info[0]}_{info[1]}#{info[3].split(".")[0]}_{info[4].split(".")[0]}.jpg'
             dst_path = os.path.join(destination, dst_filename)
         except ValueError:
             raise ValueError("Error in :", file_path)
@@ -238,7 +238,7 @@ def process_txt_file_to_video_ytf(args):
         try:
             img_name = info[7]
             #x_min, y_min, x_max, y_max = map(int, info[8:])
-            dst_filename = f'{hash_name[:20]}_{info[3].split(".")[0]}_{info[4].split(".")[0]}#{info[0]}_{info[1]}.jpg'
+            dst_filename = f'{hash_name[:15]}#{info[0]}_{info[1]}#{info[3].split(".")[0]}_{info[4].split(".")[0]}.jpg'
             dst_path = os.path.join(destination, dst_filename)
         except ValueError:
             raise ValueError("Error in :", file_path)
