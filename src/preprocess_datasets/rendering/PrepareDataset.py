@@ -631,9 +631,9 @@ def filter_views(dataset_folder, output_folder, filter_keywords, target_views=8)
                 total_scans += 1
                 # pick only files whose keyword is in filter_keywords
                 filtered_files = [
-                    f for f in files if f[15:-4].split("#")[1] in filter_keywords
+                    f for f in files if f[15:-4].split("#")[0] in filter_keywords
                 ]
-                keywords_present = set(f[15:-4].split("#")[1] for f in filtered_files)
+                keywords_present = set(f[15:-4].split("#")[0] for f in filtered_files)
 
                 # check completeness
                 if all(k in keywords_present for k in filter_keywords):
