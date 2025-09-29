@@ -10,8 +10,8 @@ from src.preprocess_datasets.rendering import PrepareDataset
 
 
 def preprocessing():
-    root = "F:\\Face\\data\\dataset10\\"
-    folder_root = root+"aligned_images_DB"
+    root = "F:\\Face\\data\\dataset11\\"
+    folder_root = root + "aligned_images_DB"
     folder_root_crop = root+"aligned_images_DB_crop"
     dataset_output_folder = root+"aligned_images_DB_out"
     output_test_dataset = root+"test_ytf8"
@@ -37,7 +37,7 @@ def preprocessing():
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches(folder_root_crop, permutations, txt_name="analysis.txt")
+    find_matches(folder_root_crop, permutations, pkl_name="analysis.pkl")
     # evaluate_gaze_coverage(folder_root)
 
     print("##################################")

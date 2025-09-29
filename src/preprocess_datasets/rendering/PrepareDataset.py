@@ -108,7 +108,7 @@ def prepare_dataset_rgb(input_path, output_dir, mode=''):
         scan_set = splited_path[-2] + splited_path[-3]
         model = splited_path[-4]
         angles = splited_path[-1][:-10]
-        file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest()[:15] + "#" +angles + "#" + angles + '.jpg'
+        file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest()[:15] + "#" + angles + "#" + angles + '.jpg'
 
         if mode == '':
 

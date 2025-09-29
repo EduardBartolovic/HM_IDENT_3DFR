@@ -49,12 +49,12 @@ class MultiviewDataset(Dataset):
                 if filename.is_file():
                     ext = os.path.splitext(filename)[1].lower()
                     if ext in self.valid_image_ext:
-                        match = self.filename_regex.match(filename.name[40:-10])
-                        #match = self.filename_regex.match(filename.name[21:-4].split("#")[1])
+                        #match = self.filename_regex.match(filename.name[40:-10])
+                        match = self.filename_regex.match(filename.name[16:-4].split("#")[0])
                         if not match:
                             raise ValueError(f"Invalid filename format: {filename.name}")
-                        sha_hash = filename.name[:40]
-                        #sha_hash = filename.name[:20]
+                        #sha_hash = filename.name[:40]
+                        sha_hash = filename.name[:15]
                         sha_groups[sha_hash].append(filename.path)
 
                     elif ext == ".npz":
@@ -87,17 +87,19 @@ class MultiviewDataset(Dataset):
 
         if self.face_cor_exist:
             facial_corr = torch.stack([
-                torch.from_numpy(np.load(p.replace("_image.jpg", "_corr.npz"))["corr"])
+                # torch.from_numpy(np.load(p.replace("_image.jpg", "_corr.npz"))["corr"])
+                torch.from_numpy(np.load(p.replace(".jpg", "_corr.npz"))["corr"]) for p in img_paths
                 for p in img_paths
-            ])  #torch.from_numpy(np.load(p.replace(".jpg", "_corr.npz"))["corr"]) for p in img_paths
+            ])
         else:
             facial_corr = torch.empty(0)
 
         # Load all perspectives and Scan ids
-        perspectives = [os.path.basename(img_path)[40:-10] for img_path in img_paths]
-        scan_id = os.path.basename(img_paths[0])[:40]
-        #perspectives = [os.path.basename(img_path)[21:-4].split("#")[1] for img_path in img_paths]
-        #scan_id = os.path.basename(img_paths[0])[:20]
+        #perspectives = [os.path.basename(img_path)[40:-10] for img_path in img_paths]
+        #scan_id = os.path.basename(img_paths[0])[:40]
+        perspectives = [os.path.basename(img_path)[16:-4].split("#")[0] for img_path in img_paths]
+        # true_perspectives = [os.path.basename(img_path)[16:-4].split("#")[1] for img_path in img_paths]
+        scan_id = os.path.basename(img_paths[0])[:15]
 
         if self.shuffle_views:
             if self.face_cor_exist:

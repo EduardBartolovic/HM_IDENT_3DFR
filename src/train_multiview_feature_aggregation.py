@@ -12,6 +12,7 @@ from loss.focal import FocalLoss
 from src.aggregator.ConvAggregator import make_conv_aggregator
 from src.aggregator.CosineDistanceWeightedAggregator import make_cosinedistance_weighted_aggregator
 from src.aggregator.EmbeddingWeightedAggregator import make_embeddingweighted_aggregator
+from src.aggregator.MaxAggregator import make_max_aggregator
 from src.aggregator.MeanAggregator import make_mean_aggregator
 from src.aggregator.MedianAggregator import make_median_aggregator
 from src.aggregator.RobustMeanAggregator import make_rma
@@ -142,6 +143,7 @@ def main(cfg):
                     'MeanAggregator': lambda: make_mean_aggregator(AGG_CONFIG),
                     'RobustMeanAggregator': lambda: make_rma([NUM_VIEWS]*5),
                     'MedianAggregator': lambda: make_median_aggregator([NUM_VIEWS]*5),
+                    'MaxAggregator': lambda: make_max_aggregator(AGG_CONFIG),
                     'ConvAggregator': lambda: make_conv_aggregator(AGG_CONFIG),
                     'SEAggregator': lambda: make_se_aggregator([64, 64, 128, 256, 512]),
                     'TransformerAggregator': lambda: make_transformer_aggregator([64, 64, 128, 256, 512], NUM_VIEWS, AGG_CONFIG),

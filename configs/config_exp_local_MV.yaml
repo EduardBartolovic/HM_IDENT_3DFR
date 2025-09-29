@@ -1,24 +1,34 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP_LOCAL_TEST'  # experiment_name
-DATA_ROOT: 'F:\\Face\\data\\dataset10'  # the parent root
-TRAIN_SET: 'mv_ms1mv3_5K'  # where your train/val data are stored
+DATA_ROOT_PATH: 'dataset11'  # the parent root
+TRAIN_SET: 'vox2test_crop8'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: 'F:\\Face\\log'  # the root to log your train/val status
-BACKBONE_RESUME_ROOT: 'F:\\Face\\\\HM_IDENT_3DFR\\pretrained\\glint_cosface_r18_fp16.pth'# backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
+BACKBONE_RESUME_PATH: 'glint_cosface_r18_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'glint_cosface_r50_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'glint_cosface_r100_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'facenet-casia-webface.pt' # backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 USE_FACE_CORR: False
+#BACKBONE_NAME: 'IR_MV_50'
 BACKBONE_NAME: 'IR_MV_V2_18'
+#BACKBONE_NAME: 'IR_MV_V2_50'
+#BACKBONE_NAME: 'IR_MV_V2_100'
+#BACKBONE_NAME: 'IR_MV_Facenet'
 AGG:
-  AGG_NAME: 'TransformerAggregatorV2'
+  AGG_NAME: 'MeanAggregator'
   AGG_CONFIG:
-    ACTIVE_STAGES: [False, False, False, False, True]
+    ACTIVE_STAGES: [False, False, False, False, False]
+    #ACTIVE_STAGES: [True, True, True, True, True]
+    #ACTIVE_STAGES: [8, 8, 8, 8, 8]
     NUM_LAYERS: 1
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 
-INPUT_SIZE: [112, 112]  # support: [112, 112] and [224, 224]
+INPUT_SIZE: [112, 112]  # support: [112, 112] and [160, 160]
 NUM_VIEWS: 8   # num views
 RGB_MEAN: [0.5, 0.5, 0.5]  # for normalize inputs to [-1, 1]
 RGB_STD: [0.5, 0.5, 0.5]
@@ -26,14 +36,14 @@ EMBEDDING_SIZE: 512  # feature dimension
 BATCH_SIZE: 16
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
 OPTIMIZER_NAME: SGD
-LR: 0.05  # initial LR
-NUM_EPOCH: 20  # total epoch number (use the first 1/25 epochs to warm up)
-UNFREEZE_AGG_EPOCH: 2  # number of epochs to only train the head
-UNFREEZE_AGG_BACKBONE_EPOCH: 3  # number of epochs not to train the aggregator-backbone
+LR: 0.1  # initial LR
+NUM_EPOCH: 35  # total epoch number (use the first 1/25 epochs to warm up)
+UNFREEZE_AGG_EPOCH: 10  # number of epochs to only train the head
+UNFREEZE_AGG_BACKBONE_EPOCH: 10  # number of epochs not to train the aggregator-backbone
 PATIENCE: 100  # patience for early stopping
-WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
+WEIGHT_DECAY: 0.001  # do not apply to batch_norm parameters
 MOMENTUM: 0.3
-STAGES: [50, 75, 95]  # epoch stages to decay learning rate
+STAGES: [5, 8, 9]  # epoch stages to decay learning rate
 
 MULTI_GPU: false
 # flag to use multiple GPUs; if you choose to train with single GPU, you should first run "export CUDA_VISILE_DEVICES=device_id" to specify the GPU card you want to use
