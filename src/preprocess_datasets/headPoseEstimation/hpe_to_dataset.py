@@ -214,7 +214,7 @@ def generate_ytf_dataset_from_video(folder_root, dataset_output_folder, keep=Tru
             destination = os.path.join(dataset_output_folder, id_name)
             os.makedirs(destination, exist_ok=True)
 
-            hash_name = 'X' * 15
+            hash_name = (sample_name + 'X' * 15)[:15]
 
             file_path = os.path.join(root, file)
             jobs.append((file_path, destination, hash_name, keep, video_folder_path))
