@@ -8,28 +8,6 @@ import shutil
 from tqdm import tqdm
 
 
-def sanity_check(folder_path, views):
-    """
-       Checks if the number of files in the given folder is a multiple of `multiple_of`.
-
-       Args:
-           folder_path (str): Path to the folder.
-           views (int): The number to check multiplicity against.
-
-       Returns:
-           bool: True if file count is a multiple of `multiple_of`, False otherwise.
-       """
-    try:
-        # List all files (ignoring directories)
-        files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
-        file_count = len(files)
-        print(f"Found {file_count} files in '{folder_path}'.")
-        return file_count % views == 0
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
-
-
 def unique_views_score(file_paths):
     """
     Counts the number of unique images based on file content.
@@ -122,5 +100,3 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
 
     elapsed_time = time.time() - start_time
     print(f"Train-test split created in {output_folder}. {ignored} ignored groups in {counter} files in", round(elapsed_time/60, 2), "minutes")
-    sanity_check(output_folder, views=poses)
-    print("Sanity Check completed successfully")

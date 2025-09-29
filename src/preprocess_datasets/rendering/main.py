@@ -12,9 +12,9 @@ from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 def main():
 
-    bellus = False
-    facescape = False
-    faceverse = False
+    bellus = True
+    facescape = True
+    faceverse = True
     texas = False
     facewarehouse = False
     mononphm = False
@@ -23,7 +23,7 @@ def main():
     colorferet = False
     bff = True
 
-    root = 'F:\\Face\\data\\dataset10\\'
+    root = 'F:\\Face\\data\\dataset11\\'
     render_angles = [-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
 
     # -------- Bellus --------
@@ -48,9 +48,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB:
-        #input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus\\')
-        #output_dir = Path(root+'test_rgb_bellus')
-        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus\\')
+        output_dir = Path(root+'test_rgb_bellus')
+        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth:
         #input_path = Path(root+'test_rgb_bellus')
@@ -209,7 +209,7 @@ def main():
         print("################# BFF #################")
         input_paths = [Path(root+'test_rgb_bellus'), Path(root+'test_rgb_facescape'), Path(root+'test_rgb_faceverse')]
         output_dir = Path(root + 'test_rgb_bff')
-        #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
+        PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
         face_crop_and_alignment(root + 'test_rgb_bff/enrolled', root + 'test_rgb_bff_crop/enrolled', face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(272, 272))
         face_crop_and_alignment(root + 'test_rgb_bff/query', root + 'test_rgb_bff_crop/query', face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(272, 272))

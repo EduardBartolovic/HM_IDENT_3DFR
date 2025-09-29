@@ -95,8 +95,8 @@ def prepare_dataset_rgb(input_path, output_dir, mode=''):
 
     os.makedirs(output_dir, exist_ok=True)
 
-    train_dir = os.path.join(output_dir, 'train')
-    val_dir = os.path.join(output_dir, 'validation')
+    train_dir = os.path.join(output_dir, 'enrolled')
+    val_dir = os.path.join(output_dir, 'query')
     os.makedirs(train_dir, exist_ok=True)
     os.makedirs(val_dir, exist_ok=True)
 
@@ -107,7 +107,8 @@ def prepare_dataset_rgb(input_path, output_dir, mode=''):
         splited_path = Path(p).parts
         scan_set = splited_path[-2] + splited_path[-3]
         model = splited_path[-4]
-        file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest() + splited_path[-1]
+        angles = splited_path[-1][:-10]
+        file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest()[:15] + "#" +angles + "#" + angles + '.jpg'
 
         if mode == '':
 

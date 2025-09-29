@@ -56,13 +56,13 @@ def preprocess_multipie(
         os.makedirs(class_dir, exist_ok=True)
 
         # Consistent hash per subject
-        sha = hashlib.sha1(f"{subject}_{illumination}_{recording}".encode()).hexdigest()[:40]
+        sha = hashlib.sha1(f"{subject}_{illumination}_{recording}".encode()).hexdigest()[:15]
 
         for i, (fname, camera) in enumerate(items):
             src = os.path.join(input_dir, fname)
 
             coords = cam_to_coords[camera]  # map camera → ~ coordinates
-            dst_name = f"{sha}{coords}_image.png"
+            dst_name = f"{sha}#{coords}#{coords}.png"
             dst = os.path.join(class_dir, dst_name)
 
             shutil.copy(src, dst)
@@ -89,9 +89,9 @@ if __name__ == '__main__':
     }
 
     input_dir = "H:\\Maurer\\CMU_Multi_pie\\Multi_Pie\\HR_128"
-    output_dir = "F:\\Face\\data\\dataset10\\multipie8"
-    output_folder_crop = "F:\\Face\\data\\dataset10\\multipie_crop8"
-    output_test_dataset = "F:\\Face\\data\\dataset10\\test_multipie8"
+    output_dir = "F:\\Face\\data\\dataset11\\multipie8"
+    output_folder_crop = "F:\\Face\\data\\dataset11\\multipie_crop8"
+    output_test_dataset = "F:\\Face\\data\\dataset11\\test_multipie8"
     poses = 8
 
     preprocess_multipie(input_dir, output_dir, valid_cams, cam_to_coords)
