@@ -252,8 +252,8 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         class1, sample1 = name1.split("/")
         class2, sample2 = name2.split("/")
 
-        sample1 = ('X' * 40 + sample1)[-40:]
-        sample2 = ('X' * 40 + sample2)[-40:]
+        sample1 = (sample1 + 'X' * 15)[:15]
+        sample2 = (sample2 + 'X' * 15)[:15]
         class1 = class1.lstrip()
         class2 = class2.lstrip()
 

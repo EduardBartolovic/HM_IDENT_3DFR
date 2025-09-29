@@ -14,7 +14,7 @@ def preprocessing():
     folder_root = root + "aligned_images_DB"
     folder_root_crop = root+"aligned_images_DB_crop"
     dataset_output_folder = root+"aligned_images_DB_out"
-    output_test_dataset = root+"test_ytf8"
+    output_test_dataset = root+"test_ytf_crop8"
     model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
     batch_size = 8  # 256 for 24GB  # 48 for 8 GB VRAM
