@@ -100,9 +100,9 @@ def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch
             continue
 
         output_analysis_folder = os.path.join(root, output_folder)
-        output_txt_path = os.path.join(output_analysis_folder, "analysis.txt")
+        output_pkl_path = os.path.join(output_analysis_folder, "analysis.pkl")
 
-        if keep and os.path.exists(output_txt_path):
+        if keep and os.path.exists(output_pkl_path):
             continue
 
         os.makedirs(output_analysis_folder, exist_ok=True)
@@ -197,7 +197,6 @@ def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch
 
         assert len(frame_hpe) == len(frame_dets)
         if frame_dets:
-            output_pkl_path = os.path.join(output_analysis_folder, "analysis.pkl")
             try:
                 with open(output_pkl_path, 'wb') as pkl_file:
                     pickle.dump({
@@ -205,7 +204,7 @@ def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch
                         "frame_dets": frame_dets
                     }, pkl_file)
             except KeyboardInterrupt:
-                print(f"\nInterrupted while saving at {output_pkl_path}. Attempting to finish saving and exit cleanly.")
+                print(f"\nInterrupted while saving at {output_pkl_path}. Attempting to finish saving and exited cleanly.")
                 with open(output_pkl_path, 'wb') as pkl_file:
                     pickle.dump({
                         "frame_hpe": frame_hpe,
@@ -255,10 +254,10 @@ def analyse_video_ytf(input_folder, output_folder, model_path_hpe, model_path_bl
         frame_dets = []
         frame_hpe = []
         output_analysis_folder = os.path.join(root, output_folder)
-        output_txt_path = os.path.join(output_analysis_folder, "analysis.txt")
+        output_pkl_path = os.path.join(output_analysis_folder, "analysis.pkl")
 
         # Skip video if analysis.txt already exists
-        if keep and os.path.exists(output_txt_path):
+        if keep and os.path.exists(output_pkl_path):
             continue
         os.makedirs(output_analysis_folder, exist_ok=True)
 
@@ -362,7 +361,6 @@ def analyse_video_ytf(input_folder, output_folder, model_path_hpe, model_path_bl
 
             assert len(frame_hpe) == len(frame_dets)
             if frame_dets:
-                output_pkl_path = os.path.join(output_analysis_folder, "analysis.pkl")
                 try:
                     with open(output_pkl_path, 'wb') as pkl_file:
                         pickle.dump({
