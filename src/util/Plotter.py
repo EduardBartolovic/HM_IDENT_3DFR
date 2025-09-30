@@ -380,7 +380,7 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
             sns.histplot(impostor_scores, bins=250, stat="percent", kde=False, color="tab:orange", alpha=0.3, label="Impostor")
             plt.title(f"{dataset_name} {extension} - Identification Distributions")
             plt.xlabel("Similarity / Distance")
-            plt.ylabel("Density")
+            plt.ylabel("Frequency")
             plt.legend()
             plt.savefig(os.path.join(tmp_dir, 'Distributions_Curve-' + dataset_name + '-' + extension + '.svg'), format='svg')
             plt.close()
