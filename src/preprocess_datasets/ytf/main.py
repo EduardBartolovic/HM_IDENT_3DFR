@@ -37,7 +37,7 @@ def preprocessing():
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches(folder_root_crop, permutations, pkl_name="analysis.pkl")
+    find_matches(folder_root_crop, permutations, pkl_name="analysis.pkl", allow_flip=False)
     # evaluate_gaze_coverage(folder_root)
 
     print("##################################")

@@ -359,34 +359,40 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
             plt.figure(figsize=(7, 5))
 
             max_points = 500_000
-            if len(genuine_scores) > max_points:
-                genuine_scores_red = np.random.choice(genuine_scores, max_points, replace=False)
-                sns.kdeplot(genuine_scores_red, label="Genuine", fill=False)
-            else:
-                sns.kdeplot(genuine_scores, label="Genuine", fill=False)
-            if len(impostor_scores) > max_points:
-                impostor_scores_red = np.random.choice(impostor_scores, max_points, replace=False)
-                sns.kdeplot(impostor_scores_red, label="Impostor", fill=False)
-            else:
-                sns.kdeplot(impostor_scores, label="Impostor", fill=False)
+            #if len(genuine_scores) > max_points:
+            #    genuine_scores_red = np.random.choice(genuine_scores, max_points, replace=False)
+            #    sns.kdeplot(genuine_scores_red, label="Genuine", fill=False)
+            #else:
+            #    sns.kdeplot(genuine_scores, label="Genuine", fill=False)
+            #if len(impostor_scores) > max_points:
+            #    impostor_scores_red = np.random.choice(impostor_scores, max_points, replace=False)
+            #    sns.kdeplot(impostor_scores_red, label="Impostor", fill=False)
+            #else:
+            #    sns.kdeplot(impostor_scores, label="Impostor", fill=False)
 
             #sns.histplot(genuine_scores, bins=250, stat="density", kde=False, color="tab:blue", alpha=0.3, label="Genuine")
             #sns.histplot(impostor_scores,bins=250, stat="density",kde=False,color="tab:orange",alpha=0.3,label="Impostor")
+            #sns.histplot(genuine_scores, bins=250, stat="count", kde=False, color="tab:blue", alpha=0.3, label="Genuine")
+            #sns.histplot(impostor_scores,bins=250, stat="count",kde=False,color="tab:orange",alpha=0.3,label="Impostor")
+            #sns.histplot(genuine_scores, bins=250, stat="probability", kde=False, color="tab:blue", alpha=0.3, label="Genuine")
+            #sns.histplot(impostor_scores,bins=250, stat="probability",kde=False,color="tab:orange",alpha=0.3,label="Impostor")
+            sns.histplot(genuine_scores, bins=250, stat="percent", kde=False, color="tab:blue", alpha=0.3, label="Genuine")
+            sns.histplot(impostor_scores, bins=250, stat="percent", kde=False, color="tab:orange", alpha=0.3, label="Impostor")
             plt.title(f"{dataset_name} {extension} - Identification Distributions")
             plt.xlabel("Similarity / Distance")
             plt.ylabel("Density")
             plt.legend()
-            plt.savefig(os.path.join(tmp_dir, 'CMC_Curve-' + dataset_name + '-' + extension + '.svg'), format='svg')
+            plt.savefig(os.path.join(tmp_dir, 'Distributions_Curve-' + dataset_name + '-' + extension + '.svg'), format='svg')
             plt.close()
 
             mlflow.log_artifacts(tmp_dir, artifact_path="IdentificationDistributions")
 
-    # return { # TODO: Maybe use these
-    #    "genuine_mean": np.mean(genuine_scores),
-    #    "genuine_std": np.std(genuine_scores),
-    #    "impostor_mean": np.mean(impostor_scores),
-    #    "impostor_std": np.std(impostor_scores)
-    # }
+    return {
+        "genuine_mean": np.mean(genuine_scores),
+        "genuine_std": np.std(genuine_scores),
+        "impostor_mean": np.mean(impostor_scores),
+        "impostor_std": np.std(impostor_scores)
+    }
 
 
 def plot_confusion_matrix(true_labels, pred_labels, dataset, extension='', matplotlib=True):

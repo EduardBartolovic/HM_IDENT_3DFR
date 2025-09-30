@@ -33,7 +33,7 @@ def parse_analysis_file(file_path, correct_angles=False):
     return np.array(parsed_lines, dtype=object)
 
 
-def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_flip=True):
+def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_flip=False):
     used_indices = set()
     matches = []
     for reference in references:
@@ -59,6 +59,7 @@ def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_fli
             better_is_flipped = flipped_distances < distances
             distances = np.where(better_is_flipped, flipped_distances, distances)
             ref_vec = np.where(better_is_flipped[:, None], flipped_ref, ref_vec)  # keep ref consistent
+            # TODO: Add flipping to txt file and apply it to gen dataset
 
         # pick best index
         closest_index = int(np.argmin(distances))
