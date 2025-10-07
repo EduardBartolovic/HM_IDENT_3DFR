@@ -49,11 +49,9 @@ class MultiviewDataset(Dataset):
                 if filename.is_file():
                     ext = os.path.splitext(filename)[1].lower()
                     if ext in self.valid_image_ext:
-                        #match = self.filename_regex.match(filename.name[40:-10])
                         match = self.filename_regex.match(filename.name[16:-4].split("#")[0])
                         if not match:
                             raise ValueError(f"Invalid filename format: {filename.name}")
-                        #sha_hash = filename.name[:40]
                         sha_hash = filename.name[:15]
                         sha_groups[sha_hash].append(filename.path)
 
@@ -63,8 +61,7 @@ class MultiviewDataset(Dataset):
             # Append each grouped data point to the dataset
             for file_paths in sha_groups.values():
                 if len(file_paths) == self.num_views:
-                    #data.append((sorted(file_paths, key=_sort_key), class_idx))  # Sort the data so perspectives are always at the same position
-                    data.append((sorted(file_paths), class_idx))  # Sort the data so perspectives are always at the same position
+                    data.append((sorted(file_paths, key=_sort_key), class_idx))  # Sort the data so perspectives are always at the same position
                 else:
                     raise ValueError(f"Incorrect number of views ({len(file_paths)}), expected {self.num_views}: {file_paths}")
 
@@ -87,34 +84,31 @@ class MultiviewDataset(Dataset):
 
         if self.face_cor_exist:
             facial_corr = torch.stack([
-                # torch.from_numpy(np.load(p.replace("_image.jpg", "_corr.npz"))["corr"])
                 torch.from_numpy(np.load(p.replace(".jpg", "_corr.npz"))["corr"]) for p in img_paths
-                for p in img_paths
             ])
         else:
             facial_corr = torch.empty(0)
 
-        # Load all perspectives and Scan ids
-        #perspectives = [os.path.basename(img_path)[40:-10] for img_path in img_paths]
-        #scan_id = os.path.basename(img_paths[0])[:40]
-        perspectives = [os.path.basename(img_path)[16:-4].split("#")[0] for img_path in img_paths]
-        # true_perspectives = [os.path.basename(img_path)[16:-4].split("#")[1] for img_path in img_paths]
+        # Load all ref perspectives and true perspectives and scan ids
+        ref_perspectives = [os.path.basename(img_path)[16:-4].split("#")[0] for img_path in img_paths]
+        true_perspectives = [os.path.basename(img_path)[16:-4].split("#")[1] for img_path in img_paths]
         scan_id = os.path.basename(img_paths[0])[:15]
 
         if self.shuffle_views:
             if self.face_cor_exist:
-                combined = list(zip(images, perspectives, facial_corr))
+                combined = list(zip(images, ref_perspectives, true_perspectives, facial_corr))
                 random.shuffle(combined)
-                images, perspectives, facial_corr = zip(*combined)
+                images, ref_perspectives, true_perspectives, facial_corr = zip(*combined)
                 facial_corr = torch.stack(facial_corr)
             else:
-                combined = list(zip(images, perspectives))
+                combined = list(zip(images, ref_perspectives, true_perspectives))
                 random.shuffle(combined)
-                images, perspectives = zip(*combined)
+                images, ref_perspectives, true_perspectives = zip(*combined)
             images = list(images)
-            perspectives = list(perspectives)
+            ref_perspectives = list(ref_perspectives)
+            true_perspectives = list(true_perspectives)
 
-        return images, class_idx, perspectives, facial_corr, scan_id
+        return images, class_idx, ref_perspectives, true_perspectives, facial_corr, scan_id
 
 
 def _sort_key(filepath):

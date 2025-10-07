@@ -28,7 +28,7 @@ from src.util.misc import colorstr, bold, underscore, smart_round
 @torch.no_grad()
 def get_embeddings_mv(backbone, enrolled_loader, query_loader, use_face_corr: bool, disable_bar=False):
     """
-    Calculate Embeddings
+    Calculate embeddings for enrolled and query datasets using a multi-view backbone.
     """
     backbone.eval()
 
@@ -37,49 +37,55 @@ def get_embeddings_mv(backbone, enrolled_loader, query_loader, use_face_corr: bo
     enrolled_labels = []
     enrolled_scan_ids = []
     enrolled_perspectives = 0
-    for inputs, labels, perspectives, face_corr, scan_id in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
+    enrolled_true_perspectives = []
+    for inputs, labels, perspectives, true_perspectives, face_corr, scan_id in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
 
         if use_face_corr and face_corr.shape[1] == 0:
             raise ValueError("Please provide face correspondences if use_face_corr is True")
 
         embeddings_reg, embeddings_agg = backbone(inputs, perspectives, face_corr, use_face_corr)
         enrolled_embeddings_agg.extend(embeddings_agg.cpu().numpy())
-        enrolled_embeddings_reg.append(np.array([t.cpu().numpy() for t in embeddings_reg]))
+        enrolled_embeddings_reg.append(np.stack([t.cpu().numpy() for t in embeddings_reg]))
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         enrolled_scan_ids.extend(deepcopy(scan_id))
         enrolled_perspectives = np.array(perspectives).T
+        enrolled_true_perspectives.append(np.array(deepcopy(true_perspectives)).T)
 
     enrolled_embeddings_agg = np.array(enrolled_embeddings_agg)
     enrolled_embeddings_reg = np.concatenate(enrolled_embeddings_reg, axis=1)
     enrolled_labels = np.array([t.item() for t in enrolled_labels])
     enrolled_scan_ids = np.array(enrolled_scan_ids)
     enrolled_perspectives = np.array([enrolled_perspectives])
+    enrolled_true_perspectives = np.concatenate(enrolled_true_perspectives, axis=0)
 
     if query_loader is None:
-        Results = namedtuple("Results", ["enrolled_embeddings_agg", "enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives"])
-        return Results(enrolled_embeddings_agg, enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives)
+        Results = namedtuple("Results", ["enrolled_embeddings_agg", "enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives","enrolled_true_perspectives"])
+        return Results(enrolled_embeddings_agg, enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives, enrolled_true_perspectives)
 
     query_embeddings_reg = []
     query_embeddings_agg = []
     query_labels = []
     query_scan_ids = []
     query_perspectives = 0
-    for inputs, labels, perspectives, face_corr, scan_id in tqdm(iter(query_loader), disable=disable_bar, desc="Generate Query Embeddings"):
+    query_true_perspectives = []
+    for inputs, labels, perspectives, true_perspectives, face_corr, scan_id in tqdm(iter(query_loader), disable=disable_bar, desc="Generate Query Embeddings"):
         embeddings_reg, embeddings_agg = backbone(inputs, perspectives, face_corr, use_face_corr)
         query_embeddings_agg.extend(embeddings_agg.cpu().numpy())
-        query_embeddings_reg.append(np.array([t.cpu().numpy() for t in embeddings_reg]))
+        query_embeddings_reg.append(np.stack([t.cpu().numpy() for t in embeddings_reg]))
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         query_scan_ids.extend(deepcopy(scan_id))
         query_perspectives = np.array(perspectives).T
+        query_true_perspectives.append(np.array(deepcopy(true_perspectives)).T)
 
     query_embeddings_agg = np.array(query_embeddings_agg)
     query_embeddings_reg = np.concatenate(query_embeddings_reg, axis=1)
     query_labels = np.array([t.item() for t in query_labels])
     query_scan_ids = np.array(query_scan_ids)
     query_perspectives = np.array([query_perspectives])
+    query_true_perspectives = np.concatenate(query_true_perspectives, axis=0)
 
-    Results = namedtuple("Results", ["enrolled_embeddings_agg", "enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives", "query_embeddings_agg", "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives"])
-    return Results(enrolled_embeddings_agg, enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives, query_embeddings_agg, query_embeddings_reg, query_labels, query_scan_ids, query_perspectives)
+    Results = namedtuple("Results", ["enrolled_embeddings_agg", "enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives", "query_embeddings_agg", "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives", "query_true_perspectives"])
+    return Results(enrolled_embeddings_agg, enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives, query_embeddings_agg, query_embeddings_reg, query_labels, query_scan_ids, query_perspectives, query_true_perspectives)
 
 
 def load_data(data_dir, max_batch_size: int) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
