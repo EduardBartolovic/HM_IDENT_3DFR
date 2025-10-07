@@ -1,7 +1,7 @@
 import cv2
 
-from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_frames
 from src.preprocess_datasets.headPoseEstimation.utils.general import draw_axis
+from src.preprocess_datasets.preprocess_video import get_frames
 
 
 def make_video_from_txt(txt_file_path, video_file_path, output_video_path, fix_rotation=True, draw=True):

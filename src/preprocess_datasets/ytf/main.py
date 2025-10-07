@@ -48,13 +48,6 @@ def preprocessing():
     perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
     PrepareDataset.filter_views(dataset_output_folder, output_test_dataset, perspective_filter, target_views=8)
 
-    #print("##################################")
-    #print("###### face_correspondences ######")
-    #print("##################################")
-    #calculate_face_landmarks_dataset(dataset_output_folder)
-    #perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
-    #calculate_face_correspondences_dataset(dataset_output_folder, keep=True, filter_keywords=perspective_filter, target_views=len(perspective_filter))
-
 
 if __name__ == '__main__':
     preprocessing()

@@ -6,7 +6,7 @@ import shutil
 import torch
 from tqdm import tqdm
 
-from src.preprocess_datasets.create_test_dataset import create_train_test_split
+from src.preprocess_datasets.misc.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.process_dataset_retinaface import face_crop_and_alignment
 
 

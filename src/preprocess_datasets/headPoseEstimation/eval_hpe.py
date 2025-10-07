@@ -65,6 +65,7 @@ def print_gaze_grid(area_counts, total_triggers, num_areas):
             print(row)
         print("====================================\n")
 
+
 def print_gaze_coverage(coverage_counts, counter, title):
     print(f"\n{title}")
     print("=" * len(title))
