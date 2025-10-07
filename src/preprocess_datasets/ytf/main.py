@@ -17,7 +17,7 @@ def preprocessing():
     output_test_dataset = root+"test_ytf_crop8"
     model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
-    batch_size = 8  # 256 for 24GB  # 48 for 8 GB VRAM
+    batch_size = 48  # 256 for 24GB  # 48 for 8 GB VRAM
     device = torch.device("cuda")
 
     print("##################################")

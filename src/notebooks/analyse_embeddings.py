@@ -5,7 +5,6 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 
 
 def load_data(location):
