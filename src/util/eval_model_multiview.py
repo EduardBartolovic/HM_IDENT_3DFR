@@ -18,7 +18,8 @@ from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram, plot_cmc
     plot_all_cmc_from_txt
 from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, \
     accuracy_front_perspective, analyze_result_verification, score_fusion, fuse_pairwise_scores
-from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
+from src.util.analyse_perspective import calc_perspective_distances, analyze_perspective_error_correlation, \
+    compute_per_view_distance_matrix
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.misc import colorstr, bold, underscore, smart_round
 
@@ -48,14 +49,14 @@ def get_embeddings_mv(backbone, enrolled_loader, query_loader, use_face_corr: bo
         enrolled_embeddings_reg.append(np.stack([t.cpu().numpy() for t in embeddings_reg]))
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         enrolled_scan_ids.extend(deepcopy(scan_id))
-        enrolled_perspectives = np.array(perspectives).T
+        enrolled_perspectives = np.array(perspectives).T[0]
         enrolled_true_perspectives.append(np.array(deepcopy(true_perspectives)).T)
 
     enrolled_embeddings_agg = np.array(enrolled_embeddings_agg)
     enrolled_embeddings_reg = np.concatenate(enrolled_embeddings_reg, axis=1)
     enrolled_labels = np.array([t.item() for t in enrolled_labels])
     enrolled_scan_ids = np.array(enrolled_scan_ids)
-    enrolled_perspectives = np.array([enrolled_perspectives])
+    enrolled_perspectives = np.array(enrolled_perspectives)
     enrolled_true_perspectives = np.concatenate(enrolled_true_perspectives, axis=0)
 
     if query_loader is None:
@@ -74,30 +75,18 @@ def get_embeddings_mv(backbone, enrolled_loader, query_loader, use_face_corr: bo
         query_embeddings_reg.append(np.stack([t.cpu().numpy() for t in embeddings_reg]))
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         query_scan_ids.extend(deepcopy(scan_id))
-        query_perspectives = np.array(perspectives).T
+        query_perspectives = np.array(perspectives).T[0]
         query_true_perspectives.append(np.array(deepcopy(true_perspectives)).T)
 
     query_embeddings_agg = np.array(query_embeddings_agg)
     query_embeddings_reg = np.concatenate(query_embeddings_reg, axis=1)
     query_labels = np.array([t.item() for t in query_labels])
     query_scan_ids = np.array(query_scan_ids)
-    query_perspectives = np.array([query_perspectives])
+    query_perspectives = np.array(query_perspectives)
     query_true_perspectives = np.concatenate(query_true_perspectives, axis=0)
 
-    Results = namedtuple("Results", ["enrolled_embeddings_agg", "enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives", "query_embeddings_agg", "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives", "query_true_perspectives"])
-    return Results(enrolled_embeddings_agg, enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives, query_embeddings_agg, query_embeddings_reg, query_labels, query_scan_ids, query_perspectives, query_true_perspectives)
-
-
-def load_data(data_dir, max_batch_size: int) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
-    dataset = EmbeddingDataset(data_dir)
-    dataset_size = len(dataset)
-    # Ensure the last batch is always larger than 1
-    batch_size = max_batch_size
-    while (dataset_size % batch_size == 1) and (batch_size > 2):
-        batch_size -= 1
-
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
-    return dataset, data_loader
+    Results = namedtuple("Results", ["enrolled_embeddings_agg", "enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives", "enrolled_true_perspectives","query_embeddings_agg", "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives", "query_true_perspectives"])
+    return Results(enrolled_embeddings_agg, enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives, enrolled_true_perspectives, query_embeddings_agg, query_embeddings_reg, query_labels, query_scan_ids, query_perspectives, query_true_perspectives)
 
 
 def load_data_mv(data_dir, max_batch_size: int, num_views: int, transform, use_face_corr: bool) -> (torchvision.datasets.ImageFolder, torch.utils.data.dataloader.DataLoader):
@@ -138,6 +127,10 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     enrolled_labels = embedding_library.enrolled_labels
     query_labels = embedding_library.query_labels
 
+    enrolled_distances = calc_perspective_distances(embedding_library.enrolled_perspectives, embedding_library.enrolled_true_perspectives)
+    query_distances = calc_perspective_distances(embedding_library.query_perspectives, embedding_library.query_true_perspectives)
+    distance_matrix, distance_matrix_avg = compute_per_view_distance_matrix(embedding_library.query_true_perspectives, embedding_library.enrolled_true_perspectives)
+
     all_metrics = {}
 
     # Multi View evaluation
@@ -150,6 +143,20 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     plot_confusion_matrix(query_labels, enrolled_labels[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
     error_rate_per_class(query_labels, enrolled_labels, top_indices, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_mvfa, os.path.basename(test_path), "_mvfa")
     all_metrics["metrics_mvfa"] = metrics_mvfa
+
+    correlation_results = analyze_perspective_error_correlation(
+        query_labels=query_labels,
+        enrolled_labels=enrolled_labels,
+        query_distances=query_distances,
+        enrolled_distances=enrolled_distances,
+        top_indices=top_indices,
+        distance_matrix_avg=distance_matrix_avg,
+        save_path="E:\\Download\\",
+        plot=True
+    )
+    print("MVFA", correlation_results)
+
+
     del similarity_matrix_mvfa, top_indices, top_values
 
     if not eval_all:
@@ -170,6 +177,19 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     error_rate_per_class(query_labels, enrolled_labels, top_indices_concat, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_concat, os.path.basename(test_path), "_concat")
     analyze_identification_distribution(similarity_matrix_concat, query_labels, enrolled_labels, os.path.basename(test_path), "concat", plot=True)
     all_metrics["metrics_concat"] = metrics_concat
+
+    correlation_results = analyze_perspective_error_correlation(
+        query_labels=query_labels,
+        enrolled_labels=enrolled_labels,
+        query_distances=query_distances,
+        enrolled_distances=enrolled_distances,
+        top_indices=top_indices_concat,
+        distance_matrix_avg=distance_matrix_avg,
+        save_path="E:\\Download\\",
+        plot=True
+    )
+    print("CONCAT", correlation_results)
+
     del similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat
     # --------- Concat Mean ---------
     metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
@@ -235,7 +255,7 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
     class_labels = embedding_library.enrolled_labels
     samples = embedding_library.enrolled_scan_ids
     name_to_class_dict = dataset_enrolled.class_to_idx
-    mask = np.array(["0_0" in perspective for perspective in embedding_library.enrolled_perspectives[0][0]])
+    mask = np.array(["0_0" in perspective for perspective in embedding_library.enrolled_perspectives])
     embeddings_reg_pca = embeddings_reg.transpose(1, 0, 2).reshape(embeddings_reg.shape[1], -1)
     if embeddings_reg.shape[0] > 2048:
         pca = IncrementalPCA(n_components=512, batch_size=2048)

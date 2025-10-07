@@ -358,12 +358,12 @@ def accuracy_front_perspective(embedding_library):
     # enrolled_labels.shape -> (num_samples,)
     # enrolled_perspectives.shape -> (num_samples, views)
 
-    view_mask = np.array(embedding_library.enrolled_perspectives[0]) == "0_0"
+    view_mask = np.array(embedding_library.enrolled_perspectives) == "0_0"
     selected_view_index = np.argmax(view_mask)
     enrolled_embeddings = embedding_library.enrolled_embeddings[selected_view_index]
     enrolled_labels = embedding_library.enrolled_labels
 
-    view_mask = np.array(embedding_library.query_perspectives[0]) == "0_0"
+    view_mask = np.array(embedding_library.query_perspectives) == "0_0"
     selected_view_index = np.argmax(view_mask)
     query_embeddings = embedding_library.query_embeddings[selected_view_index]
     query_labels = embedding_library.query_labels
