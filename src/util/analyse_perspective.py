@@ -149,6 +149,8 @@ def analyze_perspective_error_correlation(query_labels, enrolled_labels, query_d
     mean_per_view_correct = np.mean(top1_distance_matrix_avg[correct == 1], axis=0)
     mean_per_view_incorrect = np.mean(top1_distance_matrix_avg[correct == 0], axis=0)
 
+    pearson_corr_top1_avg, _ = stats.pearsonr(top1_distance_matrix_avg, correct)
+
     # Optional plot
     if plot:
         plt.figure(figsize=(8, 4))
@@ -166,6 +168,7 @@ def analyze_perspective_error_correlation(query_labels, enrolled_labels, query_d
         "pearson_corr_query": pearson_q,
         "pearson_corr_enrolled": pearson_e,
         "pearson_corr_combined": pearson_c,
+        "pearson_corr_top1_avg": pearson_corr_top1_avg,
         "mean_query_dist_correct": np.mean(query_distances[correct == 1]),
         "mean_query_dist_incorrect": np.mean(query_distances[correct == 0]),
         "mean_enrolled_dist_correct": np.mean(top1_enrolled_dist[correct == 1]),
