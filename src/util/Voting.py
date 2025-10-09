@@ -98,7 +98,7 @@ def analyze_result_verification(labels, similarities_mv,
     similarities_mv = np.array(similarities_mv)
 
     if folds is None:
-        # fallback: random split (not standard YTF!)
+        # random split (not standard YTF)
         kf = KFold(n_splits=10, shuffle=True, random_state=42)
         split_indices = [(train_idx, test_idx) for train_idx, test_idx in kf.split(similarities_mv)]
     else:
@@ -119,7 +119,6 @@ def analyze_result_verification(labels, similarities_mv,
         test_scores = similarities_mv[test_idx]
 
         # ============ Threshold selection on train set ============
-
         fpr_train, tpr_train, thresholds_train = roc_curve(train_labels, train_scores)
 
         # using Youden’s J

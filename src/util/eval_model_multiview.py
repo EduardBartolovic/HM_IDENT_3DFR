@@ -19,7 +19,7 @@ from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram, plot_cmc
 from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, \
     accuracy_front_perspective, analyze_result_verification, score_fusion, fuse_pairwise_scores
 from src.util.analyse_perspective import calc_perspective_distances, analyze_perspective_error_correlation, \
-    compute_per_view_distance_matrix
+    compute_per_view_distance_matrix, analyze_perspective_error_correlation_1v1
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.misc import colorstr, bold, underscore, smart_round
 
@@ -252,8 +252,6 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
     embeddings_agg = embedding_library.enrolled_embeddings_agg
     embeddings_reg = embedding_library.enrolled_embeddings
     embeddings_reg_mean = embedding_library.enrolled_embeddings.mean(axis=0)
-    class_labels = embedding_library.enrolled_labels
-    samples = embedding_library.enrolled_scan_ids
     name_to_class_dict = dataset_enrolled.class_to_idx
     mask = np.array(["0_0" in perspective for perspective in embedding_library.enrolled_perspectives])
     embeddings_reg_pca = embeddings_reg.transpose(1, 0, 2).reshape(embeddings_reg.shape[1], -1)
@@ -264,6 +262,8 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
 
     pca = pca.fit(embeddings_reg_pca)
     embeddings_reg_pca = normalize(pca.transform(embeddings_reg_pca))
+
+    embedding_lookup = {(c, s): i for i, (c, s) in enumerate(zip(embedding_library.enrolled_labels, embedding_library.enrolled_scan_ids))}
 
     # Evaluate pairs
     similarities_mv = []
@@ -286,31 +286,18 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         try:
             class_idx1 = name_to_class_dict[class1]
             class_idx2 = name_to_class_dict[class2]
-        except:
-            print("NOT IN DATASET: ", class1, "or", class2)
-            continue
+        except Exception:
+            raise Exception("NOT IN DATASET: ", class1, "or", class2)
 
-        emb1_agg = None
-        emb2_agg = None
-        emb1_reg = None
-        emb2_reg = None
-        for i, (c_idx, scan_id) in enumerate(zip(class_labels, samples)):
-            if c_idx == class_idx1 and scan_id == sample1:
-                emb1_agg = embeddings_agg[i]
-                emb1_reg = embeddings_reg[:, i, :]
-                emb1_reg_mean = embeddings_reg_mean[i, :]
-                emb1_reg_pca = embeddings_reg_pca[i, :]
-            elif c_idx == class_idx2 and scan_id == sample2:
-                emb2_agg = embeddings_agg[i]
-                emb2_reg = embeddings_reg[:, i, :]
-                emb2_reg_mean = embeddings_reg_mean[i, :]
-                emb2_reg_pca = embeddings_reg_pca[i, :]
-            if emb1_agg is not None and emb2_agg is not None:
-                break
-
-        if emb1_agg is None or emb2_agg is None:
+        i1 = embedding_lookup.get((class_idx1, sample1))
+        i2 = embedding_lookup.get((class_idx2, sample2))
+        if i1 is None or i2 is None:
             print(f"Warning: Could not find embeddings for pair {name1}, {name2}")
-            continue
+
+        emb1_agg, emb2_agg = embeddings_agg[i1], embeddings_agg[i2]
+        emb1_reg, emb2_reg = embeddings_reg[:, i1, :], embeddings_reg[:, i2, :]
+        emb1_reg_mean, emb2_reg_mean = embeddings_reg_mean[i1, :], embeddings_reg_mean[i2, :]
+        emb1_reg_pca, emb2_reg_pca = embeddings_reg_pca[i1, :], embeddings_reg_pca[i2, :]
 
         # Multiview compute cosine similarity
         sim = np.dot(emb1_agg, emb2_agg) / (norm(emb1_agg) * norm(emb2_agg))
@@ -340,7 +327,6 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         for m in fusion_methods:
             sim_fused = fuse_pairwise_scores(emb1_reg, emb2_reg, method=m)
             similarities_fusion[m].append(sim_fused)
-
     all_metrics = {"metrics_mvfa": analyze_result_verification(labels, similarities_mv, os.path.basename(test_path), "_mv", folds=folds)}
 
     if not eval_all:
@@ -354,6 +340,52 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
     for m in fusion_methods:
         metrics = analyze_result_verification(labels, similarities_fusion[m], os.path.basename(test_path), f"_{m}", folds=folds)
         all_metrics[f"metrics_score_{m}"] = metrics
+
+    # ---------- Perspective analysis ---------
+    perspective_distances = calc_perspective_distances(
+        embedding_library.enrolled_perspectives,
+        embedding_library.enrolled_true_perspectives
+    )  # shape (num_samples, num_views)
+
+
+    preds_mv = (similarities_mv > all_metrics["metrics_mvfa"]["Best_thresh"]).astype(int)
+    correlation_1v1 = analyze_perspective_error_correlation_1v1(
+        pair_list=pair_list,
+        enrolled_distances=perspective_distances,
+        embedding_library=embedding_library,
+        labels=preds_mv,
+        name_to_class_dict=name_to_class_dict,
+        true_perspectives=embedding_library.enrolled_true_perspectives,
+        save_path="E:\\Download\\",
+        plot=True
+    )
+    print("1v1 Mvfa:", correlation_1v1)
+
+    preds_front = (similarities_front > all_metrics["metrics_front"]["Best_thresh"]).astype(int)
+    correlation_1v1 = analyze_perspective_error_correlation_1v1(
+        pair_list=pair_list,
+        enrolled_distances=perspective_distances,
+        embedding_library=embedding_library,
+        labels=preds_front,
+        name_to_class_dict=name_to_class_dict,
+        true_perspectives=embedding_library.enrolled_true_perspectives,
+        save_path="E:\\Download\\",
+        plot=True
+    )
+    print("1v1 Correlation front:", correlation_1v1)
+
+    preds_concat = (similarities_concat > all_metrics["metrics_concat"]["Best_thresh"]).astype(int)
+    correlation_1v1 = analyze_perspective_error_correlation_1v1(
+        pair_list=pair_list,
+        enrolled_distances=perspective_distances,
+        embedding_library=embedding_library,
+        labels=preds_concat,
+        name_to_class_dict=name_to_class_dict,
+        true_perspectives=embedding_library.enrolled_true_perspectives,
+        save_path="E:\\Download\\",
+        plot=True
+    )
+    print("1v1 Correlation concat:", correlation_1v1)
 
     return all_metrics, embedding_library, dataset_enrolled
 
