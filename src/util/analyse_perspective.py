@@ -6,13 +6,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def str_to_xy(arr, reshape=True):
+def str_to_xy(arr):
     """Convert 'x_y' strings to integer pairs"""
-    xy = np.array([list(map(int, s.split('_'))) for s in arr.reshape(-1)])
-    if reshape:
-        return xy.reshape(*arr.shape, 2)
-    else:
-        return xy
+    xy = np.array([list(map(int, s.split('_'))) for s in arr.reshape(-1)], dtype=np.int16)
+    return xy.reshape(*arr.shape, 2)
 
 
 def calc_perspective_distances(target_perspectives, true_perspectives):
@@ -29,8 +26,8 @@ def calc_perspective_distances(target_perspectives, true_perspectives):
     enrolled_xy = str_to_xy(target_perspectives)  # shape (8, 2)
     true_xy = str_to_xy(true_perspectives)  # shape (samples, 8, 2)
 
-    # Compute Euclidean distance for each sample and each perspective
-    distances = np.linalg.norm(true_xy - enrolled_xy, axis=2)  # shape (samples, 8)
+    # Compute Manhattan distance directly
+    distances = np.sum(np.abs(true_xy - enrolled_xy), axis=2, dtype=np.int16)  # shape (samples, 8)
 
     return distances
 
@@ -51,14 +48,15 @@ def compute_per_view_distance_matrix(query_perspectives, enrolled_perspectives):
     query_xy = str_to_xy(query_perspectives)        # shape (num_queries, num_views, 2)
     enrolled_xy = str_to_xy(enrolled_perspectives)  # shape (num_enrolled, num_views, 2)
 
-    # Expand dimensions to broadcast subtraction
-    query_exp = query_xy[:, np.newaxis, :, :]      # shape (num_queries, 1, num_views, 2)
-    enrolled_exp = enrolled_xy[np.newaxis, :, :, :]  # shape (1, num_enrolled, num_views, 2)
+    num_queries, num_views, _ = query_xy.shape
+    num_enrolled = enrolled_xy.shape[0]
 
-    # Compute Euclidean distances per view
-    distance_matrix = np.linalg.norm(query_exp - enrolled_exp, axis=-1)  # shape (num_queries, num_enrolled, num_views)
-    distance_matrix_avg = np.mean(distance_matrix, axis=2)  # shape (num_queries, num_enrolled)
+    distance_matrix = np.empty((num_queries, num_enrolled, num_views), dtype=np.int16)
+    for v in range(num_views):
+        diff = np.abs(query_xy[:, None, v, :] - enrolled_xy[None, :, v, :])
+        distance_matrix[..., v] = np.sum(diff, axis=2, dtype=np.int16)
 
+    distance_matrix_avg = np.mean(distance_matrix, axis=2, dtype=np.int16)
     return distance_matrix, distance_matrix_avg
 
 
@@ -79,8 +77,8 @@ def analyze_perspective_error_correlation(query_labels, enrolled_labels, query_d
     Returns:
         dict: Summary metrics (correlations + grouped stats).
     """
-    enrolled_distances_grouped = np.mean(np.abs(enrolled_distances), axis=1)
-    query_distances_grouped = np.mean(np.abs(query_distances), axis=1)
+    enrolled_distances_grouped = np.mean(np.abs(enrolled_distances), axis=1, dtype=np.float16)
+    query_distances_grouped = np.mean(np.abs(query_distances), axis=1, dtype=np.float16)
 
     # --- Per-query correctness
     top1_preds = enrolled_labels[top_indices[:, 0]]
@@ -302,7 +300,7 @@ def analyze_perspective_error_correlation_1v1(
         axs[0].axvline(mean_1_same, color="tab:blue", linestyle="--", label=f"Same μ={mean_1_same:.2f}")
         axs[0].axvline(mean_1_diff, color="tab:red", linestyle="--", label=f"Diff μ={mean_1_diff:.2f}")
         axs[0].set_title("Perspective Distance - Sample 1")
-        axs[0].set_xlabel("Distance")
+        axs[0].set_xlabel("perspective angle error")
         axs[0].set_ylabel("Percentage")
         axs[0].legend()
 
@@ -314,7 +312,7 @@ def analyze_perspective_error_correlation_1v1(
         axs[1].axvline(mean_2_same, color="tab:blue", linestyle="--", label=f"Same μ={mean_2_same:.2f}")
         axs[1].axvline(mean_2_diff, color="tab:red", linestyle="--", label=f"Diff μ={mean_2_diff:.2f}")
         axs[1].set_title("Perspective Distance - Sample 2")
-        axs[1].set_xlabel("Distance")
+        axs[1].set_xlabel("perspective angle error")
         axs[1].set_ylabel("Percentage")
         axs[1].legend()
 
