@@ -347,7 +347,6 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         embedding_library.enrolled_true_perspectives
     )  # shape (num_samples, num_views)
 
-
     preds_mv = (similarities_mv > all_metrics["metrics_mvfa"]["Best_thresh"]).astype(int)
     correlation_1v1 = analyze_perspective_error_correlation_1v1(
         pair_list=pair_list,

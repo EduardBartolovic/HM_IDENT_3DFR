@@ -8,8 +8,8 @@ import seaborn as sns
 
 def str_to_xy(arr):
     """Convert 'x_y' strings to integer pairs"""
-    xy = np.array([list(map(int, s.split('_'))) for s in arr.reshape(-1)], dtype=np.int16)
-    return xy.reshape(*arr.shape, 2)
+    flat = np.fromiter((int(v) for s in arr.ravel() for v in s.split('_')),  dtype=np.int16)
+    return flat.reshape(*arr.shape, 2)
 
 
 def calc_perspective_distances(target_perspectives, true_perspectives):
