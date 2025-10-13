@@ -267,7 +267,7 @@ def calculate_embedding_similarity_per_view(query_embeddings, enrolled_embedding
     return similarity_matrix
 
 
-def score_fusion(embedding_library, disable_bar=True, method="product", similarity_matrix=None):
+def score_fusion(embedding_library, disable_bar=True, method="product", similarity_matrix=None, distance_matrix=None):
     """
     enrolled_embedding: (views, ids, 512)
     query_embedding: (views, ids, 512)
@@ -314,6 +314,16 @@ def score_fusion(embedding_library, disable_bar=True, method="product", similari
         sorted_scores = np.sort(similarity_matrix, axis=-1)
         trimmed = sorted_scores[:, :, k:-k] if k < similarity_matrix.shape[-1] // 2 else similarity_matrix
         fused_scores = np.mean(trimmed, axis=-1)
+    elif method == "softmax_distance_weighting":
+        dist_norm = distance_matrix.astype(np.float32)
+        dist_min = 0.0
+        dist_max = np.max(distance_matrix)
+        dist_norm = dist_norm / (np.clip(dist_max - dist_min, 1e-6, None))
+
+        alpha = 1.0
+        weights = np.exp(-alpha * dist_norm)
+        weights /= np.sum(weights, axis=-1, keepdims=True)
+        fused_scores = np.sum(similarity_matrix * weights, axis=-1) / (np.sum(weights, axis=-1) + 1e-9)
     else:
         raise ValueError(f"Unknown fusion method '{method}'")
 

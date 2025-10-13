@@ -114,6 +114,8 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     """
     Evaluate 1:N Model Performance on given test dataset
     """
+
+    dataset_name = os.path.basename(test_path)
     dataset_enrolled_path = os.path.join(test_path, 'enrolled')
     dataset_query_path = os.path.join(test_path, 'query')
     dataset_enrolled, enrolled_loader = load_data_mv(dataset_enrolled_path, batch_size, num_views, test_transform, use_face_corr)
@@ -133,17 +135,16 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
 
     all_metrics = {}
 
-    # Multi View evaluation
+    # --------- Multi View evaluation ---------
     similarity_matrix_mvfa = calculate_embedding_similarity(embedding_library.query_embeddings_agg, embedding_library.enrolled_embeddings_agg, chunk_size=batch_size, disable_bar=disable_bar)
     top_indices, top_values = compute_ranking_matrices(similarity_matrix_mvfa)
     metrics_mvfa = analyze_result(similarity_matrix_mvfa, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
-    plot_cmc(similarity_matrix_mvfa, enrolled_labels, query_labels, os.path.basename(test_path), "mvfa")
-    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_mvfa, os.path.basename(test_path), "mvfa")
-    analyze_identification_distribution(similarity_matrix_mvfa, query_labels, enrolled_labels, os.path.basename(test_path), "mvfa", plot=True)
-    plot_confusion_matrix(query_labels, enrolled_labels[top_indices[:, 0]], dataset_enrolled, os.path.basename(test_path), matplotlib=False)
-    error_rate_per_class(query_labels, enrolled_labels, top_indices, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_mvfa, os.path.basename(test_path), "_mvfa")
+    plot_cmc(similarity_matrix_mvfa, enrolled_labels, query_labels, dataset_name, "mvfa")
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_mvfa, dataset_name, "mvfa")
+    analyze_identification_distribution(similarity_matrix_mvfa, query_labels, enrolled_labels, dataset_name, "mvfa", plot=True)
+    plot_confusion_matrix(query_labels, enrolled_labels[top_indices[:, 0]], dataset_enrolled, dataset_name, matplotlib=False)
+    error_rate_per_class(query_labels, enrolled_labels, top_indices, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_mvfa, dataset_name, "_mvfa")
     all_metrics["metrics_mvfa"] = metrics_mvfa
-
     correlation_results = analyze_perspective_error_correlation(
         query_labels=query_labels,
         enrolled_labels=enrolled_labels,
@@ -151,33 +152,41 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
         enrolled_distances=enrolled_distances,
         top_indices=top_indices,
         distance_matrix_avg=distance_matrix_avg,
-        save_path="E:\\Download\\",
-        plot=True
+        plot=True,
+        extension="_" + dataset_name + "_mvfa"
     )
     print("MVFA", correlation_results)
-
-
     del similarity_matrix_mvfa, top_indices, top_values
-
     if not eval_all:
         return all_metrics, embedding_library, dataset_enrolled, dataset_query
 
     # --------- Single Front View ---------
     metrics_front, similarity_matrix_front, top_indices_front, y_true_front, y_pred_front = accuracy_front_perspective(embedding_library)
-    plot_cmc(similarity_matrix_front, enrolled_labels, query_labels, os.path.basename(test_path), "front")
-    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_front, os.path.basename(test_path), "front")
-    error_rate_per_class(query_labels, enrolled_labels, top_indices_front, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_front, os.path.basename(test_path), "_front")
-    analyze_identification_distribution(similarity_matrix_front, query_labels, enrolled_labels, os.path.basename(test_path), "front", plot=True)
+    plot_cmc(similarity_matrix_front, enrolled_labels, query_labels, dataset_name, "front")
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_front, dataset_name, "front")
+    error_rate_per_class(query_labels, enrolled_labels, top_indices_front, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_front, dataset_name, "_front")
+    analyze_identification_distribution(similarity_matrix_front, query_labels, enrolled_labels, dataset_name, "front", plot=True)
     all_metrics["metrics_front"] = metrics_front
+    correlation_results = analyze_perspective_error_correlation(
+        query_labels=query_labels,
+        enrolled_labels=enrolled_labels,
+        query_distances=query_distances,
+        enrolled_distances=enrolled_distances,
+        top_indices=top_indices_front,
+        distance_matrix_avg=distance_matrix_avg,
+        plot=True,
+        extension="_" + dataset_name + "_front"
+    )
+    print("Front", correlation_results)
     del similarity_matrix_front, top_indices_front, y_true_front, y_pred_front
+
     # --------- Concat Full ---------
     metrics_concat, similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar)
-    plot_cmc(similarity_matrix_concat, enrolled_labels, query_labels, os.path.basename(test_path), "concat")
-    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat, os.path.basename(test_path), "concat")
-    error_rate_per_class(query_labels, enrolled_labels, top_indices_concat, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_concat, os.path.basename(test_path), "_concat")
-    analyze_identification_distribution(similarity_matrix_concat, query_labels, enrolled_labels, os.path.basename(test_path), "concat", plot=True)
+    plot_cmc(similarity_matrix_concat, enrolled_labels, query_labels, dataset_name, "concat")
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat, dataset_name, "concat")
+    error_rate_per_class(query_labels, enrolled_labels, top_indices_concat, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_concat, dataset_name, "_concat")
+    analyze_identification_distribution(similarity_matrix_concat, query_labels, enrolled_labels, dataset_name, "concat", plot=True)
     all_metrics["metrics_concat"] = metrics_concat
-
     correlation_results = analyze_perspective_error_correlation(
         query_labels=query_labels,
         enrolled_labels=enrolled_labels,
@@ -185,23 +194,26 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
         enrolled_distances=enrolled_distances,
         top_indices=top_indices_concat,
         distance_matrix_avg=distance_matrix_avg,
-        save_path="E:\\Download\\",
-        plot=True
+        plot=True,
+        extension="_" + dataset_name + "_concat"
     )
     print("CONCAT", correlation_results)
-
     del similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat
+
     # --------- Concat Mean ---------
     metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
-    plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, os.path.basename(test_path), "concat_mean")
-    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_mean, os.path.basename(test_path), "concat_mean")
-    analyze_identification_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, os.path.basename(test_path), "concat_mean", plot=True)
+    plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, dataset_name, "concat_mean")
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_mean, dataset_name, "concat_mean")
+    analyze_identification_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, dataset_name, "concat_mean", plot=True)
     all_metrics["metrics_concat_mean"] = metrics_concat_mean
     del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
+
+    #TODO: Use distancematrix to weight mean
+
     # --------- Concat PCA ---------
     metrics_concat_pca, similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, reduce_with="pca")
-    plot_cmc(similarity_matrix_concat_pca, enrolled_labels, query_labels, os.path.basename(test_path), "concat_pca")
-    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_pca, os.path.basename(test_path), "concat_pca")
+    plot_cmc(similarity_matrix_concat_pca, enrolled_labels, query_labels, dataset_name, "concat_pca")
+    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_pca, dataset_name, "concat_pca")
     all_metrics["metrics_concat_pca"] = metrics_concat_pca
     del similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca
 
@@ -223,7 +235,10 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     metrics_score_trimmedmean, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="trimmed_mean", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_trimmedmean"] = metrics_score_trimmedmean
 
-    plot_all_cmc_from_txt(os.path.basename(test_path))
+    metrics_score_sdw, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="softmax_distance_weighting", similarity_matrix=similarity_matrix_score, distance_matrix=distance_matrix)
+    print(metrics_score_sdw)
+
+    plot_all_cmc_from_txt(dataset_name)
 
     return all_metrics, embedding_library, dataset_enrolled, dataset_query
 
@@ -232,6 +247,8 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
     """
     Evaluate 1:1 Model Performance on given test dataset
     """
+    dataset_name = os.path.basename(test_path)
+
     pair_list = []
     folds = []
     unique_sample_paths = set()
@@ -327,18 +344,18 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         for m in fusion_methods:
             sim_fused = fuse_pairwise_scores(emb1_reg, emb2_reg, method=m)
             similarities_fusion[m].append(sim_fused)
-    all_metrics = {"metrics_mvfa": analyze_result_verification(labels, similarities_mv, os.path.basename(test_path), "_mv", folds=folds)}
+    all_metrics = {"metrics_mvfa": analyze_result_verification(labels, similarities_mv, dataset_name, "_mv", folds=folds)}
 
     if not eval_all:
         return all_metrics, embedding_library, dataset_enrolled
 
-    all_metrics["metrics_front"] = analyze_result_verification(labels, similarities_front, os.path.basename(test_path), "_front", folds=folds)
-    all_metrics["metrics_concat"] = analyze_result_verification(labels, similarities_concat, os.path.basename(test_path), "_concat", folds=folds)
-    all_metrics["metrics_concat_mean"] = analyze_result_verification(labels, similarities_concat_mean, os.path.basename(test_path), "_mean", folds=folds)
-    all_metrics["metrics_concat_pca"] = analyze_result_verification(labels, similarities_concat_pca, os.path.basename(test_path), "_pca", folds=folds)
+    all_metrics["metrics_front"] = analyze_result_verification(labels, similarities_front, dataset_name, "_front", folds=folds)
+    all_metrics["metrics_concat"] = analyze_result_verification(labels, similarities_concat, dataset_name, "_concat", folds=folds)
+    all_metrics["metrics_concat_mean"] = analyze_result_verification(labels, similarities_concat_mean, dataset_name, "_mean", folds=folds)
+    all_metrics["metrics_concat_pca"] = analyze_result_verification(labels, similarities_concat_pca, dataset_name, "_pca", folds=folds)
 
     for m in fusion_methods:
-        metrics = analyze_result_verification(labels, similarities_fusion[m], os.path.basename(test_path), f"_{m}", folds=folds)
+        metrics = analyze_result_verification(labels, similarities_fusion[m], dataset_name, f"_{m}", folds=folds)
         all_metrics[f"metrics_score_{m}"] = metrics
 
     # ---------- Perspective analysis ---------
@@ -355,8 +372,8 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         labels=preds_mv,
         name_to_class_dict=name_to_class_dict,
         true_perspectives=embedding_library.enrolled_true_perspectives,
-        save_path="E:\\Download\\",
-        plot=True
+        plot=True,
+        extension="_"+dataset_name+"_mvfa"
     )
     print("1v1 Mvfa:", correlation_1v1)
 
@@ -368,8 +385,8 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         labels=preds_front,
         name_to_class_dict=name_to_class_dict,
         true_perspectives=embedding_library.enrolled_true_perspectives,
-        save_path="E:\\Download\\",
-        plot=True
+        plot=True,
+        extension="_"+dataset_name + "_front"
     )
     print("1v1 Correlation front:", correlation_1v1)
 
@@ -381,8 +398,8 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         labels=preds_concat,
         name_to_class_dict=name_to_class_dict,
         true_perspectives=embedding_library.enrolled_true_perspectives,
-        save_path="E:\\Download\\",
-        plot=True
+        plot=True,
+        extension="_" + dataset_name + "_concat"
     )
     print("1v1 Correlation concat:", correlation_1v1)
 

@@ -1,3 +1,8 @@
+import mlflow
+from pathlib import Path
+
+import tempfile
+
 import os
 
 import numpy as np
@@ -60,7 +65,7 @@ def compute_per_view_distance_matrix(query_perspectives, enrolled_perspectives):
     return distance_matrix, distance_matrix_avg
 
 
-def analyze_perspective_error_correlation(query_labels, enrolled_labels, query_distances, enrolled_distances, top_indices, distance_matrix_avg, save_path=None, plot=True):
+def analyze_perspective_error_correlation(query_labels, enrolled_labels, query_distances, enrolled_distances, top_indices, distance_matrix_avg, plot=True, extension=""):
     """
     Analyze how perspective distance (query + enrolled) correlates with recognition accuracy.
 
@@ -71,8 +76,8 @@ def analyze_perspective_error_correlation(query_labels, enrolled_labels, query_d
         enrolled_distances (np.ndarray): Euclidean distances between enrolled perspective and its true perspective.
         distance_matrix_avg (np.array): Matrix of distances between enrolled and query
         top_indices (np.ndarray): Top ranked indices (from compute_ranking_matrices).
-        save_path (str, optional): Path to save the plots.
         plot (bool): Whether to generate plots.
+        extension: for plotting
 
     Returns:
         dict: Summary metrics (correlations + grouped stats).
@@ -176,7 +181,10 @@ def analyze_perspective_error_correlation(query_labels, enrolled_labels, query_d
         axs[2].set_ylabel("Percentage")
         axs[2].legend()
 
-        plt.savefig(os.path.join(save_path, "perspective_correlation_hist.png"), dpi=200)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = Path(tmp_dir)
+            plt.savefig(os.path.join(tmp_dir, "perspective_correlation_1_n" + extension + ".jpg"), dpi=200)
+            mlflow.log_artifacts(tmp_dir, artifact_path="perspective_analysis")
         plt.close()
 
     return {
@@ -202,8 +210,8 @@ def analyze_perspective_error_correlation_1v1(
     labels,
     name_to_class_dict,
     true_perspectives,
-    save_path=None,
-    plot=True
+    plot=True,
+    extension=""
 ):
     """
     Analyze how perspective distance correlates with 1:1 verification correctness.
@@ -214,8 +222,9 @@ def analyze_perspective_error_correlation_1v1(
         embedding_library: object containing enrolled_perspectives, enrolled_true_perspectives, enrolled_labels, enrolled_scan_ids
         labels (list[int]): ground truth 1/0 for each pair (same or not)
         name_to_class_dict: from name string to class id
-        save_path (str, optional): directory to save figures
+        true_perspectives: true perspectives
         plot (bool): whether to generate plots
+        extension: for plotting
 
     Returns:
         dict: correlation metrics and grouped means
@@ -337,8 +346,10 @@ def analyze_perspective_error_correlation_1v1(
         axs[2].set_ylabel("Percentage")
         axs[2].legend()
 
-        if save_path:
-            plt.savefig(os.path.join(save_path, "perspective_correlation_1v1.png"), dpi=200)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = Path(tmp_dir)
+            plt.savefig(os.path.join(tmp_dir, "perspective_correlation_1v1" + extension + ".jpg"), dpi=200)
+            mlflow.log_artifacts(tmp_dir, artifact_path="perspective_analysis")
         plt.close()
 
     return {
