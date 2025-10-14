@@ -208,8 +208,6 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     all_metrics["metrics_concat_mean"] = metrics_concat_mean
     del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
 
-    #TODO: Use distancematrix to weight mean
-
     # --------- Concat PCA ---------
     metrics_concat_pca, similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, reduce_with="pca")
     plot_cmc(similarity_matrix_concat_pca, enrolled_labels, query_labels, dataset_name, "concat_pca")
