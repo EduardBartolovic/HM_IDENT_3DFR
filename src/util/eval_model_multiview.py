@@ -286,6 +286,7 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
     similarities_concat = []
     similarities_concat_mean = []
     similarities_concat_pca = []
+    similarities_crossview_avg = []
     fusion_methods = ["sum", "product", "max", "geomean", "lse", "mean"]
     similarities_fusion = {m: [] for m in fusion_methods}
     labels = []
@@ -339,19 +340,36 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         sim = np.dot(emb1_reg_pca, emb2_reg_pca) / (norm(emb1_reg_pca) * norm(emb2_reg_pca))
         similarities_concat_pca.append(sim)
 
+        # Cross-view average similarity
+        #pairwise_sims = np.dot(normalize(emb1_reg), normalize(emb2_reg).T)  # shape: (num_views, num_views)
+        #sim = pairwise_sims.mean()
+        #similarities_crossview_avg.append(sim)
+
+        #pairwise_sims = np.dot(normalize(emb1_reg), normalize(emb2_reg).T)
+        #norms1 = np.linalg.norm(emb1_reg, axis=1)
+        #norms2 = np.linalg.norm(emb2_reg, axis=1)
+        #pairwise_sims /= np.outer(norms1, norms2)
+        # weight by norms or some learned reliability
+        #weights1 = norms1 / norms1.sum()
+        #weights2 = norms2 / norms2.sum()
+        #sim = np.sum(np.outer(weights1, weights2) * pairwise_sims)
+        #similarities_crossview_avg.append(sim)
+
+        # Fusion Methods
         for m in fusion_methods:
             sim_fused = fuse_pairwise_scores(emb1_reg, emb2_reg, method=m)
             similarities_fusion[m].append(sim_fused)
-    all_metrics = {"metrics_mvfa": analyze_result_verification(labels, similarities_mv, dataset_name, "_mv", folds=folds)}
 
+    # ---------- Verification Accuracy Analysis ----------
+    all_metrics = {"metrics_mvfa": analyze_result_verification(labels, similarities_mv, dataset_name, "_mv", folds=folds)}
     if not eval_all:
         return all_metrics, embedding_library, dataset_enrolled
-
     all_metrics["metrics_front"] = analyze_result_verification(labels, similarities_front, dataset_name, "_front", folds=folds)
     all_metrics["metrics_concat"] = analyze_result_verification(labels, similarities_concat, dataset_name, "_concat", folds=folds)
     all_metrics["metrics_concat_mean"] = analyze_result_verification(labels, similarities_concat_mean, dataset_name, "_mean", folds=folds)
     all_metrics["metrics_concat_pca"] = analyze_result_verification(labels, similarities_concat_pca, dataset_name, "_pca", folds=folds)
-
+    #all_metrics["metrics_crossview"] = analyze_result_verification(labels, similarities_crossview_avg, dataset_name, "_crossview", folds=folds)
+    #print(all_metrics["metrics_crossview"])
     for m in fusion_methods:
         metrics = analyze_result_verification(labels, similarities_fusion[m], dataset_name, f"_{m}", folds=folds)
         all_metrics[f"metrics_score_{m}"] = metrics
