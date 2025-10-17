@@ -316,13 +316,22 @@ def score_fusion(embedding_library, disable_bar=True, method="product", similari
         fused_scores = np.mean(trimmed, axis=-1)
     elif method == "softmax_distance_weighting":
         dist_norm = distance_matrix.astype(np.float32)
-        dist_max = np.max(distance_matrix)
-        dist_norm = dist_norm / (np.clip(dist_max, 1e-6, None))
+        #dist_norm = np.clip(dist_norm, a_min=1e-6, a_max=25.0)
+        dist_max = np.max(dist_norm)
+        dist_norm = dist_norm / dist_max
 
         alpha = 1.0
         weights = np.exp(-alpha * dist_norm)
         weights /= np.sum(weights, axis=-1, keepdims=True)
         fused_scores = np.sum(similarity_matrix * weights, axis=-1) / (np.sum(weights, axis=-1) + 1e-9)
+
+        #weight_matrix = 1 / (distance_matrix+1)
+        #weight_matrix_sum = (np.sum(weight_matrix, axis=-1) + 1e-9)
+        #fused_scores = np.sum(similarity_matrix * weight_matrix, axis=-1) / weight_matrix_sum
+
+        #weight_matrix = 1 / (np.sqrt(distance_matrix)+1)
+        #weight_matrix_sum = (np.sum(weight_matrix, axis=-1) + 1e-9)
+        #fused_scores = np.sum(similarity_matrix * weight_matrix, axis=-1) / weight_matrix_sum
     else:
         raise ValueError(f"Unknown fusion method '{method}'")
 
