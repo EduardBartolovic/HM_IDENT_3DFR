@@ -346,12 +346,24 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
         extension: Extra string for logging/plotting
         plot: If True, makes the KDE plot of distributions
     """
-
     # Broadcast comparison: shape (num_queries, num_gallery)
     matches = query_labels[:, None] == enrolled_labels[None, :]
 
     genuine_scores = similarity_matrix[matches]
     impostor_scores = similarity_matrix[~matches]
+
+    # --- find the best impostor per query ---
+    best_impostor_scores = np.empty(len(query_labels), dtype=similarity_matrix.dtype)
+    for i in range(len(query_labels)):
+        row = similarity_matrix[i]
+        mask = matches[i]
+        best_impostor_scores[i] = np.max(row[~mask])
+
+    genuine_best_imposter_gap = np.mean(genuine_scores-best_impostor_scores)
+
+    genuine_mean = np.mean(genuine_scores)
+    impostor_mean = np.mean(impostor_scores)
+    best_impostor_mean = np.mean(best_impostor_scores)
 
     if plot:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -378,6 +390,21 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
             # sns.histplot(impostor_scores,bins=250, stat="probability",kde=False,color="tab:orange",alpha=0.3,label="Impostor")
             sns.histplot(genuine_scores, bins=250, stat="percent", kde=False, color="tab:blue", alpha=0.3, label="Genuine")
             sns.histplot(impostor_scores, bins=250, stat="percent", kde=False, color="tab:orange", alpha=0.3, label="Impostor")
+            sns.histplot(best_impostor_scores, bins=250, stat="percent", kde=False, color="tab:red", alpha=0.3, label="Best Impostor")
+
+            # --- Add mean lines + text ---
+            plt.axvline(genuine_mean, color="tab:blue", linestyle="--", linewidth=1.5)
+            plt.text(genuine_mean, plt.ylim()[1] * 0.9, f"{genuine_mean:.3f}", color="tab:blue", ha="center", va="bottom", fontsize=8, rotation=90)
+
+            plt.axvline(impostor_mean, color="tab:orange", linestyle="--", linewidth=1.5)
+            plt.text(impostor_mean, plt.ylim()[1] * 0.9, f"{impostor_mean:.3f}", color="tab:orange", ha="center", va="bottom", fontsize=8, rotation=90)
+
+            plt.axvline(best_impostor_mean, color="tab:red", linestyle="--", linewidth=1.5)
+            plt.text(best_impostor_mean, plt.ylim()[1] * 0.9, f"{best_impostor_mean:.3f}", color="tab:red", ha="center", va="bottom", fontsize=8, rotation=90)
+
+            if np.max(genuine_scores) <= 1.0:
+                plt.xlim([-0.25, 1.0])
+
             plt.title(f"{dataset_name} {extension} - Identification Distributions")
             plt.xlabel("Similarity / Distance")
             plt.ylabel("Frequency")
@@ -388,10 +415,13 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
             mlflow.log_artifacts(tmp_dir, artifact_path="IdentificationDistributions")
 
     return {
-        "genuine_mean": np.mean(genuine_scores),
+        "genuine_mean": genuine_mean,
         "genuine_std": np.std(genuine_scores),
-        "impostor_mean": np.mean(impostor_scores),
-        "impostor_std": np.std(impostor_scores)
+        "impostor_mean": impostor_mean,
+        "impostor_std": np.std(impostor_scores),
+        "best_impostor_mean": best_impostor_mean,
+        "best_impostor_std": np.std(best_impostor_scores),
+        "genuine_best_imposter_gap": genuine_best_imposter_gap
     }
 
 

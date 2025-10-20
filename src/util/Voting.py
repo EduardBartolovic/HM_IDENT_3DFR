@@ -340,7 +340,7 @@ def score_fusion(embedding_library, disable_bar=True, method="product", similari
     result = analyze_result(fused_scores, top_indices, enrolled_label, query_label, top_k_acc_k=5)
     predicted_labels = enrolled_label[top_indices[:, 0]]
 
-    return result, similarity_matrix, fused_scores, top_indices, predicted_labels, query_label
+    return result, similarity_matrix, fused_scores, top_indices, predicted_labels
 
 
 def fuse_pairwise_scores(emb1_reg, emb2_reg, method="sum"):

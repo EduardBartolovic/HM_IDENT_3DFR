@@ -141,10 +141,10 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     metrics_mvfa = analyze_result(similarity_matrix_mvfa, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
     plot_cmc(similarity_matrix_mvfa, enrolled_labels, query_labels, dataset_name, "mvfa")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_mvfa, dataset_name, "mvfa")
-    analyze_identification_distribution(similarity_matrix_mvfa, query_labels, enrolled_labels, dataset_name, "mvfa", plot=True)
     plot_confusion_matrix(query_labels, enrolled_labels[top_indices[:, 0]], dataset_enrolled, dataset_name, matplotlib=False)
     error_rate_per_class(query_labels, enrolled_labels, top_indices, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_mvfa, dataset_name, "_mvfa")
     all_metrics["metrics_mvfa"] = metrics_mvfa
+    all_metrics["emb_dist_mvfa"] = analyze_identification_distribution(similarity_matrix_mvfa, query_labels, enrolled_labels, dataset_name,"mvfa", plot=True)
     correlation_results = analyze_perspective_error_correlation(
         query_labels=query_labels,
         enrolled_labels=enrolled_labels,
@@ -165,7 +165,7 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     plot_cmc(similarity_matrix_front, enrolled_labels, query_labels, dataset_name, "front")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_front, dataset_name, "front")
     error_rate_per_class(query_labels, enrolled_labels, top_indices_front, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_front, dataset_name, "_front")
-    analyze_identification_distribution(similarity_matrix_front, query_labels, enrolled_labels, dataset_name, "front", plot=True)
+    all_metrics["emb_dist_front"] = analyze_identification_distribution(similarity_matrix_front, query_labels, enrolled_labels, dataset_name, "front", plot=True)
     all_metrics["metrics_front"] = metrics_front
     correlation_results = analyze_perspective_error_correlation(
         query_labels=query_labels,
@@ -185,7 +185,7 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     plot_cmc(similarity_matrix_concat, enrolled_labels, query_labels, dataset_name, "concat")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat, dataset_name, "concat")
     error_rate_per_class(query_labels, enrolled_labels, top_indices_concat, dataset_enrolled, embedding_library.query_scan_ids, similarity_matrix_concat, dataset_name, "_concat")
-    analyze_identification_distribution(similarity_matrix_concat, query_labels, enrolled_labels, dataset_name, "concat", plot=True)
+    all_metrics["emb_dist_concat"] = analyze_identification_distribution(similarity_matrix_concat, query_labels, enrolled_labels, dataset_name, "concat", plot=True)
     all_metrics["metrics_concat"] = metrics_concat
     correlation_results = analyze_perspective_error_correlation(
         query_labels=query_labels,
@@ -204,7 +204,7 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
     plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, dataset_name, "concat_mean")
     plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_mean, dataset_name, "concat_mean")
-    analyze_identification_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, dataset_name, "concat_mean", plot=True)
+    all_metrics["emb_dist_concat_mean"] = analyze_identification_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, dataset_name, "concat_mean", plot=True)
     all_metrics["metrics_concat_mean"] = metrics_concat_mean
     del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
 
@@ -216,27 +216,32 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     del similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca
 
     # --------- Score fusion ---------
-    metrics_score_sum, similarity_matrix_score, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="sum", similarity_matrix=None)
+    metrics_score_sum, similarity_matrix_score, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar, method="sum", similarity_matrix=None)
     all_metrics["metrics_score_sum"] = metrics_score_sum
-    metrics_score_max, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar,  method="max", similarity_matrix=similarity_matrix_score)
+    all_metrics["emb_dist_score_sum"] = analyze_identification_distribution(fused_scores, query_labels, enrolled_labels, dataset_name, "score_sum", plot=True)
+    metrics_score_max, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar,  method="max", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_max"] = metrics_score_max
-    metrics_score_prod, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar,  method="product", similarity_matrix=similarity_matrix_score)
+    metrics_score_prod, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar,  method="product", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_product"] = metrics_score_prod
-    metrics_score_geomean, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="geom_mean", similarity_matrix=similarity_matrix_score)
+    metrics_score_geomean, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar, method="geom_mean", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_geomean"] = metrics_score_geomean
-    metrics_score_lse, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="lse", similarity_matrix=similarity_matrix_score)
+    metrics_score_lse, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar, method="lse", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_lse"] = metrics_score_lse
-    metrics_score_majority, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="majority", similarity_matrix=similarity_matrix_score)
+    metrics_score_majority, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar, method="majority", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_majority"] = metrics_score_majority
-    metrics_score_mean, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="mean", similarity_matrix=similarity_matrix_score)
+    metrics_score_mean, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar, method="mean", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_mean"] = metrics_score_mean
-    metrics_score_trimmedmean, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="trimmed_mean", similarity_matrix=similarity_matrix_score)
+    all_metrics["emb_dist_score_mean"] = analyze_identification_distribution(fused_scores, query_labels, enrolled_labels, dataset_name, "score_mean", plot=True)
+    metrics_score_trimmedmean, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar, method="trimmed_mean", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_trimmedmean"] = metrics_score_trimmedmean
 
-    metrics_score_sdw, _, fused_scores, top_indices, predicted_labels, query_label = score_fusion(embedding_library, disable_bar, method="softmax_distance_weighting", similarity_matrix=similarity_matrix_score, distance_matrix=distance_matrix)
-    print(metrics_score_sdw)
+    metrics_score_sdw, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar, method="softmax_distance_weighting", similarity_matrix=similarity_matrix_score, distance_matrix=distance_matrix)
+    print("metrics_score_sdw",metrics_score_sdw)
+    all_metrics["emb_dist_score_sdw"] = analyze_identification_distribution(fused_scores, query_labels, enrolled_labels, dataset_name, "score_sdw", plot=True)
 
     plot_all_cmc_from_txt(dataset_name)
+
+    print(all_metrics)
 
     return all_metrics, embedding_library, dataset_enrolled, dataset_query
 
