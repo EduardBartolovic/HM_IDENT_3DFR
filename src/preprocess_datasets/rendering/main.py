@@ -218,11 +218,6 @@ def main():
         PrepareDataset.filter_views(root + 'test_rgb_bff_crop/enrolled', root + 'test_rgb_bff_crop8/enrolled', perspective_filter, target_views=8)
         PrepareDataset.filter_views(root + 'test_rgb_bff_crop/query', root + 'test_rgb_bff_crop8/query', perspective_filter, target_views=8)
 
-        #calculate_face_landmarks_dataset(root+'test_rgb_bff_croplc8\\train')
-        #calculate_face_landmarks_dataset(root + 'test_rgb_bff_croplc8\\validation')
-        #calculate_face_correspondences_dataset(root+'test_rgb_bff_croplc8\\train', keep=True, processes=2, target_views=8)
-        #calculate_face_correspondences_dataset(root+'test_rgb_bff_croplc8\\validation', keep=True, processes=2, target_views=8)
-
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)
 

@@ -155,7 +155,6 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
         plot=True,
         extension="_" + dataset_name + "_mvfa"
     )
-    print("MVFA", correlation_results)
     del similarity_matrix_mvfa, top_indices, top_values
     if not eval_all:
         return all_metrics, embedding_library, dataset_enrolled, dataset_query
@@ -177,7 +176,6 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
         plot=True,
         extension="_" + dataset_name + "_front"
     )
-    print("Front", correlation_results)
     del similarity_matrix_front, top_indices_front, y_true_front, y_pred_front
 
     # --------- Concat Full ---------
@@ -197,7 +195,6 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
         plot=True,
         extension="_" + dataset_name + "_concat"
     )
-    print("CONCAT", correlation_results)
     del similarity_matrix_concat, top_indices_concat, y_true_concat, y_pred_concat
 
     # --------- Concat Mean ---------
@@ -559,15 +556,18 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
     rank_1_mv = smart_round(all_metrics["metrics_mvfa"].get('Rank-1 Rate', 'N/A'))
     rank_5_mv = smart_round(all_metrics["metrics_mvfa"].get('Rank-5 Rate', 'N/A'))
     mrr_mv = smart_round(all_metrics["metrics_mvfa"].get('MRR', 'N/A'))
+    gbig_mv = smart_round(all_metrics["emb_dist_mv"].get('gbig', 'N/A'))
 
     if eval_all:
         rank_1_front = smart_round(all_metrics["metrics_front"].get('Rank-1 Rate', 'N/A'))
         rank_5_front = smart_round(all_metrics["metrics_front"].get('Rank-5 Rate', 'N/A'))
         mrr_front = smart_round(all_metrics["metrics_front"].get('MRR', 'N/A'))
+        gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A'))
 
         rank_1_concat = smart_round(all_metrics["metrics_concat"].get('Rank-1 Rate', 'N/A'))
         rank_5_concat = smart_round(all_metrics["metrics_concat"].get('Rank-5 Rate', 'N/A'))
         mrr_concat = smart_round(all_metrics["metrics_concat"].get('MRR', 'N/A'))
+        gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A'))
 
         rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
         rank_5_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-5 Rate', 'N/A'))
@@ -585,8 +585,8 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
         mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
         string = (
             colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
-            f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} | "
-            f"{bold('Concat RR1')}: {rank_1_concat} {bold('MRR')}: {underscore(mrr_concat)} | "
+            f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} {bold('GBIG')}: {underscore(gbig_front)} | "
+            f"{bold('Concat RR1')}: {rank_1_concat} {bold('MRR')}: {underscore(mrr_concat)} {bold('GBIG')}: {underscore(gbig_concat)} | "
             f"{bold('Concat_Mean RR1')}: {rank_1_concat_mean} {bold('MRR')}: {underscore(mrr_concat_mean)} | "
             f"{bold('Concat_PCA RR1')}: {rank_1_concat_pca} {bold('MRR')}: {underscore(mrr_concat_pca)} | "
             f"{bold('Score_sum MRR')}: {underscore(mrr_score_sum)} | "
@@ -595,7 +595,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
             f"{bold('Score_max MRR')}: {underscore(mrr_score_max)} | "
             f"{bold('Score_maj MRR')}: {underscore(mrr_score_majority)} | "
             f"{bold('Score_pdw MRR')}: {underscore(mrr_score_pdw)} | "
-            f"{bold('MV RR1')}: {rank_1_mv} {bold('MRR')}: {underscore(mrr_mv)} "
+            f"{bold('MV RR1')}: {rank_1_mv} {bold('MRR')}: {underscore(mrr_mv)} {bold('GBIG')}: {underscore(gbig_mv)} "
         )
     else:
         string = (

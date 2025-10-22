@@ -421,7 +421,7 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
         "impostor_std": np.std(impostor_scores),
         "best_impostor_mean": best_impostor_mean,
         "best_impostor_std": np.std(best_impostor_scores),
-        "genuine_best_imposter_gap": genuine_best_imposter_gap
+        "gbig": genuine_best_imposter_gap
     }
 
 
