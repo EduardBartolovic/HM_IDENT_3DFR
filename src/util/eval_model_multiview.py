@@ -240,8 +240,6 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
 
     plot_all_cmc_from_txt(dataset_name)
 
-    print(all_metrics)
-
     return all_metrics, embedding_library, dataset_enrolled, dataset_query
 
 
