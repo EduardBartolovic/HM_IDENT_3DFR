@@ -234,10 +234,9 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     all_metrics["emb_dist_score_mean"] = analyze_identification_distribution(fused_scores, query_labels, enrolled_labels, dataset_name, "score_mean", plot=True)
     metrics_score_trimmedmean, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar, method="trimmed_mean", similarity_matrix=similarity_matrix_score)
     all_metrics["metrics_score_trimmedmean"] = metrics_score_trimmedmean
-
-    metrics_score_sdw, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar, method="softmax_distance_weighting", similarity_matrix=similarity_matrix_score, distance_matrix=distance_matrix)
-    print("metrics_score_sdw",metrics_score_sdw)
-    all_metrics["emb_dist_score_sdw"] = analyze_identification_distribution(fused_scores, query_labels, enrolled_labels, dataset_name, "score_sdw", plot=True)
+    metrics_score_pdw, _, fused_scores, top_indices, predicted_labels = score_fusion(embedding_library, disable_bar, method="perspective_distance_weighting", similarity_matrix=similarity_matrix_score, distance_matrix=distance_matrix)
+    all_metrics["metrics_score_pdw"] = metrics_score_pdw
+    all_metrics["emb_dist_score_pdw"] = analyze_identification_distribution(fused_scores, query_labels, enrolled_labels, dataset_name, "score_sdw", plot=True)
 
     plot_all_cmc_from_txt(dataset_name)
 
@@ -498,6 +497,10 @@ def evaluate_and_log_mv(backbone, data_root, dataset, epoch, transform_sizes, fi
         mlflow.log_metric(f'{neutral_dataset}_majority-RR1', all_metrics["metrics_score_majority"]['Rank-1 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_majority-RR5', all_metrics["metrics_score_majority"]['Rank-5 Rate'], step=epoch)
         mlflow.log_metric(f'{neutral_dataset}_majority-MRR', all_metrics["metrics_score_majority"]['MRR'], step=epoch)
+    if "metrics_score_pdw" in all_metrics.keys():
+        mlflow.log_metric(f'{neutral_dataset}_pdw-RR1', all_metrics["metrics_score_pdw"]['Rank-1 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_pdw-RR5', all_metrics["metrics_score_pdw"]['Rank-5 Rate'], step=epoch)
+        mlflow.log_metric(f'{neutral_dataset}_pdw-MRR', all_metrics["metrics_score_pdw"]['MRR'], step=epoch)
 
     # if 'bellus' in dataset:
     #    write_embeddings(embedding_library, neutral_dataset, epoch + 1)
@@ -581,6 +584,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
         mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
         mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
         mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
+        mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
         string = (
             colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
             f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} | "
@@ -592,6 +596,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
             f"{bold('Score_mean MRR')}: {underscore(mrr_score_mean)} | "
             f"{bold('Score_max MRR')}: {underscore(mrr_score_max)} | "
             f"{bold('Score_maj MRR')}: {underscore(mrr_score_majority)} | "
+            f"{bold('Score_pdw MRR')}: {underscore(mrr_score_pdw)} | "
             f"{bold('MV RR1')}: {rank_1_mv} {bold('MRR')}: {underscore(mrr_mv)} "
         )
     else:

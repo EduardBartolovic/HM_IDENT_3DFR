@@ -314,7 +314,7 @@ def score_fusion(embedding_library, disable_bar=True, method="product", similari
         sorted_scores = np.sort(similarity_matrix, axis=-1)
         trimmed = sorted_scores[:, :, k:-k] if k < similarity_matrix.shape[-1] // 2 else similarity_matrix
         fused_scores = np.mean(trimmed, axis=-1)
-    elif method == "softmax_distance_weighting":
+    elif method == "perspective_distance_weighting":
         dist_norm = distance_matrix.astype(np.float32)
         #dist_norm = np.clip(dist_norm, a_min=1e-6, a_max=25.0)
         dist_max = np.max(dist_norm)
