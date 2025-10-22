@@ -556,7 +556,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
     rank_1_mv = smart_round(all_metrics["metrics_mvfa"].get('Rank-1 Rate', 'N/A'))
     rank_5_mv = smart_round(all_metrics["metrics_mvfa"].get('Rank-5 Rate', 'N/A'))
     mrr_mv = smart_round(all_metrics["metrics_mvfa"].get('MRR', 'N/A'))
-    gbig_mv = smart_round(all_metrics["emb_dist_mv"].get('gbig', 'N/A'))
+    gbig_mv = smart_round(all_metrics["emb_dist_mvfa"].get('gbig', 'N/A'))
 
     if eval_all:
         rank_1_front = smart_round(all_metrics["metrics_front"].get('Rank-1 Rate', 'N/A'))
