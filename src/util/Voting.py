@@ -318,7 +318,7 @@ def score_fusion(embedding_library, disable_bar=True, method="product", similari
         dist_norm = distance_matrix.astype(np.float32)
         #dist_norm = np.clip(dist_norm, a_min=1e-6, a_max=25.0)
         dist_max = np.max(dist_norm)
-        dist_norm = dist_norm / dist_max
+        dist_norm = dist_norm / dist_max if dist_max > 0 else np.zeros_like(dist_norm)
 
         alpha = 1.0
         weights = np.exp(-alpha * dist_norm)
