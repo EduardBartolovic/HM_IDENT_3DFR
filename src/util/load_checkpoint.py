@@ -61,11 +61,26 @@ def load_checkpoint(model, head, backbone_resume_path, head_resume_path, rgbd=Fa
 
 
 def adapt_state_dict_for_backbone(state_dict, prefix="backbone."):
-    del state_dict["logits.weight"]
-    del state_dict["logits.bias"]
+    if "logits.weight" in state_dict:
+        del state_dict["logits.weight"]
+        del state_dict["logits.bias"]
+    else:
+        # This is for Edgeface
+        new_state_dict = {}
+        for k, v in state_dict.items():
+            new_k = k.replace("model.stem.", "model.stem_")
+            new_k = new_k.replace("model.stages.", "model.stages_")
+
+            if "model.head.fc.linear1.weight" in k:
+                new_k = "final_fc.linear1.weight"
+            elif "model.head.fc.linear2.weight" in k:
+                new_k = "final_fc.linear2.weight"
+            elif "model.head.fc.linear2.bias" in k:
+                new_k = "final_fc.linear2.bias"
+            elif "model.head" in k:
+                continue  # skip anything else in old head
+
+            new_state_dict[new_k] = v
+        state_dict = new_state_dict
+
     return state_dict
-    #new_state_dict = {}
-    #for k, v in state_dict.items():
-    #    new_key = prefix + k if not k.startswith(prefix) else k
-    #    new_state_dict[new_key] = v
-    #return new_state_dict
