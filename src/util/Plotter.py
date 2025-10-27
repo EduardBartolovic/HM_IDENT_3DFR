@@ -354,12 +354,15 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
 
     # --- find the best impostor per query ---
     best_impostor_scores = np.empty(len(query_labels), dtype=similarity_matrix.dtype)
+    avg_impostor_scores = np.empty(len(query_labels), dtype=similarity_matrix.dtype)
     for i in range(len(query_labels)):
         row = similarity_matrix[i]
         mask = matches[i]
         best_impostor_scores[i] = np.max(row[~mask])
+        avg_impostor_scores[i] = np.mean(row[~mask])
 
     genuine_best_imposter_gap = np.mean(genuine_scores-best_impostor_scores)
+    genuine_average_imposter_gap = np.mean(genuine_scores-avg_impostor_scores)
 
     genuine_mean = np.mean(genuine_scores)
     impostor_mean = np.mean(impostor_scores)
@@ -421,7 +424,8 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
         "impostor_std": np.std(impostor_scores),
         "best_impostor_mean": best_impostor_mean,
         "best_impostor_std": np.std(best_impostor_scores),
-        "gbig": genuine_best_imposter_gap
+        "gbig": genuine_best_imposter_gap,
+        "gaig": genuine_average_imposter_gap
     }
 
 

@@ -557,17 +557,20 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
     rank_5_mv = smart_round(all_metrics["metrics_mvfa"].get('Rank-5 Rate', 'N/A'))
     mrr_mv = smart_round(all_metrics["metrics_mvfa"].get('MRR', 'N/A'))
     gbig_mv = smart_round(all_metrics["emb_dist_mvfa"].get('gbig', 'N/A')*100)
+    gaig_mv = smart_round(all_metrics["emb_dist_mvfa"].get('gaig', 'N/A')*100)
 
     if eval_all:
         rank_1_front = smart_round(all_metrics["metrics_front"].get('Rank-1 Rate', 'N/A'))
         rank_5_front = smart_round(all_metrics["metrics_front"].get('Rank-5 Rate', 'N/A'))
         mrr_front = smart_round(all_metrics["metrics_front"].get('MRR', 'N/A'))
         gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A')*100)
+        gaig_front = smart_round(all_metrics["emb_dist_front"].get('gaig', 'N/A')*100)
 
         rank_1_concat = smart_round(all_metrics["metrics_concat"].get('Rank-1 Rate', 'N/A'))
         rank_5_concat = smart_round(all_metrics["metrics_concat"].get('Rank-5 Rate', 'N/A'))
         mrr_concat = smart_round(all_metrics["metrics_concat"].get('MRR', 'N/A'))
         gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A')*100)
+        gaig_concat = smart_round(all_metrics["emb_dist_concat"].get('gaig', 'N/A')*100)
 
         rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
         rank_5_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-5 Rate', 'N/A'))
@@ -585,8 +588,8 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
         mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
         string = (
             colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
-            f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} {bold('GBIG')}: {underscore(gbig_front)} | "
-            f"{bold('Concat RR1')}: {rank_1_concat} {bold('MRR')}: {underscore(mrr_concat)} {bold('GBIG')}: {underscore(gbig_concat)} | "
+            f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} {bold('GBIG')}: {underscore(gbig_front)} {bold('GAIG')}: {underscore(gaig_front)} | "
+            f"{bold('Concat RR1')}: {rank_1_concat} {bold('MRR')}: {underscore(mrr_concat)} {bold('GBIG')}: {underscore(gbig_concat)} {bold('GAIG')}: {underscore(gaig_concat)} | "
             f"{bold('Concat_Mean RR1')}: {rank_1_concat_mean} {bold('MRR')}: {underscore(mrr_concat_mean)} | "
             f"{bold('Concat_PCA RR1')}: {rank_1_concat_pca} {bold('MRR')}: {underscore(mrr_concat_pca)} | "
             f"{bold('Score_sum MRR')}: {underscore(mrr_score_sum)} | "
@@ -595,12 +598,12 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
             f"{bold('Score_max MRR')}: {underscore(mrr_score_max)} | "
             f"{bold('Score_maj MRR')}: {underscore(mrr_score_majority)} | "
             f"{bold('Score_pdw MRR')}: {underscore(mrr_score_pdw)} | "
-            f"{bold('MV RR1')}: {rank_1_mv} {bold('MRR')}: {underscore(mrr_mv)} {bold('GBIG')}: {underscore(gbig_mv)} "
+            f"{bold('MV RR1')}: {rank_1_mv} {bold('MRR')}: {underscore(mrr_mv)} {bold('GBIG')}: {underscore(gbig_mv)} {bold('GAIG')}: {underscore(gaig_mv)} "
         )
     else:
         string = (
             colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
-            f"{bold('MV-RR1')}: {underscore(rank_1_mv)} {bold('MV-RR5')}: {rank_5_mv} {bold('MV-MRR')}: {mrr_mv} "
+            f"{bold('MV-RR1')}: {underscore(rank_1_mv)} {bold('MV-RR5')}: {rank_5_mv} {bold('MV-MRR')}: {mrr_mv} {bold('GBIG')}: {underscore(gbig_mv)} {bold('GAIG')}: {underscore(gaig_mv)}"
         )
 
     print(string)
