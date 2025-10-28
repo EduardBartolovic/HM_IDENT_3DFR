@@ -333,7 +333,7 @@ def plot_all_cmc_from_txt(dataset, top_k=100, title="CMC Curves Comparison"):
     plt.close()
 
 
-def analyze_identification_distribution(similarity_matrix, query_labels, enrolled_labels, dataset_name, extension="", plot=True):
+def analyze_embedding_distribution(similarity_matrix, query_labels, enrolled_labels, dataset_name, extension="", plot=True):
     """
     Analyze 1:N identification results by plotting score distributions
     for genuine (correct) vs impostor (incorrect) matches.
@@ -408,14 +408,14 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
             if np.max(genuine_scores) <= 1.0:
                 plt.xlim([-0.25, 1.0])
 
-            plt.title(f"{dataset_name} {extension} - Identification Distributions")
+            plt.title(f"{dataset_name} {extension} - Embedding Distributions")
             plt.xlabel("Similarity / Distance")
             plt.ylabel("Frequency")
             plt.legend()
             plt.savefig(os.path.join(tmp_dir, 'Distributions_Curve-' + dataset_name + '-' + extension + '.svg'), format='svg')
             plt.close()
 
-            mlflow.log_artifacts(tmp_dir, artifact_path="IdentificationDistributions")
+            mlflow.log_artifacts(tmp_dir, artifact_path="EmbeddingDistributions")
 
     return {
         "genuine_mean": genuine_mean,
@@ -426,6 +426,71 @@ def analyze_identification_distribution(similarity_matrix, query_labels, enrolle
         "best_impostor_std": np.std(best_impostor_scores),
         "gbig": genuine_best_imposter_gap,
         "gaig": genuine_average_imposter_gap
+    }
+
+
+def analyze_verification_distribution(similarities, is_same, dataset_name, extension="", plot=True):
+    """
+    Analyze 1:1 verification results by plotting score distributions
+    for genuine (same person) vs impostor (different person) pairs.
+
+    Args:
+        similarities: list or array of similarity scores (1D)
+        is_same: list or array of binary labels (1 for same, 0 for different)
+        dataset_name: dataset name for plot titles / logging
+        extension: extra string for naming/logging
+        plot: if True, saves histogram plot to MLflow
+
+    Returns:
+        dict with mean/std stats for genuine and impostor scores
+    """
+    similarities = np.array(similarities)
+    is_same = np.array(is_same).astype(bool)
+
+    genuine_scores = similarities[is_same]
+    impostor_scores = similarities[~is_same]
+
+    genuine_mean = np.mean(genuine_scores)
+    impostor_mean = np.mean(impostor_scores)
+    genuine_std = np.std(genuine_scores)
+    impostor_std = np.std(impostor_scores)
+    gap = genuine_mean - impostor_mean
+
+    if plot:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir = Path(tmp_dir)
+            plt.figure(figsize=(7, 5))
+
+            sns.histplot(genuine_scores, bins=200, stat="percent", kde=False, color="tab:blue", alpha=0.3, label="Genuine")
+            sns.histplot(impostor_scores, bins=200, stat="percent", kde=False, color="tab:orange", alpha=0.3, label="Impostor")
+
+            # Mean lines
+            plt.axvline(genuine_mean, color="tab:blue", linestyle="--", linewidth=1.5)
+            plt.text(genuine_mean, plt.ylim()[1] * 0.9, f"{genuine_mean:.3f}", color="tab:blue", ha="center", va="bottom", fontsize=8, rotation=90)
+
+            plt.axvline(impostor_mean, color="tab:orange", linestyle="--", linewidth=1.5)
+            plt.text(impostor_mean, plt.ylim()[1] * 0.9, f"{impostor_mean:.3f}", color="tab:orange", ha="center", va="bottom", fontsize=8, rotation=90)
+
+            if np.max(similarities) <= 1.0:
+                plt.xlim([-0.25, 1.0])
+
+            plt.title(f"{dataset_name} {extension} - Verification Score Distributions")
+            plt.xlabel("Similarity Score")
+            plt.ylabel("Frequency (%)")
+            plt.legend()
+
+            out_path = tmp_dir / f"Verification_Distribution_{dataset_name}_{extension}.svg"
+            plt.savefig(out_path, format="svg")
+            plt.close()
+
+            mlflow.log_artifacts(tmp_dir, artifact_path="VerificationDistributions")
+
+    return {
+        "genuine_mean": genuine_mean,
+        "genuine_std": genuine_std,
+        "impostor_mean": impostor_mean,
+        "impostor_std": impostor_std,
+        "mean_gap": gap
     }
 
 

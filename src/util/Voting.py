@@ -309,12 +309,14 @@ def score_fusion(embedding_library, disable_bar=True, method="product", similari
             fused_scores[i] = votes  # class with most votes gets largest score
     elif method == "mean":
         fused_scores = np.mean(similarity_matrix, axis=-1)
+    elif method == "median":
+        fused_scores = np.median(similarity_matrix, axis=-1)
     elif method == "trimmed_mean":
         k = 1  # Remove most outer elements
         sorted_scores = np.sort(similarity_matrix, axis=-1)
         trimmed = sorted_scores[:, :, k:-k] if k < similarity_matrix.shape[-1] // 2 else similarity_matrix
         fused_scores = np.mean(trimmed, axis=-1)
-    elif method == "perspective_distance_weighting":
+    elif method == "pdw":  # perspective_distance_weighting
         dist_norm = distance_matrix.astype(np.float32)
         #dist_norm = np.clip(dist_norm, a_min=1e-6, a_max=25.0)
         dist_max = np.max(dist_norm)
