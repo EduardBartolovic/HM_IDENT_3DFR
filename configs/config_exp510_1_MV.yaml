@@ -1,7 +1,7 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP510-IR_MV_R100_AdaFaceARoFace-MS1MV3'  # experiment_name
-DATA_ROOT_PATH: 'dataset10'  # the parent data root
+DATA_ROOT_PATH: 'dataset11'  # the parent data root
 TRAIN_SET: 'rgb_bff_crop8'  # train dataset name
 
 MODEL_ROOT: './model'  # the root to buffer checkpoints
