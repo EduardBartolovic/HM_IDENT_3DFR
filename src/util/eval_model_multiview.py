@@ -201,7 +201,7 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     del similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca
 
     # --------- Score fusion ---------
-    fusion_methods = ["sum", "max", "product", "geom_mean", "majority", "mean", "median", "pdw"]
+    fusion_methods = ["sum", "max", "product", "majority", "mean", "median", "pdw"]
     sim_score = None
     for m in fusion_methods:
         metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m, similarity_matrix=sim_score, distance_matrix=(distance_matrix if m == "pdw" else None))
