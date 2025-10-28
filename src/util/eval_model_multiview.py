@@ -350,20 +350,19 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
     for m in fusion_methods:
         all_metrics[f"metrics_score_{m}"] = analyze_result_verification(labels, similarities_fusion[m], dataset_name,f"_{m}", folds=folds)
 
-    # ---------- Perspective analysis ---------
-    perspective_distances = calc_perspective_distances(
-        embedding_library.enrolled_perspectives,
-        embedding_library.enrolled_true_perspectives
-    )  # shape (num_samples, num_views)
-
-    for tag, sim in {"_mvfa": similarities_mv, "_front": similarities_front, "_concat": similarities_concat}.items():
-        if f"metrics{tag}" in all_metrics.keys():
-            preds = (sim > all_metrics[f"metrics{tag}"]["Best_thresh"]).astype(int)
-            c = analyze_perspective_error_correlation_1v1(
-                pair_list, perspective_distances, embedding_library, preds,
-                name_to_class_dict, embedding_library.enrolled_true_perspectives,
-                plot=True, extension=f"_{dataset_name}{tag}"
-            )
+    # ---------- Perspective analysis --------- TODO
+    #perspective_distances = calc_perspective_distances(
+    #    embedding_library.enrolled_perspectives,
+    #    embedding_library.enrolled_true_perspectives
+    #)  # shape (num_samples, num_views)
+    #for tag, sim in {"_mvfa": similarities_mv, "_front": similarities_front, "_concat": similarities_concat}.items():
+    #    if f"metrics{tag}" in all_metrics.keys():
+    #        preds = (sim > all_metrics[f"metrics{tag}"]["Best_thresh"]).astype(int)
+    #        c = analyze_perspective_error_correlation_1v1(
+    #            pair_list, perspective_distances, embedding_library, preds,
+    #            name_to_class_dict, embedding_library.enrolled_true_perspectives,
+    #            plot=True, extension=f"_{dataset_name}{tag}"
+    #        )
 
     # ---------- Score Distribution Analysis ----------
     for ext, sims in sim_dict.items():
