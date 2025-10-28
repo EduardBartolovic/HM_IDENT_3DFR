@@ -1,15 +1,15 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP512-IR_MV_R100_Cosface-Glint'  # experiment_name
+RUN_NAME: 'EXP517-IR_MV_R18_Arcface-MS1MV3'  # experiment_name
 DATA_ROOT_PATH: 'dataset11'  # the parent data root
 TRAIN_SET: 'rgb_bff_crop8'  # train dataset name
 
 MODEL_ROOT: './model'  # the root to buffer checkpoints
 LOG_ROOT: './log'  # the root to log
-BACKBONE_RESUME_PATH: 'glint_cosface_r100_fp16.pth'  # the root to resume training from a saved checkpoint
+BACKBONE_RESUME_PATH: 'ms1mv3_arcface_r18_fp16.pth'  # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 USE_FACE_CORR: False
-BACKBONE_NAME: 'IR_MV_V2_100'
+BACKBONE_NAME: 'IR_MV_V2_18'
 AGG:
   AGG_NAME: 'MeanAggregator'
   AGG_CONFIG:

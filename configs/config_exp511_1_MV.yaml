@@ -6,7 +6,7 @@ TRAIN_SET: 'rgb_bff_crop8'  # train dataset name
 
 MODEL_ROOT: './model'  # the root to buffer checkpoints
 LOG_ROOT: './log'  # the root to log
-BACKBONE_RESUME_PATH: 'AdaFace_ARoFace_R100_MS1MV3.pt'  # the root to resume training from a saved checkpoint
+BACKBONE_RESUME_PATH: 'AdaFace_ARoFace_R100_WebFace12M.pt'  # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 USE_FACE_CORR: False
 BACKBONE_NAME: 'IR_MV_V2_100'
