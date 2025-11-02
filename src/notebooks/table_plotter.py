@@ -12,12 +12,16 @@ results = []
 
 for block in backbone_blocks[1:]:
     # Extract backbone name (cleaned up)
-    backbone_match = re.search(r"\\([^\\]+)\.(pt|pth)", block)
-    backbone = backbone_match.group(1).replace("_", "-") if backbone_match else "Unknown"
+    backbone_match = re.search(r"[\\/](?:[^\\/]+)\.(pt|pth)", block)
+    if backbone_match:
+        # Extract just the filename without extension
+        backbone = re.search(r"([^\\/]+)\.(?:pt|pth)", backbone_match.group(0)).group(1).replace("_", "-")
+    else:
+        backbone = "Unknown"
 
     # Extract MRR values per test set
     evals = re.findall(
-        r"(\b(?:rgb_bff_crop8|vox2test_crop8)\b).*?Front RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
+        r"(\b(?:vox2train_crop8)\b).*?Front RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?" # vox2train_crop8  rgb_bff_crop8 ytf_crop8 ytf_crop8
         r"Concat RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
         r"Concat_Mean RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
         r"Concat_PCA RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
@@ -44,7 +48,7 @@ for block in backbone_blocks[1:]:
         all_vals["Score_Mean"].append(float(ev[10]) if ev[10] != "N/A" else np.nan)
         all_vals["Score_Max"].append(float(ev[11]) if ev[11] != "N/A" else np.nan)
         all_vals["Score_Maj"].append(float(ev[12]) if ev[12] != "N/A" else np.nan)
-        all_vals["MV"].append(float(ev[13]) if ev[13] != "N/A" else np.nan)
+        all_vals["MV"].append(float(ev[14]) if ev[13] != "N/A" else np.nan)
 
     # Compute averages
     avg = {k: np.nanmean(v) for k, v in all_vals.items()}
@@ -79,9 +83,22 @@ for backbone, avg, gains in results:
     for k in gains:
         avg_gains[k].append(gains[k])
 
-    print(f"{backbone} & {base:.3f} & {fmt(gains['Concat'])} & {fmt(gains['Concat_Mean'])} & "
-          f"{fmt(gains['Concat_PCA'])} & {fmt(gains['Score_Prod'])} & {fmt(gains['Score_Mean'])} & "
-          f"{fmt(gains['Score_Max'])} & {fmt(gains['Score_Maj'])} & {fmt(gains['MV'])}\\\\")
+    # Find which gain is the best (highest)
+    valid_gains = {k: v for k, v in gains.items() if not np.isnan(v)}
+    best_key = max(valid_gains, key=valid_gains.get) if valid_gains else None
+
+    def highlight(k):
+        v = gains[k]
+        if np.isnan(v):
+            return "N/A"
+        val = fmt(v)
+        if k == best_key:
+            return f"\\cellcolor{{blue!15}}{{{val}}}"
+        return val
+
+    print(f"{backbone} & {base:.3f} & {highlight('Concat')} & {highlight('Concat_Mean')} & "
+          f"{highlight('Concat_PCA')} & {highlight('Score_Prod')} & {highlight('Score_Mean')} & "
+          f"{highlight('Score_Max')} & {highlight('Score_Maj')} & {highlight('MV')}\\\\")
     print("\\hline")
 
 # --- Average row ---
