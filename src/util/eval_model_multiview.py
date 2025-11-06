@@ -201,7 +201,7 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     del similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca
 
     # --------- Score fusion ---------
-    fusion_methods = ["sum", "max", "product", "majority", "mean", "median", "pdw"]
+    fusion_methods = ["max", "product", "majority", "mean", "median", "pdw"]
     sim_score = None
     for m in fusion_methods:
         metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m, similarity_matrix=sim_score, distance_matrix=(distance_matrix if m == "pdw" else None))
@@ -439,8 +439,6 @@ def evaluate_and_log_mv_verification(backbone, data_root, dataset, epoch, transf
         mlflow.log_metric(f'{neutral_dataset}_Concat_Mean-ACC', all_metrics["metrics_concat_mean"]["Accuracy"], step=epoch)
     if "metrics_concat_pca" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_Concat_PCA-AUC', all_metrics["metrics_concat_pca"]["AUC"], step=epoch)
-    if "metrics_score_sum" in all_metrics.keys():
-        mlflow.log_metric(f'{neutral_dataset}_sum-AUC', all_metrics["metrics_score_sum"]['AUC'], step=epoch)
     if "metrics_score_product" in all_metrics.keys():
         mlflow.log_metric(f'{neutral_dataset}_product-AUC', all_metrics["metrics_score_product"]['AUC'], step=epoch)
     if "metrics_score_max" in all_metrics.keys():
@@ -481,6 +479,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
         rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
         rank_5_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-5 Rate', 'N/A'))
         mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
+        gbig_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('gbig', 'N/A'))
 
         rank_1_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-1 Rate', 'N/A'))
         rank_5_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-5 Rate', 'N/A'))
@@ -490,25 +489,27 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
         rank_5_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('Rank-5 Rate', 'N/A'))
         mrr_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('MRR', 'N/A'))
 
-        mrr_score_sum = smart_round(all_metrics["metrics_score_sum"].get('MRR', 'N/A'))
         mrr_score_max = smart_round(all_metrics["metrics_score_max"].get('MRR', 'N/A'))
+        gbig_score_max = smart_round(all_metrics["metrics_score_max"].get('gbig', 'N/A'))
         mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
+        gbig_score_prod = smart_round(all_metrics["metrics_score_product"].get('gbig', 'N/A'))
         mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
+        gbig_score_mean = smart_round(all_metrics["metrics_score_mean"].get('gbig', 'N/A'))
         mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
+        gbig_score_majority = smart_round(all_metrics["metrics_score_majority"].get('gbig', 'N/A'))
         mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
         string = (
             colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
             f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} {bold('GBIG')}: {underscore(gbig_front)} {bold('GAIG')}: {underscore(gaig_front)} | "
             f"{bold('Concat RR1')}: {rank_1_concat} {bold('MRR')}: {underscore(mrr_concat)} {bold('GBIG')}: {underscore(gbig_concat)} {bold('GAIG')}: {underscore(gaig_concat)} | "
-            f"{bold('Concat_Mean RR1')}: {rank_1_concat_mean} {bold('MRR')}: {underscore(mrr_concat_mean)} | "
-            f"{bold('Concat_Median RR1')}: {rank_1_concat_median} {bold('MRR')}: {underscore(mrr_concat_median)} | "
-            f"{bold('Concat_PCA RR1')}: {rank_1_concat_pca} {bold('MRR')}: {underscore(mrr_concat_pca)} | "
-            f"{bold('Score_sum MRR')}: {underscore(mrr_score_sum)} | "
-            f"{bold('Score_prod MRR')}: {underscore(mrr_score_prod)} | "
-            f"{bold('Score_mean MRR')}: {underscore(mrr_score_mean)} | "
-            f"{bold('Score_max MRR')}: {underscore(mrr_score_max)} | "
-            f"{bold('Score_maj MRR')}: {underscore(mrr_score_majority)} | "
-            f"{bold('Score_pdw MRR')}: {underscore(mrr_score_pdw)} | "
+            f"{bold('Concat_Mean RR1')}: {rank_1_concat_mean} {bold('MRR')}: {underscore(mrr_concat_mean)} {bold('GBIG')}: {underscore(gbig_concat_mean)} | "
+            # f"{bold('Concat_Median RR1')}: {rank_1_concat_median} {bold('MRR')}: {underscore(mrr_concat_median)} | "
+            # f"{bold('Concat_PCA RR1')}: {rank_1_concat_pca} {bold('MRR')}: {underscore(mrr_concat_pca)} | "
+            f"{bold('Score_prod MRR')}: {underscore(mrr_score_prod)} {bold('GBIG')}: {underscore(gbig_score_prod)} | "
+            f"{bold('Score_mean MRR')}: {underscore(mrr_score_mean)} {bold('GBIG')}: {underscore(gbig_score_mean)} | "
+            f"{bold('Score_max MRR')}: {underscore(mrr_score_max)} {bold('GBIG')}: {underscore(gbig_score_max)} | "
+            f"{bold('Score_maj MRR')}: {underscore(mrr_score_majority)} {bold('GBIG')}: {underscore(gbig_score_majority)} | "
+            # f"{bold('Score_pdw MRR')}: {underscore(mrr_score_pdw)} | "
             f"{bold('MV RR1')}: {rank_1_mv} {bold('MRR')}: {underscore(mrr_mv)} {bold('GBIG')}: {underscore(gbig_mv)} {bold('GAIG')}: {underscore(gaig_mv)} "
         )
     else:

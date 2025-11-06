@@ -28,20 +28,17 @@ backbone_blocks = re.split(r"=+\nLoading ONLY Backbone Checkpoint", log)
 results = []
 
 for block in backbone_blocks[1:]:
-    # Extract backbone filename
     backbone_match = re.search(r"[\\/](?:[^\\/]+)\.(pt|pth)", block)
     if not backbone_match:
         continue
     backbone_raw = re.search(r"([^\\/]+)\.(?:pt|pth)", backbone_match.group(0)).group(1).replace("_", "-")
     backbone = backbone_map.get(backbone_raw, backbone_raw)
 
-    # Extract YTF AUC results
+    # Extract YTF AUC results (Score_Sum removed)
     ytf_match = re.search(
         r"ytf_crop8.*?Front-AUC/Acc:\s*([\d\.]+).*?"
         r"Concat-AUC/Acc:\s*([\d\.]+).*?"
         r"Concat_Mean-AUC/Acc:\s*([\d\.]+).*?"
-        r"Concat_PCA-AUC:\s*([\d\.]+).*?"
-        r"Score_sum-AUC:\s*([\d\.]+).*?"
         r"Score_prod-AUC:\s*([\d\.]+).*?"
         r"Score_mean-AUC:\s*([\d\.]+).*?"
         r"Score_max-AUC:\s*([\d\.]+).*?"
@@ -53,8 +50,7 @@ for block in backbone_blocks[1:]:
         continue
 
     vals = [float(v) for v in ytf_match.groups()]
-    keys = ["Front", "Concat", "Concat_Mean", "Concat_PCA",
-            "Score_Sum", "Score_Prod", "Score_Mean", "Score_Max", "MV"]
+    keys = ["Front", "Concat", "Concat_Mean", "Score_Prod", "Score_Mean", "Score_Max", "MV"]
     avg = dict(zip(keys, vals))
     base = avg["Front"]
     gains = {k: avg[k] - base for k in avg if k != "Front"}
@@ -64,12 +60,12 @@ for block in backbone_blocks[1:]:
 print("\\begin{table*}[t]")
 print("\\centering")
 print("\\setlength{\\tabcolsep}{4pt}")
-print("\\begin{tabular}{|l|c|c|c|c|c|c|c|c|c|}")
+print("\\begin{tabular}{|l|c|c|c|c|c|c|c|}")
 print("\\hline")
-print("\\textbf{Backbone} & \\textbf{Front} & \\textbf{Concat} & \\textbf{Mean} & "
-      "\\textbf{PCA} & \\multicolumn{4}{c|}{\\textbf{Score}} & \\textbf{MV} \\\\")
-print("\\cline{5-9}")
-print("& & & & & \\textbf{Sum} & \\textbf{Prod} & \\textbf{Mean} & \\textbf{Max} & \\\\")
+print("\\textbf{Backbone} & \\textbf{Front} & \\multicolumn{2}{c|}{\\textbf{Concat}}& "
+      "\\multicolumn{3}{c|}{\\textbf{Score}} & \\textbf{MV} \\\\")
+print("\\cline{3-8}")
+print("& \\textbf{Only} & \\textbf{Full} & \\textbf{Mean} & \\textbf{Prod} & \\textbf{Mean} & \\textbf{Max} & \\\\")
 print("\\hline")
 
 avg_fronts, avg_gains = [], defaultdict(list)
@@ -94,8 +90,8 @@ for backbone, avg, gains in results:
         return val
 
     print(f"{backbone} & {fmt(avg['Front'])} & {highlight('Concat')} & {highlight('Concat_Mean')} & "
-          f"{highlight('Concat_PCA')} & {highlight('Score_Sum')} & {highlight('Score_Prod')} & "
-          f"{highlight('Score_Mean')} & {highlight('Score_Max')} & {highlight('MV')}\\\\")
+          f"{highlight('Score_Prod')} & {highlight('Score_Mean')} & "
+          f"{highlight('Score_Max')} & {highlight('MV')}\\\\")
     print("\\hline")
 
 # --- Averages ---
@@ -103,8 +99,6 @@ print("\\textbf{Average} & "
       f"{fmt(np.nanmean(avg_fronts))} & "
       f"{fmt(np.nanmean(avg_gains['Concat']))} & "
       f"{fmt(np.nanmean(avg_gains['Concat_Mean']))} & "
-      f"{fmt(np.nanmean(avg_gains['Concat_PCA']))} & "
-      f"{fmt(np.nanmean(avg_gains['Score_Sum']))} & "
       f"{fmt(np.nanmean(avg_gains['Score_Prod']))} & "
       f"{fmt(np.nanmean(avg_gains['Score_Mean']))} & "
       f"{fmt(np.nanmean(avg_gains['Score_Max']))} & "
@@ -112,5 +106,5 @@ print("\\textbf{Average} & "
 print("\\hline")
 print("\\end{tabular}")
 print("\\caption{" + ("Absolute AUC values" if mode == "absolute" else "AUC gains vs Front") + " on YTF.}")
-print("\\label{tab:ytf_auc}")
+print("\\label{tab:ytf}")
 print("\\end{table*}")

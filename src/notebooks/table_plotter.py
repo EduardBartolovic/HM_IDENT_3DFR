@@ -45,7 +45,7 @@ for block in backbone_blocks[1:]:
 
     # Extract MRR values per test set
     evals = re.findall(
-        r"(\b(?:rgb_bff_crop8)\b).*?Front RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"  # vox2train_crop8  rgb_bff_crop8 ytf_crop8 multipie_crop8
+        r"(\b(?:nersemble8)\b).*?Front RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"  # vox2train_crop8  rgb_bff_crop8 ytf_crop8 multipie_crop8
         r"Concat RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
         r"Concat_Mean RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
         r"Score_prod MRR:\s*([\d\.NA]+).*?"
