@@ -306,7 +306,7 @@ def score_fusion(embedding_library, disable_bar=True, method="product", similari
         fused_scores = np.zeros((num_queries, num_enrolled), dtype=np.float32)
         for i in range(num_queries):
             votes = np.bincount(winners[i], minlength=num_enrolled)
-            fused_scores[i] = votes  # class with most votes gets largest score
+            fused_scores[i] = votes/num_views  # class with most votes gets largest score
     elif method == "mean":
         fused_scores = np.mean(similarity_matrix, axis=-1)
     elif method == "median":
