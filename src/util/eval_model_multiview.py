@@ -479,7 +479,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
         rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
         rank_5_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-5 Rate', 'N/A'))
         mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
-        gbig_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('gbig', 'N/A'))
+        gbig_concat_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A'))
 
         rank_1_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-1 Rate', 'N/A'))
         rank_5_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-5 Rate', 'N/A'))
@@ -490,13 +490,13 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
         mrr_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('MRR', 'N/A'))
 
         mrr_score_max = smart_round(all_metrics["metrics_score_max"].get('MRR', 'N/A'))
-        gbig_score_max = smart_round(all_metrics["metrics_score_max"].get('gbig', 'N/A'))
+        gbig_score_max = smart_round(all_metrics["emb_dist_score_max"].get('gbig', 'N/A'))
         mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
-        gbig_score_prod = smart_round(all_metrics["metrics_score_product"].get('gbig', 'N/A'))
+        gbig_score_prod = smart_round(all_metrics["emb_dist_score_product"].get('gbig', 'N/A'))
         mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
-        gbig_score_mean = smart_round(all_metrics["metrics_score_mean"].get('gbig', 'N/A'))
+        gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A'))
         mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
-        gbig_score_majority = smart_round(all_metrics["metrics_score_majority"].get('gbig', 'N/A'))
+        gbig_score_majority = smart_round(all_metrics["emb_dist_score_majority"].get('gbig', 'N/A'))
         mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
         string = (
             colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
@@ -524,7 +524,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
 def print_results_verification(neutral_dataset, dataset_enrolled, all_metrics, eval_all):
 
     def fmt_metric(metrics, key):
-        """Format mean ± std string if available, otherwise fallback."""
+        """Format mean +- std string if available, otherwise fallback."""
         mean = metrics.get(key, 'N/A')
         std = metrics.get(f"{key}_std", None)
         if mean == 'N/A':
