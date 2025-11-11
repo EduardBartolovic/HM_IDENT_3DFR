@@ -19,7 +19,7 @@ from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram, plot_cmc
 from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, \
     accuracy_front_perspective, analyze_result_verification, score_fusion, fuse_pairwise_scores
 from src.util.analyse_perspective import calc_perspective_distances, analyze_perspective_error_correlation, \
-    compute_per_view_distance_matrix, analyze_perspective_error_correlation_1v1
+    compute_per_view_distance_matrix, analyze_perspective_error_correlation_1v1, compute_pair_perspective_distance
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.misc import colorstr, bold, underscore, smart_round
 
@@ -236,6 +236,8 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
 
     embedding_library = get_embeddings_mv(backbone, enrolled_loader, None, use_face_corr, disable_bar)
 
+    #distance_matrix, distance_matrix_avg = compute_per_view_distance_matrix(embedding_library.enrolled_true_perspectives, embedding_library.enrolled_true_perspectives)
+
     embeddings_agg = embedding_library.enrolled_embeddings_agg
     embeddings_reg = embedding_library.enrolled_embeddings
     embeddings_reg_mean = embedding_library.enrolled_embeddings.mean(axis=0)
@@ -262,6 +264,7 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
     fusion_methods = ["sum", "product", "max", "geomean", "lse", "mean"]
     similarities_fusion = {m: [] for m in fusion_methods}
     labels = []
+    perspective_errors = []
     for name1, name2, is_same in tqdm(pair_list, desc="Evaluating pairs", disable=disable_bar):
         class1, sample1 = name1.split("/")
         class2, sample2 = name2.split("/")
@@ -500,8 +503,8 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics,
         mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
         string = (
             colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
-            f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} {bold('GBIG')}: {underscore(gbig_front)} {bold('GAIG')}: {underscore(gaig_front)} | "
-            f"{bold('Concat RR1')}: {rank_1_concat} {bold('MRR')}: {underscore(mrr_concat)} {bold('GBIG')}: {underscore(gbig_concat)} {bold('GAIG')}: {underscore(gaig_concat)} | "
+            f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} {bold('GBIG')}: {underscore(gbig_front)} | "# {bold('GAIG')}: {underscore(gaig_front)} | "
+            f"{bold('Concat RR1')}: {rank_1_concat} {bold('MRR')}: {underscore(mrr_concat)} {bold('GBIG')}: {underscore(gbig_concat)} | "# {bold('GAIG')}: {underscore(gaig_concat)} | "
             f"{bold('Concat_Mean RR1')}: {rank_1_concat_mean} {bold('MRR')}: {underscore(mrr_concat_mean)} {bold('GBIG')}: {underscore(gbig_concat_mean)} | "
             # f"{bold('Concat_Median RR1')}: {rank_1_concat_median} {bold('MRR')}: {underscore(mrr_concat_median)} | "
             # f"{bold('Concat_PCA RR1')}: {rank_1_concat_pca} {bold('MRR')}: {underscore(mrr_concat_pca)} | "
@@ -546,6 +549,7 @@ def print_results_verification(neutral_dataset, dataset_enrolled, all_metrics, e
         auc_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get("AUC", 'N/A'))
         auc_score_sum = smart_round(all_metrics["metrics_score_sum"].get('AUC', 'N/A'))
         auc_score_max = smart_round(all_metrics["metrics_score_max"].get('AUC', 'N/A'))
+        acc_score_max = fmt_metric(all_metrics["metrics_score_max"], "Accuracy")
         auc_score_prod = smart_round(all_metrics["metrics_score_product"].get('AUC', 'N/A'))
         auc_score_mean = smart_round(all_metrics["metrics_score_mean"].get('AUC', 'N/A'))
         string = (
@@ -557,7 +561,7 @@ def print_results_verification(neutral_dataset, dataset_enrolled, all_metrics, e
                 f"{bold('Score_sum-AUC')}: {underscore(auc_score_sum)} | "
                 f"{bold('Score_prod-AUC')}: {underscore(auc_score_prod)} | "
                 f"{bold('Score_mean-AUC')}: {underscore(auc_score_mean)} | "
-                f"{bold('Score_max-AUC')}: {underscore(auc_score_max)} | "
+                f"{bold('Score_max-AUC')}: {underscore(auc_score_max)} / {acc_score_max} | "
                 f"{bold('MV-AUC/Acc')}: {underscore(auc_mvfa)} / {acc_mvfa}"
         )
     else:

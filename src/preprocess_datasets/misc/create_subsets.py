@@ -57,7 +57,7 @@ def filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives, real_copy):
             if not file.lower().endswith(('.jpg', '.jpeg', '.png', '.npz')):
                 continue
 
-            perspective = os.path.basename(file)[40:-10]
+            perspective = os.path.basename(file)[16:-4].split("#")[0]
             if perspective in allowed_set:
                 if real_copy:
                     shutil.copy2(
@@ -73,65 +73,65 @@ def filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives, real_copy):
 
 if __name__ == '__main__':
     # --------------------------- CONFIG --------------------------- #
-    SOURCE_DIR = 'F:\\Face\\data\\datasets6\\rgb_monoffhq70000'
+    SOURCE_DIR = 'F:\\Face\\data\\dataset11\\test_rgb_bff_crop8'
     ANGLES = [-25, -10, 0, 10, 25]
     MAX_SAMPLES_PER_LEVEL = 25
     # -------------------------------------------------------------- #
-    allowed = []#generate_allowed_perspectives(ANGLES)
+    allowed = generate_allowed_perspectives(ANGLES)
     print(f"✅ Using {len(allowed)} unique perspectives")
-    extras = [#['0_0', '-25_0', '-10_0', '25_0', '10_0'],  # 1 Azimuth axis
-              #['0_0', '0_-25', '0_-10', '0_10', '0_25'],  # 2 Alitude axis
-              #['0_0', '-25_-25', '-10_-10', '10_10', '25_25'],  # 3 diagonal
-              #['0_0', '-25_25', '-10_10', '10_-10', '25_-25'],  # 4 diagonal
-              #['0_0', '-25_25', '-10_10', '10_-10', '25_-25', '-25_-25', '-10_-10', '10_10', '25_25'],  # 5 cross
-              #['0_0', '-25_-25', '-25_25', '25_-25', '25_25'],  # 6 Only corners
-              #['0_0', '-10_-10', '-10_10', '10_-10', '10_10'],  # 7 Only middle
-              #['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25'],  # 8 Top row
-              #['0_0', '10_-25', '10_-10', '10_0', '10_10', '10_25'],  # 9 2nd Top row
-              #['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25'],  # 10 Top All
-              #['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25', '0_-25', '0_-10', '0_10', '0_25'],  # 11 Top All + Middle
-              #['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25'],  # 12 Top Corners + Sides
-              ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0'],  # 13 Top Corners + Sides + Mid  FAV!
-              #['0_0', '10_-10', '10_10', '-10_10', '-10_-10'], # Inner Corners
-              #['0_0', '10_-10', '10_10', '-10_10', '-10_-10', '-10_0', '10_0', '0_10', '0_-10'],  # Inner Ring
-              #['0_0', '10_-10', '10_10', '10_0', '0_10', '0_-10'],  # Inner Top Ring
-              #['-25_-25'],
-              #['-25_-10'],
-              #['-25_0'],
-              #['-25_10'],
-              #['-25_25'],
-              #['-10_-25'],
-              #['-10_-10'],
-              #['-10_0'],
-              #['-10_10'],
-              #['-10_25'],
-              #['0_-25'],
-              #['0_-10'],
-              #['0_0'],
-              #['0_10'],
-              #['0_25'],
-              #['25_-25'],
-              #['25_-10'],
-              #['25_0'],
-              ##['25_10'],
-              #['25_25'],
-              #['10_-25'],
-              #['10_-10'],
-              #['10_0'],
-              #['10_10'],
-              #['10_25']
+    extras = [['0_0', '-25_0', '-10_0', '25_0', '10_0'],  # 1 Azimuth axis
+              ['0_0', '0_-25', '0_-10', '0_10', '0_25'],  # 2 Alitude axis
+              ['0_0', '-25_-25', '-10_-10', '10_10', '25_25'],  # 3 diagonal
+              ['0_0', '-25_25', '-10_10', '10_-10', '25_-25'],  # 4 diagonal
+              ['0_0', '-25_25', '-10_10', '10_-10', '25_-25', '-25_-25', '-10_-10', '10_10', '25_25'],  # 5 cross
+              ['0_0', '-25_-25', '-25_25', '25_-25', '25_25'],  # 6 Only corners
+              ['0_0', '-10_-10', '-10_10', '10_-10', '10_10'],  # 7 Only middle
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25'],  # 8 Top row
+              ['0_0', '10_-25', '10_-10', '10_0', '10_10', '10_25'],  # 9 2nd Top row
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25'],  # 10 Top All
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25', '0_-25', '0_-10', '0_10', '0_25'],  # 11 Top All + Middle
+              ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25'],  # 12 Top Corners + Sides
+              ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0'],  # 13 Top Corners + Sides + Mid  FAV! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+              ['0_0', '10_-10', '10_10', '-10_10', '-10_-10'], # Inner Corners
+              ['0_0', '10_-10', '10_10', '-10_10', '-10_-10', '-10_0', '10_0', '0_10', '0_-10'],  # Inner Ring
+              ['0_0', '10_-10', '10_10', '10_0', '0_10', '0_-10'],  # Inner Top Ring
+              ['-25_-25'],
+              ['-25_-10'],
+              ['-25_0'],
+              ['-25_10'],
+              ['-25_25'],
+              ['-10_-25'],
+              ['-10_-10'],
+              ['-10_0'],
+              ['-10_10'],
+              ['-10_25'],
+              ['0_-25'],
+              ['0_-10'],
+              ['0_0'],
+              ['0_10'],
+              ['0_25'],
+              ['25_-25'],
+              ['25_-10'],
+              ['25_0'],
+              ['25_10'],
+              ['25_25'],
+              ['10_-25'],
+              ['10_-10'],
+              ['10_0'],
+              ['10_10'],
+              ['10_25']
               ]
     allowed.append(extras)
     for num_perspectives in allowed:
         print(len(num_perspectives))
         for allowed_perspectives in tqdm(num_perspectives):
 
-            DEST_DIR = 'F:\\Face\\data\\datasets9\\rgb_monoffhq70K8'
-            filter_images(SOURCE_DIR, DEST_DIR, '', allowed_perspectives, real_copy=True)
+            #DEST_DIR = 'F:\\Face\\data\\dataset11\\test_rgb_bff_crop'
+            #filter_images(SOURCE_DIR, DEST_DIR, '', allowed_perspectives, real_copy=True)
 
-            #DEST_DIR = f'F:\\Face\\data\\datasets9\\vox2test_new_{allowed_perspectives}'.replace("[", "").replace("]", "").replace("\'", "").replace(",", "")
-            #for split in ['train', 'validation']:
-            #    filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives, real_copy=True)
+            DEST_DIR = f'F:\\Face\\data\\datasets11-bff\\test_rgb_bff_crop_new_{allowed_perspectives}'.replace("[", "").replace("]", "").replace("\'", "").replace(",", "")
+            for split in ['enrolled', 'query']:
+                filter_images(SOURCE_DIR, DEST_DIR, split, allowed_perspectives, real_copy=True)
 
     print("🎉 Filtering complete. New dataset at:", DEST_DIR)
 

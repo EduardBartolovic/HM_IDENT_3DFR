@@ -85,7 +85,7 @@ if __name__ == '__main__':
         "090": "35_0",
         "130": "15_0",
         "140": "10_0",
-        "190": "-25_0",  # I assumed you meant "-25_0", since the others have "_0"
+        "190": "-25_0",
     }
 
     input_dir = "H:\\Maurer\\CMU_Multi_pie\\Multi_Pie\\HR_128"

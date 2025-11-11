@@ -126,13 +126,13 @@ def analyze_result_verification(labels, similarities_mv,
         #best_thresh = thresholds_train[best_idx]
 
         # using Equal Error Rate (EER)
-        fnr = 1 - tpr_train
-        eer_idx = np.nanargmin(np.abs(fnr - fpr_train))
-        best_thresh = thresholds_train[eer_idx]
+        #fnr = 1 - tpr_train
+        #eer_idx = np.nanargmin(np.abs(fnr - fpr_train))
+        #best_thresh = thresholds_train[eer_idx]
 
         # using Accuracy-maximizing threshold
-        #acc_scores = [(t, accuracy_score(train_labels, train_scores > t)) for t in thresholds_train]
-        #best_thresh = max(acc_scores, key=lambda x: x[1])[0]
+        acc_scores = [(t, accuracy_score(train_labels, train_scores > t)) for t in thresholds_train]
+        best_thresh = max(acc_scores, key=lambda x: x[1])[0]
 
         # ============
 

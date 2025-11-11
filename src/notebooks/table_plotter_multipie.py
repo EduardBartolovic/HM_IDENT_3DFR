@@ -1,77 +1,83 @@
 import re
 import numpy as np
 
-# Load log text
+# --- Load log ---
 with open("E:\\Download\\performace.txt", "r") as f:
     log = f.read()
 
 def fmt(v):
-    return f"{v:+.2f}" if not np.isnan(v) else "N/A"
+    return f"{v:.3f}" if not np.isnan(v) else "N/A"
 
-# --- Parse log into backbone blocks ---
+# --- Backbone name mapping ---
+backbone_map = {
+    "ms1mv3-arcface-r18-fp16": r"Arcface-R18\textsubscript{MS1MV3}",
+    "ms1mv3-arcface-r50-fp16": r"Arcface-R50\textsubscript{MS1MV3}",
+    "ms1mv3-arcface-r100-fp16": r"Arcface-R100\textsubscript{MS1MV3}",
+    "glint-cosface-r18-fp16": r"Cosface-R18\textsubscript{Glint}",
+    "glint-cosface-r50-fp16": r"Cosface-R50\textsubscript{Glint}",
+    "glint-cosface-r100-fp16": r"Cosface-R100\textsubscript{Glint}",
+    "facenet-casia-webface": r"Facenet512\textsubscript{Casia-Webface}",
+    "facenet-vggface2": r"Facenet512\textsubscript{VGGFace}",
+    "AdaFace-ARoFace-R100-MS1MV3": r"Adaface+Aroface\textsubscript{MS1MV3}",
+    "AdaFace-ARoFace-R100-WebFace12M": r"Adaface+Aroface\textsubscript{WebFace12M}",
+    "edgeface-xs-gamma-06": r"EdgeFace-XS\textsubscript{WebFace12M}",
+}
+
+# --- Split by backbone ---
 backbone_blocks = re.split(r"=+\nLoading ONLY Backbone Checkpoint", log)
 results = []
 
 for block in backbone_blocks[1:]:
-    # Extract backbone name
     backbone_match = re.search(r"[\\/](?:[^\\/]+)\.(pt|pth)", block)
     backbone = re.search(r"([^\\/]+)\.(?:pt|pth)", backbone_match.group(0)).group(1).replace("_", "-") if backbone_match else "Unknown"
+    backbone_label = backbone_map.get(backbone, backbone)
 
-    # Extract multipie_crop8 block
-    dataset_blocks = re.findall(r"Perform.*?multipie_crop8.*", block, flags=re.S)
-    if not dataset_blocks:
+    # Extract multipie dataset section
+    dataset_match = re.search(r"Perform.*?multipie_crop8.*?(?=Perform|\Z)", block, flags=re.S)
+    if not dataset_match:
         continue
-    dataset_block = dataset_blocks[0]
+    dataset_block = dataset_match.group(0)
 
-    methods = ["Front", "Concat", "Concat_Mean", "Concat_PCA",
-               "Score_sum", "Score_prod", "Score_mean", "Score_max", "MV"]
+    # --- Methods to extract ---
+    methods = ["Front", "Concat", "Concat_Mean", "Score_prod", "Score_mean", "Score_max", "Score_maj"]
     all_vals = {}
 
     for m in methods:
-        # Search for GBIG for each method separately
-        match = re.search(rf"{m}.*?GBIG:\s*([\d\.]+)", dataset_block)
-        if match:
-            all_vals[m] = float(match.group(1))
+        pattern = rf"(?<!\w){m}(?![_\w])[^|]*GBIG:\s*([0-9\.Ee+-]+)"
+        matches = re.findall(pattern, dataset_block)
+        if matches:
+            all_vals[m] = float(matches[-1])
 
-    if "Front" not in all_vals:
-        continue  # Skip if no Front value
+    if not all_vals:
+        continue
 
-    base = all_vals["Front"]
-    gains = {k: all_vals[k]-base for k in all_vals.keys() if k != "Front"}
-
-    results.append((backbone, all_vals, gains))
+    results.append((backbone_label, all_vals))
 
 # --- Generate LaTeX table ---
 print("\\begin{table*}[t]")
 print("\\centering")
 print("\\setlength{\\tabcolsep}{4pt}")
-print("\\begin{tabular}{|l|c|c|c|c|c|c|c|c|}")
+print("\\begin{tabular}{|l|c|c|c|c|c|c|c|}")
 print("\\hline")
-print("\\textbf{Backbone} & \\textbf{Front} & \\multicolumn{3}{c|}{\\textbf{Concat}} & "
-      "\\multicolumn{3}{c|}{\\textbf{Score}} & \\textbf{Feature-Agg} \\\\")
-print("\\cline{3-9}")
-print("& \\textbf{Only} & \\textbf{Full} & \\textbf{Mean} & \\textbf{PCA} & "
-      "\\textbf{Prod} & \\textbf{Mean} & \\textbf{Max} & \\textbf{MV} \\\\")
+print("\\textbf{Backbone} & \\textbf{Front} & \\textbf{Concat} & \\textbf{Concat-Mean} & \\textbf{Score-Prod} & \\textbf{Score-Mean} & \\textbf{Score-Max} & \\textbf{Score-Maj} \\\\")
 print("\\hline")
 
-for backbone, avg, gains in results:
-    # Highlight best gain
-    valid_gains = {k: v for k, v in gains.items() if not np.isnan(v)}
-    best_key = max(valid_gains, key=valid_gains.get) if valid_gains else None
+for backbone, vals in results:
+    valid_vals = {k: v for k, v in vals.items() if not np.isnan(v)}
+    best_key = max(valid_vals, key=valid_vals.get) if valid_vals else None
 
     def highlight(k):
-        if k not in gains:
+        if k not in vals:
             return "N/A"
-        v = gains[k]
+        v = vals[k]
         val = fmt(v)
         return f"\\cellcolor{{blue!15}}{{{val}}}" if k == best_key else val
 
-    print(f"{backbone} & {avg['Front']:.3f} & {highlight('Concat')} & {highlight('Concat_Mean')} & "
-          f"{highlight('Concat_PCA')} & {highlight('Score_prod')} & {highlight('Score_mean')} & "
-          f"{highlight('Score_max')} & {highlight('MV')}\\\\")
+    print(f"{backbone} & {highlight('Front')} & {highlight('Concat')} & {highlight('Concat_Mean')} & "
+          f"{highlight('Score_prod')} & {highlight('Score_mean')} & {highlight('Score_max')} & {highlight('Score_maj')}\\\\")
     print("\\hline")
 
 print("\\end{tabular}")
-print("\\caption{Absolute GBIG gains for the Multipie dataset compared to single-front view.}")
-print("\\label{tab:gbig_multipie}")
+print("\\caption{Absolute GBIG scores for the Multipie dataset including score-based fusion methods.}")
+print("\\label{tab:multipie}")
 print("\\end{table*}")

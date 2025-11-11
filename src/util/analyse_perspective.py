@@ -65,6 +65,19 @@ def compute_per_view_distance_matrix(query_perspectives, enrolled_perspectives):
     return distance_matrix, distance_matrix_avg
 
 
+def compute_pair_perspective_distance(persp1, persp2):
+    """
+    Compute average perspective distance between two enrolled samples.
+    Each perspective is given as a list/array of strings like '10_-25'.
+    Returns the mean Euclidean distance in angular space.
+    """
+    xy1 = str_to_xy(np.array(persp1))  # shape (num_views, 2)
+    xy2 = str_to_xy(np.array(persp2))  # shape (num_views, 2)
+    diff = np.abs(xy1 - xy2)
+    dist_per_view = np.sum(diff, axis=1)
+    return np.mean(dist_per_view)  # average across views
+
+
 def analyze_perspective_error_correlation(query_labels, enrolled_labels, query_distances, enrolled_distances, top_indices, distance_matrix_avg, plot=True, extension=""):
     """
     Analyze how perspective distance (query + enrolled) correlates with recognition accuracy.
