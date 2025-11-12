@@ -19,8 +19,11 @@ def generate_allowed_perspectives(ref_angles):
 
     # Generate nested subsets
     nested_subsets = []
+    #persepctive_range = range(1, len(base_set) + 1)
+    persepctive_range = range(1, 10)
+    print("persepctive_range", persepctive_range)
+    for k in tqdm(persepctive_range):
 
-    for k in tqdm(range(1, len(base_set) + 1)):
         # Fix "0_0" as the first element
         other_elements = base_set[1:]
         subsets_k = []
