@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 
-def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all, transform_size=(112, 112), final_crop=(112, 112), TEST_SET):
+def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all, TEST_SET, transform_size=(112, 112), final_crop=(112, 112)):
     evaluate_and_log_mv(backbone, data_root, TEST_SET, epoch, transform_size, final_crop, batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
 
 
@@ -36,7 +36,7 @@ def main(cfg):
     torch.manual_seed(SEED)
 
     RUN_NAME = cfg['RUN_NAME']
-    DATA_ROOT = os.path.join(os.getenv("DATA_ROOT"), cfg['DATA_ROOT_PATH'])  # the parent root where the datasets are stored
+    DATA_ROOT = "/home/gustav/dataset11-bff/"  # the parent root where the datasets are stored
     TRAIN_SET = cfg['TRAIN_SET']
     LOG_ROOT = cfg['LOG_ROOT']
     BACKBONE_RESUME_ROOT = os.path.join(os.getenv("BACKBONE_RESUME_ROOT"), cfg['BACKBONE_RESUME_PATH'])  # the root to resume training from a saved checkpoint
@@ -114,7 +114,7 @@ def main(cfg):
         load_checkpoint(BACKBONE.backbone_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
 
         # ======= Validation =======
-        eval_loop(BACKBONE, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True, INPUT_SIZE, INPUT_SIZE, cfg_copy['TEST_SET'])
+        eval_loop(BACKBONE, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True, cfg_copy['TEST_SET'], INPUT_SIZE, INPUT_SIZE)
 
 
 
@@ -147,13 +147,9 @@ if __name__ == '__main__':
         num_views_cfg = len(folder.replace("test_rgb_bff_crop_new_", "").split())
 
         cfg_copy = dict(cfg_yaml)
-        cfg_copy['TRAIN_SET'] = folder
+        cfg_copy['TEST_SET'] = folder
         cfg_copy['NUM_VIEWS'] = num_views_cfg
 
-        try:
-            main(cfg_copy)
-        except Exception as e:
-            print(f"⚠️ Error running main() for {folder}: {e}")
-            continue
+        main(cfg_copy)
 
     print("\n✅ All dataset runs finished.")
