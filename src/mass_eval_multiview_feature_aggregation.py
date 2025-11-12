@@ -103,6 +103,7 @@ def main(cfg):
         BACKBONE.backbone_agg.to(DEVICE)
 
         # ======= HEAD & LOSS =======
+        num_class = 100
         HEAD_DICT = {'ArcFace': lambda: ArcFace(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID, s=HEAD_PARAMS[0], m=HEAD_PARAMS[1]),
                      'CosFace': lambda: CosFace(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID),
                      'SphereFace': lambda: SphereFace(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID),
@@ -142,23 +143,12 @@ if __name__ == '__main__':
     # Loop through each folder and run main(cfg) for each
     for folder in subfolders:
         print(f"\n🚀 Running for dataset: {folder}")
-        # --- Extract num_views from folder name ---
-        try:
-            # remove prefix
-            clean_name = folder.replace("test_rgb_bff_crop_new_", "")
-            # split by spaces into view tokens
-            view_tokens = clean_name.split()
-            num_views = len(view_tokens)
-        except Exception as e:
-            print(f"⚠️ Could not parse view count from folder name '{folder}': {e}")
-            num_views = cfg_yaml.get('NUM_VIEWS', 1)
 
-        print(f"Detected {num_views} views from folder name.")
+        num_views_cfg = len(folder.replace("test_rgb_bff_crop_new_", "").split())
 
-        # --- Prepare updated config ---
         cfg_copy = dict(cfg_yaml)
         cfg_copy['TRAIN_SET'] = folder
-        cfg_copy['NUM_VIEWS'] = num_views
+        cfg_copy['NUM_VIEWS'] = num_views_cfg
 
         try:
             main(cfg_copy)
