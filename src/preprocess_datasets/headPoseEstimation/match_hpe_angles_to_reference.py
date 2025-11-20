@@ -33,7 +33,7 @@ def parse_analysis_file(file_path, correct_angles=False):
     return np.array(parsed_lines, dtype=object)
 
 
-def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_flip=False):
+def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_flip=False, random_choice=False):
     used_indices = set()
     matches = []
     for reference in references:
@@ -61,12 +61,19 @@ def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_fli
             ref_vec = np.where(better_is_flipped[:, None], flipped_ref, ref_vec)  # keep ref consistent
             # TODO: Add flipping to txt file and apply it to gen dataset
 
-        # pick best index
-        closest_index = int(np.argmin(distances))
-        min_distance = distances[closest_index]
+        if random_choice:
+            # pick ANY index from remaining
+            available_indices = [i for i in range(len(data)) if i not in used_indices]
+            if not available_indices:
+                raise ValueError("No remaining indices left for random selection.")
+            chosen_index = random.choice(available_indices)
+        else:
+            # pick best match
+            chosen_index = int(np.argmin(distances))
 
-        matches.append((reference, data[closest_index], min_distance))
-        used_indices.add(closest_index)
+        min_distance = distances[chosen_index]
+        matches.append((reference, data[chosen_index], min_distance))
+        used_indices.add(chosen_index)
 
     return matches
 
@@ -125,7 +132,7 @@ def save_matches(output_file, infos):
             writer.writerow(ref_angles + hpe_angles + [error] + [filename] + list(bbox))
 
 
-def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angles=False, remove_outliers=True, threshold_std=4.0, ignore_roll=True, allow_flip=True):
+def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angles=False, remove_outliers=True, threshold_std=4.0, ignore_roll=True, allow_flip=True, random_choice=False):
 
     start_time = time.time()
     all_errors = []
@@ -149,7 +156,7 @@ def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angl
                     if len(data) == 0:
                         continue
 
-                    infos = match_hpe_angles_to_references(data, references, ignore_roll=ignore_roll, allow_flip=allow_flip)
+                    infos = match_hpe_angles_to_references(data, references, ignore_roll=ignore_roll, allow_flip=allow_flip, random_choice=random_choice)
                     all_errors.extend([row[2] for row in infos])
 
                     output_file = os.path.join(root, "matched_angles.txt")

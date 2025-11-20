@@ -241,7 +241,7 @@ def main(cfg):
 
                 for param in aggregator.parameters():
                     param.requires_grad = True
-                OPTIMIZER.add_param_group({'params': aggregator.parameters()})
+                OPTIMIZER.add_param_group({'params': aggregator.parameters(), 'weight_decay': WEIGHT_DECAY})
 
             if epoch >= UNFREEZE_AGG_EPOCH:
                 aggregator.train()
