@@ -20,6 +20,7 @@ def preprocessing():
     model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
     batch_size = 8  # 256 for 24GB  # 48 for 8 GB VRAM
     poses = 8  # Number of poses
+    random_choice = False
     device = torch.device("cuda")
 
     print("##################################")
@@ -34,7 +35,7 @@ def preprocessing():
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=False)
+    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=False, random_choice=random_choice)
     # evaluate_gaze_coverage(folder_root)
 
     print("##################################")
