@@ -12,16 +12,17 @@ from src.preprocess_datasets.rendering import PrepareDataset
 
 if __name__ == '__main__':
 
-    root = "C:\\Users\\Eduard\\Desktop\\Face\\dataset10\\"
+    root = "/home/gustav/nersemble/"
     folder_root = root + "data_raw"
-    dataset_output_folder = root + "nersemble_out"
-    dataset_output_folder_crop = root+"nersemble_crop"
-    dataset_output_folder_filtered = root+"nersemble_filtered"
-    output_test_dataset = root + "test_nersemble8"
-    model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
+    dataset_output_folder = root + "nersemble_out_r"
+    dataset_output_folder_crop = root+"nersemble_crop_r"
+    dataset_output_folder_filtered = root+"nersemble_filtered_r"
+    output_test_dataset = root + "test_nersemble8_r"
+    model_path_hpe = "/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
     batch_size = 8  # 512 for 48GB # 256 for 24GB  # 48 for 8 GB VRAM
     frame_skip = 8  # 8 which is ~10FPS
     poses = 8  # Number of poses
+    random_choice = True
     device = torch.device("cuda")
 
     print("##################################")
@@ -36,7 +37,7 @@ if __name__ == '__main__':
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=False)
+    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=False, random_choice=random_choice)
 
     print("##################################")
     print("##### GEN DATASET ################")
