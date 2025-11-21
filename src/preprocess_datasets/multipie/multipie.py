@@ -75,7 +75,9 @@ if __name__ == '__main__':
     print("##################################")
 
     # keep only these cameras
-    valid_cams = {"041", "050", "051", "080", "090", "130", "140", "190"}
+    valid_cams = {"050", "051", "140"}
+    #valid_cams = {"041", "050", "051", "130", "140"}
+    #valid_cams = {"041", "050", "051", "080", "090", "130", "140", "190"}
 
     cam_to_coords = {
         "041": "-15_0",
@@ -89,10 +91,10 @@ if __name__ == '__main__':
     }
 
     input_dir = "H:\\Maurer\\CMU_Multi_pie\\Multi_Pie\\HR_128"
-    output_dir = "F:\\Face\\data\\dataset11\\multipie8"
-    output_folder_crop = "F:\\Face\\data\\dataset11\\multipie_crop8"
-    output_test_dataset = "F:\\Face\\data\\dataset11\\test_multipie8"
-    poses = 8
+    output_dir = "F:\\Face\\data\\dataset11\\multipie3"
+    output_folder_crop = "F:\\Face\\data\\dataset11\\multipie_crop3"
+    output_test_dataset = "F:\\Face\\data\\dataset11\\test_multipie_crop3"
+    poses = 3
 
     preprocess_multipie(input_dir, output_dir, valid_cams, cam_to_coords)
 

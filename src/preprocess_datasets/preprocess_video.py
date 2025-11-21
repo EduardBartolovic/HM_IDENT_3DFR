@@ -90,6 +90,7 @@ def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch
     more_faces = 0
     found_one_face = 0
     too_small = 0
+    already_exist = 0
 
     folders = list(os.walk(input_folder))
     num_folders = len(folders)
@@ -103,6 +104,7 @@ def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch
         output_pkl_path = os.path.join(output_analysis_folder, "analysis.pkl")
 
         if keep and os.path.exists(output_pkl_path):
+            already_exist += 1
             continue
 
         os.makedirs(output_analysis_folder, exist_ok=True)
@@ -216,7 +218,7 @@ def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch
 
     elapsed_time = time.time() - start_time
     print("Video Analysis for", num_folders, "in", round(elapsed_time / 60, 2), "minutes")
-    print("missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces + more_faces + found_one_face, ", too_small:", too_small)
+    print("missing_faces:", missing_faces, ", multiple_faces:", more_faces, ", total_faces:", missing_faces + more_faces + found_one_face, ", too_small:", too_small, ", already_exist", already_exist)
 
 
 def analyse_video_ytf(input_folder, output_folder, model_path_hpe, model_path_blazeface, device, batch_size=64, filter=None, keep=True, min_accepted_face_size=112, frame_skip=2, max_workers=8, face_confidence=0.6):
