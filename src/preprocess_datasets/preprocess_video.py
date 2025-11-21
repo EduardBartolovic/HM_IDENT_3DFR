@@ -74,6 +74,8 @@ def pad_to_minimum_size(img, min_size=640):
 def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch_size=64, keep=True, min_accepted_face_size=64, frame_skip=8, downscale=True, max_workers=8, face_confidence=0.5, padding=False):
     start_time = time.time()
 
+    print("Searching in:", input_folder)
+
     # Load HPE model
     head_pose_model = get_model("resnet50", num_classes=6)
     state_dict = torch.load(model_path_hpe, map_location=device, weights_only=True)
