@@ -12,12 +12,20 @@ from src.preprocess_datasets.rendering import PrepareDataset
 
 def preprocessing():
     root = "/home/gustav/voxceleb2/test/"
-    folder_root = root+"vox2test_raw"
+    folder_root = root+"vox2test_raw/"
     dataset_output_folder = root+"vox2test_out-v11"
     dataset_output_folder_crop = root+"vox2test_crop-v11"
     dataset_output_folder_filtered = root+"vox2test_crop8-v11"
     output_test_dataset = root+"test_vox2test_crop8-v11"
-    model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
+
+    #root = "/home/gustav/voxceleb2/train/"
+    #folder_root = root+"vox2train_raw/"
+    #dataset_output_folder = root+"vox2train_out-v11r"
+    #dataset_output_folder_crop = root+"vox2train_crop-v11r"
+    #dataset_output_folder_filtered = root+"vox2train_crop8-v11r"
+    #output_test_dataset = root+"test_vox2train_crop8-v11r"
+
+    model_path_hpe = "/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
     batch_size = 8  # 256 for 24GB  # 48 for 8 GB VRAM
     poses = 8  # Number of poses
     random_choice = False
@@ -26,13 +34,15 @@ def preprocessing():
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    analyse_video_hpe(folder_root, "analysis", model_path_hpe, device, batch_size=batch_size, keep=False, max_workers=16, face_confidence=0.5, padding=True)
+    analyse_video_hpe(folder_root, "analysis", model_path_hpe, device, batch_size=batch_size, keep=True, max_workers=16, face_confidence=0.5, padding=True)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
     print("##################################")
     ref_angles = [-25, -10, 0, 10, 25]
     permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
+    if random_choice:
+        permutations = permutations[:poses]
     print("number of permutations:", len(permutations))
     print(permutations)
     find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=False, random_choice=random_choice)
