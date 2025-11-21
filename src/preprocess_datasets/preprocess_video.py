@@ -94,10 +94,7 @@ def analyse_video_hpe(input_folder, output_folder, model_path_hpe, device, batch
 
     folders = list(os.walk(input_folder))
     num_folders = len(folders)
-
-
     print("Searching in:", input_folder, "with", num_folders, "folders")
-
     for root, _, files in tqdm(folders, desc="Processing folders"):
 
         video_files = [f for f in files if os.path.splitext(f)[1].lower() in {'.mp4', '.mov', '.avi', '.mkv'}]

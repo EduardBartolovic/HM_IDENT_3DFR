@@ -65,7 +65,8 @@ def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_fli
             # pick ANY index from remaining
             available_indices = [i for i in range(len(data)) if i not in used_indices]
             if not available_indices:
-                raise ValueError("No remaining indices left for random selection.")
+                chosen_index = random.choice(range(len(data)))
+                #raise ValueError("No remaining indices left for random selection.")
             chosen_index = random.choice(available_indices)
         else:
             # pick best match
