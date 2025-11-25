@@ -11,6 +11,7 @@ from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.backbone.multiview_ires_lf import ir_mv_v2_18_lf, ir_mv_v2_34_lf, ir_mv_v2_50_lf, ir_mv_v2_100_lf, ir_mv_50_lf, \
     ir_mv_facenet_50_lf
+from src.backbone.multiview_timmfr_lf import timm_mv_lf
 from src.fuser.CosineDistanceWeightedAggregator import make_cosinedistance_fusion
 from src.fuser.TransformerAggregator import make_transformer_fusion
 from src.fuser.fuser import make_mlp_fusion, make_softmax_fusion
@@ -151,7 +152,9 @@ def main(cfg):
                          'IR_MV_V2_18': lambda: ir_mv_v2_18_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'IR_MV_V2_34': lambda: ir_mv_v2_34_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'IR_MV_V2_50': lambda: ir_mv_v2_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
-                         'IR_MV_V2_100': lambda: ir_mv_v2_100_lf(DEVICE, aggregator, EMBEDDING_SIZE)}
+                         'IR_MV_V2_100': lambda: ir_mv_v2_100_lf(DEVICE, aggregator, EMBEDDING_SIZE),
+                         'TIMM_MV': lambda: timm_mv_lf(DEVICE, aggregator)}
+
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]()
         BACKBONE.backbone_reg.to(DEVICE)
         model_stats_backbone = summary(BACKBONE.backbone_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
@@ -255,7 +258,7 @@ def main(cfg):
             losses = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
-            for step, (inputs, labels, perspectives, face_corrs, _) in enumerate(tqdm(iter(train_loader))):
+            for step, (inputs, labels, perspectives, _, face_corrs, _) in enumerate(tqdm(iter(train_loader))):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
                     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
