@@ -33,7 +33,6 @@ def calc_perspective_distances(target_perspectives, true_perspectives):
 
     # Compute Manhattan distance directly
     distances = np.sum(np.abs(true_xy - enrolled_xy), axis=2, dtype=np.int16)  # shape (samples, 8)
-
     return distances
 
 

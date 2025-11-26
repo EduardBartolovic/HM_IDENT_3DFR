@@ -1,21 +1,35 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP_LOCAL_TEST_LF'  # experiment_name
-DATA_ROOT_PATH: 'dataset10'  # the parent root
-TRAIN_SET: 'mv_ms1mv3_5K'  # where your train/val data are stored
+DATA_ROOT_PATH: 'dataset11'  # the parent root
+TRAIN_SET: 'rgb_bff_crop8'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: 'F:\\Face\\log'  # the root to log your train/val status
 #BACKBONE_RESUME_PATH: 'backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
-BACKBONE_RESUME_PATH: 'glint_cosface_r18_fp16.pth'# backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
+BACKBONE_RESUME_PATH: 'glint_cosface_r18_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'glint_cosface_r50_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'glint_cosface_r100_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'ms1mv3_arcface_r18_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'ms1mv3_arcface_r50_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'ms1mv3_arcface_r100_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'facenet-casia-webface.pt' # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'facenet-vggface2.pt' # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'AdaFace_ARoFace_R100_MS1MV3.pt' # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'AdaFace_ARoFace_R100_WebFace12M.pt' # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'edgeface_s_gamma_05.pt' # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'edgeface_xs_gamma_06.pt' # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 USE_FACE_CORR: False
 #BACKBONE_NAME: 'IR_MV_50'
 BACKBONE_NAME: 'IR_MV_V2_18'
+#BACKBONE_NAME: 'IR_MV_V2_50'
+#BACKBONE_NAME: 'IR_MV_V2_100'
+#BACKBONE_NAME: 'TIMM_MV'
+#BACKBONE_NAME: 'IR_MV_Facenet'
 AGG:
-  AGG_NAME: 'CosineDistanceAggregator'#'MLPFusion'
+  AGG_NAME: 'MLPFusion'
   AGG_CONFIG:
-    ACTIVE_STAGES: [True, True, True, True, True]
     NUM_LAYERS: 1
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
 HEAD_PARAMS: [68.0, 0.50]
@@ -32,15 +46,14 @@ DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm s
 OPTIMIZER_NAME: SGD
 LR: 0.05  # initial LR
 NUM_EPOCH: 20  # total epoch number (use the first 1/25 epochs to warm up)
-UNFREEZE_AGG_EPOCH: 4  # number of epochs to only train the head
+UNFREEZE_AGG_EPOCH: 1  # number of epochs to only train the head
 UNFREEZE_AGG_BACKBONE_EPOCH: 0  # number of epochs not to train the aggregator-backbone
 PATIENCE: 100  # patience for early stopping
 WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
 MOMENTUM: 0.3
 STAGES: [5, 8, 9]  # epoch stages to decay learning rate
 
-MULTI_GPU: false
-# flag to use multiple GPUs; if you choose to train with single GPU, you should first run "export CUDA_VISILE_DEVICES=device_id" to specify the GPU card you want to use
+MULTI_GPU: false # flag to use multiple GPUs; if you choose to train with single GPU, you should first run "export CUDA_VISILE_DEVICES=device_id" to specify the GPU card you want to use
 GPU_ID: [0]  # specify your GPU ids
 PIN_MEMORY: true
 NUM_WORKERS: 8

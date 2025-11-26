@@ -411,7 +411,7 @@ def analyze_embedding_distribution(similarity_matrix, query_labels, enrolled_lab
             plt.title(f"{dataset_name} {extension} - Embedding Distributions")
             plt.xlabel("Similarity / Distance")
             plt.ylabel("Frequency")
-            plt.legend()
+            plt.legend(loc="lower right")
             plt.savefig(os.path.join(tmp_dir, 'Distributions_Curve-' + dataset_name + '-' + extension + '.svg'), format='svg')
             plt.close()
 

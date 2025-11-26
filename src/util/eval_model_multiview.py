@@ -128,18 +128,18 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     embedding_library = get_embeddings_mv(backbone, enrolled_loader, query_loader, use_face_corr, disable_bar)
     enrolled_labels, query_labels = embedding_library.enrolled_labels, embedding_library.query_labels
 
-    enrolled_distances = calc_perspective_distances(embedding_library.enrolled_perspectives, embedding_library.enrolled_true_perspectives)
-    query_distances = calc_perspective_distances(embedding_library.query_perspectives, embedding_library.query_true_perspectives)
+    #enrolled_distances = calc_perspective_distances(embedding_library.enrolled_perspectives, embedding_library.enrolled_true_perspectives)
+    #query_distances = calc_perspective_distances(embedding_library.query_perspectives, embedding_library.query_true_perspectives)
     distance_matrix, distance_matrix_avg = compute_per_view_distance_matrix(embedding_library.query_true_perspectives, embedding_library.enrolled_true_perspectives)
 
     all_metrics = {}
 
     # ---------- Helper for repeated correlation analysis ----------
-    def corr_analysis(top_idx, name):
-        return analyze_perspective_error_correlation(
-            query_labels, enrolled_labels, query_distances, enrolled_distances, top_idx, distance_matrix_avg,
-            plot=True, extension=f"_{dataset_name}_{name}"
-        )
+    #def corr_analysis(top_idx, name):
+    #    return analyze_perspective_error_correlation(
+    #        query_labels, enrolled_labels, query_distances, enrolled_distances, top_idx, distance_matrix_avg,
+    #        plot=True, extension=f"_{dataset_name}_{name}"
+    #    )
 
     # --------- Multi View evaluation ---------
     sim_mvfa = calculate_embedding_similarity(embedding_library.query_embeddings_agg, embedding_library.enrolled_embeddings_agg, batch_size, disable_bar)

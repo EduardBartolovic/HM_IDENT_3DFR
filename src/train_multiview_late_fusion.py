@@ -303,7 +303,7 @@ def main(cfg):
 
             #  ======= perform validation =======
             if epoch >= UNFREEZE_AGG_EPOCH:
-                eval_loop(BACKBONE, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False, INPUT_SIZE, INPUT_SIZE)
+                eval_loop(BACKBONE, DATA_ROOT, epoch, BATCH_SIZE, NUM_VIEWS, use_face_corr, False)
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
                 print("=" * 60)
