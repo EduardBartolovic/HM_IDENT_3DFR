@@ -30,6 +30,8 @@ class FusionAEHead(nn.Module):
             nn.Linear(hidden_dim, self.in_dim)
         )
 
+        self.return_reconstruction = False
+
     def encode(self, x):
         """
         x: (B, V, EMB)
@@ -54,7 +56,7 @@ class FusionAEHead(nn.Module):
         x: (B, V, EMB)
         """
         z = self.encode(x)
-        if self.training or return_reconstruction:
+        if self.training or return_reconstruction or self.return_reconstruction:
             rec = self.decode(z)
             return z, rec
         return z

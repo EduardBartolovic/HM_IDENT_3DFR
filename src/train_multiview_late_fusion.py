@@ -259,6 +259,8 @@ def main(cfg):
 
             # =========== Train Loop ========
             losses = AverageMeter()
+            losses_arc = AverageMeter()
+            losses_rec = AverageMeter()
             top1 = AverageMeter()
             top5 = AverageMeter()
             for step, (inputs, labels, perspectives, _, face_corrs, _) in enumerate(tqdm(iter(train_loader))):
@@ -271,22 +273,35 @@ def main(cfg):
                     use_face_corr = True
 
                 labels = labels.to(DEVICE).long()
-                if HEAD_NAME == "AEFusion":
-                    lambda_mse = 1
+                if AGG_NAME == "AEFusion":
+                    lambda_rec = 1
+                    aggregator.return_reconstruction = True
                     embeddings_reg, (embeddings_fused, embeddings_rec) = BACKBONE(inputs, perspectives, face_corrs, use_face_corr)
+                    aggregator.return_reconstruction = False
                     outputs = HEAD(embeddings_fused, labels)
                     loss_arc = LOSS(outputs, labels)
-                    loss_mse = F.mse_loss(embeddings_rec, embeddings_reg)
-                    loss = loss_arc + lambda_mse * loss_mse
+                    embeddings_concat = torch.concatenate(embeddings_reg, dim=1)#torch.stack(embeddings_reg, dim=1)
+                    loss_rec = F.mse_loss(embeddings_rec, embeddings_concat)
+                    loss = loss_arc + lambda_rec * loss_rec
+
+                    prec1, prec5 = train_accuracy(outputs.data, labels, topk=(1, 5))
+                    losses.update(loss.item(), inputs[0].size(0))
+                    top1.update(prec1.item(), inputs[0].size(0))
+                    top5.update(prec5.item(), inputs[0].size(0))
+
+                    losses_arc.update(loss_arc.item(), inputs[0].size(0))
+                    losses_rec.update(loss_rec.item(), inputs[0].size(0))
+
                 else:
                     _, embeddings = BACKBONE(inputs, perspectives, face_corrs, use_face_corr)
                     outputs = HEAD(embeddings, labels)
                     loss = LOSS(outputs, labels)
 
-                prec1, prec5 = train_accuracy(outputs.data, labels, topk=(1, 5))
-                losses.update(loss.item(), inputs[0].size(0))
-                top1.update(prec1.item(), inputs[0].size(0))
-                top5.update(prec5.item(), inputs[0].size(0))
+                    prec1, prec5 = train_accuracy(outputs.data, labels, topk=(1, 5))
+                    losses.update(loss.item(), inputs[0].size(0))
+                    top1.update(prec1.item(), inputs[0].size(0))
+                    top5.update(prec5.item(), inputs[0].size(0))
+
                 # mlflow.log_metric('train_batch_loss', losses.val, step=batch)
 
                 OPTIMIZER.zero_grad()
@@ -295,21 +310,34 @@ def main(cfg):
 
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     print("=" * 60)
-                    print(colorstr('cyan',
-                                   f'Epoch {epoch + 1}/{NUM_EPOCH} Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
-                                   f'Training Loss {losses.avg:.4f}\t'
-                                   f'Training Prec@1 {top1.avg:.3f}\t'
-                                   f'Training Prec@5 {top5.avg:.3f}'))
+                    if AGG_NAME == "AEFusion":
+                        print(colorstr('cyan',
+                                       f'Epoch {epoch + 1}/{NUM_EPOCH} Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
+                                       f'Training Loss {losses.avg:.4f} (arc: {losses_arc.avg:.5f} + rec: {losses_rec.avg:.5f})\t'
+                                       f'Training Prec@1 {top1.avg:.3f}\t'
+                                       f'Training Prec@5 {top5.avg:.3f}'))
+                    else:
+                        print(colorstr('cyan',
+                                       f'Epoch {epoch + 1}/{NUM_EPOCH} Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
+                                       f'Training Loss {losses.avg:.4f}\t'
+                                       f'Training Prec@1 {top1.avg:.3f}\t'
+                                       f'Training Prec@5 {top5.avg:.3f}'))
                     print("=" * 60)
                 batch += 1
 
             mlflow.log_metric('train_loss', losses.avg, step=epoch + 1)
             mlflow.log_metric('Training_Accuracy', top1.avg, step=epoch + 1)
             print("#" * 60)
-            print(colorstr('bright_green', f'Epoch: {epoch + 1}/{NUM_EPOCH}\t'
-                                           f'Training Loss {losses.avg:.5f}\t'
-                                           f'Training Prec@1 {top1.avg:.3f}\t'
-                                           f'Training Prec@5 {top5.avg:.3f}'))
+            if AGG_NAME == "AEFusion":
+                print(colorstr('bright_green', f'Epoch: {epoch + 1}/{NUM_EPOCH}\t'
+                                               f'Training Loss {losses.avg:.5f} (arc: {losses_arc.avg:.5f} + rec: {losses_rec.avg:.5f})\t'
+                                               f'Training Prec@1 {top1.avg:.3f}\t'
+                                               f'Training Prec@5 {top5.avg:.3f}'))
+            else:
+                print(colorstr('bright_green', f'Epoch: {epoch + 1}/{NUM_EPOCH}\t'
+                                               f'Training Loss {losses.avg:.5f}\t'
+                                               f'Training Prec@1 {top1.avg:.3f}\t'
+                                               f'Training Prec@5 {top5.avg:.3f}'))
             print("#" * 60)
 
             #  ======= perform validation =======

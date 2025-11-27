@@ -28,7 +28,7 @@ BACKBONE_NAME: 'IR_MV_V2_18'
 #BACKBONE_NAME: 'TIMM_MV'
 #BACKBONE_NAME: 'IR_MV_Facenet'
 AGG:
-  AGG_NAME: 'MLPFusion'
+  AGG_NAME: 'AEFusion'
   AGG_CONFIG:
     NUM_LAYERS: 1
 HEAD_NAME: 'ArcFace'  # support:  ['Softmax', 'ArcFace', 'CosFace', 'SphereFace', 'Am_softmax']
