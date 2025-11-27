@@ -6,9 +6,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 
 from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
+from src.aggregator.Autoencoder import make_ae_head
 from src.backbone.multiview_ires_lf import ir_mv_v2_18_lf, ir_mv_v2_34_lf, ir_mv_v2_50_lf, ir_mv_v2_100_lf, ir_mv_50_lf, \
     ir_mv_facenet_50_lf
 from src.backbone.multiview_timmfr_lf import timm_mv_lf
@@ -137,6 +139,7 @@ def main(cfg):
                     'TransformerFusion': lambda: make_transformer_fusion(),
                     'SoftmaxFusion': lambda: make_softmax_fusion(),
                     'CosineDistanceAggregator': lambda: make_cosinedistance_fusion(NUM_VIEWS),
+                    'AEFusion': lambda: make_ae_head(NUM_VIEWS, EMBEDDING_SIZE),
                     }
         aggregator = AGG_DICT[AGG_NAME]()
         model_arch = (BATCH_SIZE, NUM_VIEWS, 512)
@@ -177,7 +180,7 @@ def main(cfg):
         print(colorstr('blue', f"{HEAD_NAME} Head Generated"))
         print("=" * 60)
 
-        LOSS_DICT = {'Focal': FocalLoss(), 'Softmax': nn.CrossEntropyLoss()}
+        LOSS_DICT = {'Focal': FocalLoss(), 'Softmax': nn.CrossEntropyLoss() }
         LOSS = LOSS_DICT[LOSS_NAME]
         print(colorstr('blue', f"{LOSS_NAME} Loss Generated"))
         print("=" * 60)
@@ -268,9 +271,17 @@ def main(cfg):
                     use_face_corr = True
 
                 labels = labels.to(DEVICE).long()
-                _, embeddings = BACKBONE(inputs, perspectives, face_corrs, use_face_corr)
-                outputs = HEAD(embeddings, labels)
-                loss = LOSS(outputs, labels)
+                if HEAD_NAME == "AEFusion":
+                    lambda_mse = 1
+                    embeddings_reg, (embeddings_fused, embeddings_rec) = BACKBONE(inputs, perspectives, face_corrs, use_face_corr)
+                    outputs = HEAD(embeddings_fused, labels)
+                    loss_arc = LOSS(outputs, labels)
+                    loss_mse = F.mse_loss(embeddings_rec, embeddings_reg)
+                    loss = loss_arc + lambda_mse * loss_mse
+                else:
+                    _, embeddings = BACKBONE(inputs, perspectives, face_corrs, use_face_corr)
+                    outputs = HEAD(embeddings, labels)
+                    loss = LOSS(outputs, labels)
 
                 prec1, prec5 = train_accuracy(outputs.data, labels, topk=(1, 5))
                 losses.update(loss.item(), inputs[0].size(0))

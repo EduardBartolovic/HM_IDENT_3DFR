@@ -128,6 +128,43 @@ def generate_rotation_matrices(angle_range):
     return rotation_matrices
 
 
+def generate_rotation_matricesNEW(angle_range):
+    # Vertical line: x in [-90, 90], y = 0
+    vertical = [
+        (
+            x,
+            0,
+            np.dot(
+                np.array([
+                    [1, 0, 0],
+                    [0, np.cos(np.radians(x)), -np.sin(np.radians(x))],
+                    [0, np.sin(np.radians(x)),  np.cos(np.radians(x))]
+                ]),
+                np.eye(3)  # y=0 => identity rotation around y
+            )
+        )
+        for x in range(-45, 46, 2)
+    ]
+
+    # Horizontal line: y in [-45, 45], x = 0
+    horizontal = [
+        (
+            0,
+            y,
+            np.dot(
+                np.eye(3),  # x=0 => identity rotation around x
+                np.array([
+                    [ np.cos(np.radians(y)), 0, np.sin(np.radians(y))],
+                    [ 0, 1, 0],
+                    [-np.sin(np.radians(y)), 0, np.cos(np.radians(y))]
+                ])
+            )
+        )
+        for y in range(-90, 91, 2)
+    ]
+
+    return vertical + horizontal
+
 def file_hash(file_path, algorithm='md5'):
     # Initialize hash object
     hasher = hashlib.new(algorithm)
