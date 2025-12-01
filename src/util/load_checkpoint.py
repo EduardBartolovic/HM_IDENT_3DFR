@@ -28,6 +28,11 @@ def load_rgbd_backbone_checkpoint(model, checkpoint_path):
 
 def load_checkpoint(model, head, backbone_resume_path, head_resume_path, rgbd=False):
 
+    # EARLY RETURN: Skip completely if ONNX model
+    if backbone_resume_path.endswith(".onnx"):
+        print(colorstr('blue', f"ONNX backbone detected ({backbone_resume_path}). Skipping pytorch checkpoint loading."))
+        return
+
     if os.path.isfile(backbone_resume_path) and os.path.isfile(head_resume_path):
         print(colorstr('blue', f"Loading Backbone Checkpoint {backbone_resume_path}"))
         if ".onnx" in backbone_resume_path:
