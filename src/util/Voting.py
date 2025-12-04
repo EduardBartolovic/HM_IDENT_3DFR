@@ -210,12 +210,32 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
     return similarity_matrix
 
 
-def concat(embedding_library, disable_bar: bool, reduce_with=""):
+def concat(embedding_library, disable_bar: bool, reduce_with="", norm_vector="view"):
+
+    def normalize_viewwise(x):
+        # x shape: (views, ids, 512)
+        x = x / (np.linalg.norm(x, axis=2, keepdims=True) + 1e-8)
+        return x
+
+    def normalize_full(x):
+        # x shape: (ids, concat_dim)
+        return x / (np.linalg.norm(x, axis=1, keepdims=True) + 1e-8)
 
     enrolled_embedding, enrolled_label = embedding_library.enrolled_embeddings, embedding_library.enrolled_labels
-    enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
     query_embedding, query_label = embedding_library.query_embeddings, embedding_library.query_labels
+
+    # ---------- Apply normalization BEFORE concat if "view" ----------
+    if norm_vector == "view":
+        enrolled_embedding = normalize_viewwise(enrolled_embedding)
+        query_embedding = normalize_viewwise(query_embedding)
+
+    enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
     query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
+
+    # ---------- Apply normalization AFTER concat if "full" ----------
+    if norm_vector == "full":
+        enrolled_embedding = normalize_full(enrolled_embedding)
+        query_embedding = normalize_full(query_embedding)
 
     if reduce_with == "pca":
         if enrolled_embedding.shape[0] <= 512:

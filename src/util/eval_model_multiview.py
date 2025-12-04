@@ -213,11 +213,19 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     return all_metrics, embedding_library, dataset_enrolled, dataset_query
 
 
-def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True):
+def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: int, use_face_corr: bool, disable_bar: bool, eval_all=True, norm_vector="view"):
     """
     Evaluate 1:1 Model Performance on given test dataset
     """
     dataset_name = os.path.basename(test_path)
+
+    def normalize_viewwise(x):
+        # x shape: (views, dim)
+        return x / (np.linalg.norm(x, axis=1, keepdims=True) + 1e-8)
+
+    def normalize_full(x):
+        # x shape: (dim,)
+        return x / (np.linalg.norm(x) + 1e-8)
 
     pair_list = []
     folds = []
@@ -289,6 +297,15 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         emb1_reg, emb2_reg = embeddings_reg[:, i1, :], embeddings_reg[:, i2, :]
         emb1_reg_mean, emb2_reg_mean = embeddings_reg_mean[i1, :], embeddings_reg_mean[i2, :]
         emb1_reg_pca, emb2_reg_pca = embeddings_reg_pca[i1, :], embeddings_reg_pca[i2, :]
+
+        # ----- Apply normalization mode -----
+        if norm_vector == "view":
+            emb1_reg = normalize_viewwise(emb1_reg)
+            emb2_reg = normalize_viewwise(emb2_reg)
+
+        elif norm_vector == "full":
+            emb1_reg = normalize_full(emb1_reg)
+            emb2_reg = normalize_full(emb2_reg)
 
         # Multiview compute cosine similarity
         sim = np.dot(emb1_agg, emb2_agg) / (norm(emb1_agg) * norm(emb2_agg))

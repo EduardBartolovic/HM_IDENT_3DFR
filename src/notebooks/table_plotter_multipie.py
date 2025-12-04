@@ -2,11 +2,12 @@ import re
 import numpy as np
 
 # --- Load log ---
-with open("E:\\Download\\performace.txt", "r") as f:
+with open("E:\\Download\\PIE_GBIG.txt", "r") as f:
     log = f.read()
 
+
 def fmt(v):
-    return f"{v:.3f}" if not np.isnan(v) else "N/A"
+    return f"{v:.2f}" if not np.isnan(v) else "N/A"
 
 # --- Backbone name mapping ---
 backbone_map = {

@@ -1,27 +1,9 @@
-import hashlib
 import os
-
 import numpy as np
 import open3d as o3d
 from matplotlib import pyplot as plt
 import cv2
 from tqdm import tqdm
-
-
-class DepthCaptureCallback:
-    def __init__(self, vis):
-        self.vis = vis
-        self.depth = None
-        self.image = None
-
-    def capture(self):
-        self.vis.poll_events()
-        self.vis.update_renderer()
-        self.depth = np.asarray(self.vis.capture_depth_float_buffer())
-        self.image = np.asarray(self.vis.capture_screen_float_buffer())
-
-    def get_depth_image(self):
-        return self.depth, self.image
 
 
 def read_mesh(path, texture):
@@ -51,27 +33,6 @@ def read_mesh(path, texture):
         new_mesh.textures = [texture, texture]  # TODO: DOESNT WORK YET
 
     return new_mesh
-
-
-def render_rgbd(model, rotation_matrix):
-    # Apply the rotation to the mesh
-    model.rotate(rotation_matrix)
-
-    # Create a visualization window
-    vis = o3d.visualization.Visualizer()
-    vis.create_window(width=int(1920), height=int(1080))
-
-    vis.add_geometry(model)
-
-    view_ctl = vis.get_view_control()
-    ZOOM_FACTOR = 2
-    view_ctl.set_zoom(ZOOM_FACTOR)
-
-    callback = DepthCaptureCallback(vis)
-    callback.capture()
-    depth, image = callback.get_depth_image()
-
-    return depth, image
 
 
 def postprocess_renderer_image(depth, image):
@@ -128,8 +89,8 @@ def generate_rotation_matrices(angle_range):
     return rotation_matrices
 
 
-def generate_rotation_matricesNEW(angle_range):
-    # Vertical line: x in [-90, 90], y = 0
+def generate_rotation_matrices_cross_x_y():
+    # Vertical line
     vertical = [
         (
             x,
@@ -143,10 +104,9 @@ def generate_rotation_matricesNEW(angle_range):
                 np.eye(3)  # y=0 => identity rotation around y
             )
         )
-        for x in range(-45, 46, 2)
+        for x in range(-35, 36, 2)
     ]
-
-    # Horizontal line: y in [-45, 45], x = 0
+    # horizontal line
     horizontal = [
         (
             0,
@@ -154,27 +114,45 @@ def generate_rotation_matricesNEW(angle_range):
             np.dot(
                 np.eye(3),  # x=0 => identity rotation around x
                 np.array([
-                    [ np.cos(np.radians(y)), 0, np.sin(np.radians(y))],
-                    [ 0, 1, 0],
+                    [np.cos(np.radians(y)), 0, np.sin(np.radians(y))],
+                    [0, 1, 0],
                     [-np.sin(np.radians(y)), 0, np.cos(np.radians(y))]
                 ])
             )
         )
-        for y in range(-90, 91, 2)
+        for y in range(-45, 46, 2)
     ]
 
     return vertical + horizontal
 
-def file_hash(file_path, algorithm='md5'):
-    # Initialize hash object
-    hasher = hashlib.new(algorithm)
 
-    # Calculate hash
-    with open(file_path, 'rb') as f:
-        for chunk in iter(lambda: f.read(4096), b''):
-            hasher.update(chunk)
+def generate_rotation_matrices_full_x_y():
+    xs = range(-45, 46, 1)
+    ys = range(-45, 46, 1)
 
-    return hasher.hexdigest()
+    rotations = []
+    for x in xs:
+        # Rotation around X axis
+        Rx = np.array([
+            [1, 0, 0],
+            [0, np.cos(np.radians(x)), -np.sin(np.radians(x))],
+            [0, np.sin(np.radians(x)),  np.cos(np.radians(x))]
+        ])
+
+        for y in ys:
+            # Rotation around Y axis
+            Ry = np.array([
+                [np.cos(np.radians(y)), 0, np.sin(np.radians(y))],
+                [0, 1, 0],
+                [-np.sin(np.radians(y)), 0, np.cos(np.radians(y))]
+            ])
+
+            # Combined rotation: first x, then y
+            R = np.dot(Ry, Rx)
+
+            rotations.append((x, y, R))
+
+    return rotations
 
 
 def render(output_image_dir, headscan, flipped=False, render_angles=None):
@@ -182,68 +160,88 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None):
         render_angles = [-10, 0, 10]
 
     file_abspath = headscan['obj_file_path']
-    rotation_matrices = generate_rotation_matrices(render_angles)
+    rotation_matrices = generate_rotation_matrices_cross_x_y() #generate_rotation_matrices(render_angles)
 
     render_jobs = []
     for rotation_m in rotation_matrices:
+        if flipped:
+            R = rotation_m[2].copy()
+            R[1] = -R[1]
+            R[2] = -R[2]
+            rotation_m = (rotation_m[0], rotation_m[1], R)
 
-        if flipped:  # Flip whole render by 180°
-            rotation_m_flipped = rotation_m[2].copy()
-            rotation_m_flipped[1] = -rotation_m_flipped[1]
-            rotation_m_flipped[2] = -rotation_m_flipped[2]
-            rotation_m = (rotation_m[0], rotation_m[1], rotation_m_flipped)
+        folder = os.path.join(
+            output_image_dir,
+            headscan['user'],
+            headscan['date'],
+            headscan['scan_id'] + '_' + headscan['scan_name']
+        )
 
-        path = os.path.join(output_image_dir,
-                            headscan['user'],
-                            headscan['date'],
-                            headscan['scan_id'] + '_' + headscan['scan_name'])
-        file_name = str(rotation_m[0]) + '_' + str(rotation_m[1])
-        targetfile_depth = os.path.join(path, file_name + '_depth.jpg')
-        targetfile_image = os.path.join(path, file_name + '_image.jpg')
-        if not (os.path.exists(targetfile_depth) and os.path.exists(targetfile_image)):
-            render_jobs.append((rotation_m[2], path, targetfile_image, targetfile_depth))
+        fn = f"{rotation_m[0]}_{rotation_m[1]}"
+        img_path = os.path.join(folder, fn + "_image.jpg")
+        depth_path = os.path.join(folder, fn + "_depth.jpg")
+
+        if not (os.path.exists(img_path) and os.path.exists(depth_path)):
+            render_jobs.append((rotation_m[0], rotation_m[1], rotation_m[2], folder, img_path, depth_path))
 
     if len(render_jobs) == 0:
         return 1
 
     print(file_abspath)
-    # Read all render files
+
     if headscan.get('texture_path') is not None:
-        print(headscan.get('texture_path'))
-        # texture = o3d.io.read_image(headscan.get('texture_path'))
-        texture = o3d.geometry.Image(cv2.cvtColor(cv2.imread(headscan.get('texture_path')), cv2.COLOR_BGR2RGB))
+        tex = o3d.geometry.Image(
+            cv2.cvtColor(cv2.imread(headscan['texture_path']), cv2.COLOR_BGR2RGB)
+        )
     else:
-        texture = None
+        tex = None
 
-    model_ori = read_mesh(file_abspath, texture)
+    base_mesh = read_mesh(file_abspath, tex)
+    base_mesh.compute_vertex_normals()
 
-    for rotation_m, path, targetfile_image, targetfile_depth in tqdm(render_jobs, position=1, leave=True,
-                                                                     desc="Render jobs"):
+    # Create one persistent visualizer
+    W, H = 1920, 1080
+    vis = o3d.visualization.Visualizer()
+    vis.create_window(width=W, height=H, visible=False)
+    vis.add_geometry(base_mesh)
 
-        os.makedirs(path, exist_ok=True)
-        try:
-            model = model_ori.__copy__()
-            depth, image = render_rgbd(model, rotation_m)
-        except Exception as e:
-            print('Error at', path)
-            raise e
+    opt = vis.get_render_option()
+    opt.background_color = np.asarray([1, 1, 1])
+    opt.light_on = False
 
-        # plt.imshow(depth, interpolation='nearest')
-        # plt.show()
-        # plt.imshow(image, interpolation='nearest')
-        # plt.show()
+    # Camera setup
+    ctr = vis.get_view_control()
+    ctr.set_zoom(2.0)
 
-        depth, image = postprocess_renderer_image(depth, image)
+    param = ctr.convert_to_pinhole_camera_parameters()
+    original_extrinsic = param.extrinsic.copy()
 
-        try:
-            plt.imsave(targetfile_depth, np.asarray(depth), dpi=1, cmap='gray')
-            plt.imsave(targetfile_image, np.asarray(image), dpi=1)
-        except KeyboardInterrupt:
-            print(f"\nInterrupted while saving image at {path}. Attempting to finish saving and exit cleanly.")
-            try:
-                # Try final save attempt before quitting
-                plt.imsave(targetfile_depth, np.asarray(depth), dpi=1, cmap='gray')
-                plt.imsave(targetfile_image, np.asarray(image), dpi=1)
-            except Exception as save_err:
-                print(f"Failed to save images due to: {save_err}")
-            raise  # Re-raise to exit the loop cleanly
+    # Run through all render jobs
+    for Xdeg, Ydeg, R_target, folder, img_path, depth_path in tqdm(render_jobs, desc="Render"):
+
+        # Convert 3×3 to 4×4
+        R4 = np.eye(4)
+        R4[:3, :3] = R_target
+
+        # orbit the camera instead of rotating the mesh
+        param.extrinsic = original_extrinsic @ R4
+        ctr.convert_from_pinhole_camera_parameters(param)
+
+        vis.poll_events()
+        vis.update_renderer()
+
+        # Depth
+        depth_float = vis.capture_depth_float_buffer(do_render=True)
+        depth_np = np.asarray(depth_float)
+
+        # RGB
+        rgb_float = vis.capture_screen_float_buffer(do_render=False)
+        rgb_np = np.asarray(rgb_float)
+
+        depth_np, rgb_np = postprocess_renderer_image(depth_np, rgb_np)
+
+        os.makedirs(folder, exist_ok=True)
+        # plt.imsave(depth_path, depth_np, cmap='gray', dpi=1)
+        plt.imsave(img_path, rgb_np, dpi=1)
+
+    vis.destroy_window()

@@ -1,9 +1,6 @@
 import torch
 from pathlib import Path
 
-from src.preprocess_datasets.blazeface.face_crop import face_crop_full_frame
-from src.preprocess_datasets.face_correspondences.CalculateFaceCorrespondences import calculate_face_landmarks_dataset, \
-    calculate_face_correspondences_dataset
 from src.preprocess_datasets.process_dataset_retinaface import face_crop_and_alignment
 from src.preprocess_datasets.rendering import PrepareDataset
 from src.preprocess_datasets.rendering.Extract2DFaces import Extract2DFaces
@@ -21,10 +18,10 @@ def main():
     ffhq = False
     prep_data = False
     colorferet = False
-    bff = True
+    bff = False
 
-    root = 'F:\\Face\\data\\dataset11\\'
-    render_angles = [-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
+    root = 'F:\\Face\\data\\dataset13\\'
+    render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35] #[-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
 
     # -------- Bellus --------
     if bellus:
@@ -32,9 +29,9 @@ def main():
 
         # Image Rendering
         directory_path = Path(r'H:\\Maurer\\Bellus')
-        output_dir = Path(r"F:\Face\data\tmp\3D_bellus")
+        output_dir = Path(r"F:\Face\data\tmp3\3D_bellus")
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        #obj_reader.render_obj_files("Bellus")
+        obj_reader.render_obj_files("Bellus")
 
         # Photos for 2D
         #directory_path = Path('H:\\Maurer\\Bellus\\')
@@ -48,9 +45,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_Bellus\\')
+        input_path = Path('F:\\Face\\data\\tmp3\\3D_Bellus\\')
         output_dir = Path(root+'test_rgb_bellus')
-        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth:
         #input_path = Path(root+'test_rgb_bellus')
@@ -69,9 +66,9 @@ def main():
 
         # Image Rendering
         directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
-        output_dir = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
+        output_dir = Path('F:\\Face\\data\\tmp3\\3D_facescape\\')
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        #obj_reader.render_obj_files('facescape')
+        obj_reader.render_obj_files('facescape')
 
         # Prepare Dataset Depth:
         #input_path = Path('F:\\Face\\data\\tmp\\3D_facescape')
@@ -79,9 +76,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir, mode='facescape')
 
         # Prepare Dataset RGB:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
+        input_path = Path('F:\\Face\\data\\tmp3\\3D_facescape\\')
         output_dir = Path(root+'test_rgb_facescape')
-        PrepareDataset.prepare_dataset_rgb(input_path, output_dir, mode='facescape')
+        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir, mode='facescape')
 
         # Prepare Dataset RGB + Depth:
         #input_path = Path(root+'test_rgb_facescape')
@@ -92,10 +89,10 @@ def main():
     if faceverse:
         print("################# FACEVERSE #################")
         # Image Rendering faceverse
-        #directory_path = Path('H:\\Maurer\\FaceVerse\\')
-        #output_dir = Path('F:\\Face\\data\\tmp\\3D_faceverse\\')
-        #obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
-        #obj_reader.render_obj_files("FaceVerse")
+        directory_path = Path('H:\\Maurer\\FaceVerse\\')
+        output_dir = Path('F:\\Face\\data\\tmp3\\3D_faceverse\\')
+        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+        obj_reader.render_obj_files("FaceVerse")
 
         # Prepare Dataset Depth faceverse:
         #input_path = Path('F:\\Face\\data\\tmp\\3D_faceverse')
@@ -103,9 +100,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB faceverse:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_faceverse\\')
+        input_path = Path('F:\\Face\\data\\tmp3\\3D_faceverse\\')
         output_dir = Path(root+'test_rgb_faceverse')
-        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth faceverse:
         #input_path = Path(root+'test_rgb_faceverse')
@@ -221,7 +218,7 @@ def main():
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)
 
-        #PrepareDataset.sanity_check(root)
+        PrepareDataset.sanity_check(root)
 
 
 if __name__ == '__main__':
