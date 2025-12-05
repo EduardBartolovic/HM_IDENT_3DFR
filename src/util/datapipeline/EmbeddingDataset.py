@@ -1,24 +1,23 @@
 import os
-
 import numpy as np
-import json
 import torch
 from torch.utils.data import Dataset
-
+from collections import defaultdict
 
 class EmbeddingDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
-        """
-        Args:
-            root_dir (str): Root directory containing class folders with .npz files
-            transform: Optional transform to apply on embeddings
-        """
+
+    def __init__(self, root_dir, perspective_range=None):
         self.root_dir = root_dir
-        self.transform = transform
 
         self.samples = []
         class_dirs = sorted(os.listdir(root_dir))
         self.classes = class_dirs
+
+        def convert_list(str_list):
+            return torch.tensor(
+                [tuple(map(int, s.split("_"))) for s in str_list],
+                dtype=torch.int32
+            )
 
         for cls in class_dirs:
             cls_path = os.path.join(root_dir, cls)
@@ -26,26 +25,85 @@ class EmbeddingDataset(Dataset):
                 continue
 
             for fname in os.listdir(cls_path):
-                if fname.endswith(".npz"):
-                    self.samples.append(os.path.join(cls_path, fname))
+                if not fname.endswith(".npz"):
+                    continue
+
+                path = os.path.join(cls_path, fname)
+                data = np.load(path, allow_pickle=True)
+
+                emb = torch.tensor(data["embedding_reg"].astype(np.float32))
+                #emb = torch.nn.functional.normalize(emb, p=2, dim=-1) # L2-normalize embeddings
+
+                label = int(data["label"])
+                scan_id = str(data["scan_id"])
+
+                ref_p = convert_list(data["ref_perspective"].tolist())
+                true_p = convert_list(data["true_perspective"].tolist())
+
+                # ==============================================
+                # Normalize angles if requested
+                # ==============================================
+                if perspective_range is not None:
+                    min_a, max_a = perspective_range
+                    width = max_a - min_a
+
+                    if width == 0:
+                        raise ValueError("perspective_range min/max cannot be equal.")
+
+                    # scale to [0,1]
+                    ref_p = (ref_p - min_a) / width
+                    true_p = (true_p - min_a) / width
+
+                    # scale to [-1,1]
+                    ref_p = ref_p * 2.0 - 1.0
+                    true_p = true_p * 2.0 - 1.0
+
+                self.samples.append(
+                    (emb, label, scan_id, ref_p, true_p, path)
+                )
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        path = self.samples[idx]
-        data = np.load(path, allow_pickle=True)
+        sample = self.samples[idx]
+        return sample
 
-        embeddings = data["embedding_reg"].astype(np.float32)
-        label = int(data["label"])
-        scan_id = str(data["scan_id"])
 
-        embeddings = torch.tensor(embeddings)
 
-        def convert_list(str_list):
-            return [tuple(map(int, s.split("_"))) for s in str_list]
 
-        ref_p = torch.tensor(convert_list(data["ref_perspective"].tolist()))
-        true_p = torch.tensor(convert_list(data["true_perspective"].tolist()))
 
-        return embeddings, label, scan_id, ref_p, true_p, path
+def split_with_shared_labels(dataset, val_ratio=0.2, seed=42):
+    rng = torch.Generator().manual_seed(seed)
+
+    # group indices by label
+    label_to_indices = defaultdict(list)
+    for i in range(len(dataset)):
+        _, label, *_ = dataset[i]
+        label_to_indices[label].append(i)
+
+    train_indices = []
+    val_indices = []
+
+    # split inside each label group
+    for label, idx_list in label_to_indices.items():
+        idx_tensor = torch.randperm(len(idx_list), generator=rng)
+        split = int(len(idx_list) * (1 - val_ratio))
+
+        train_idx = [idx_list[i] for i in idx_tensor[:split]]
+        val_idx   = [idx_list[i] for i in idx_tensor[split:]]
+
+        # ensure at least one sample per set
+        if len(val_idx) == 0:
+            val_idx.append(train_idx.pop())
+        if len(train_idx) == 0:
+            train_idx.append(val_idx.pop())
+
+        train_indices.extend(train_idx)
+        val_indices.extend(val_idx)
+
+    # create subset datasets
+    train_dataset = torch.utils.data.Subset(dataset, train_indices)
+    val_dataset   = torch.utils.data.Subset(dataset, val_indices)
+
+    return train_dataset, val_dataset

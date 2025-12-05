@@ -81,11 +81,11 @@ def swap_reference_angles(
 
 def main():
     DATASET_PATH = r"C:\Users\Eduard\Desktop\Face\dataset11\test_rgb_bff_crop8\enrolled"
-    OUTPUT_PATH = r"C:\Users\Eduard\Desktop\Face\dataset11\test_rgb_bff_crop8_swap_ref10\enrolled"
-    SWAP_RATIO = 1.0
+    OUTPUT_PATH = r"C:\Users\Eduard\Desktop\Face\dataset11\test_rgb_bff_crop8_swap_ref05\enrolled"
+    SWAP_RATIO = 0.5
     swap_reference_angles(DATASET_PATH, OUTPUT_PATH, SWAP_RATIO)
     DATASET_PATH = r"C:\Users\Eduard\Desktop\Face\dataset11\test_rgb_bff_crop8\query"
-    OUTPUT_PATH = r"C:\Users\Eduard\Desktop\Face\dataset11\test_rgb_bff_crop8_swap_ref10\query"
+    OUTPUT_PATH = r"C:\Users\Eduard\Desktop\Face\dataset11\test_rgb_bff_crop8_swap_ref05\query"
     swap_reference_angles(DATASET_PATH, OUTPUT_PATH, SWAP_RATIO)
 
 

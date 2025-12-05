@@ -53,9 +53,9 @@ def warm_up_lr(batch, num_batch_warm_up, init_lr, optimizer):
         params['lr'] = batch * init_lr / num_batch_warm_up
 
 
-def schedule_lr(optimizer):
+def schedule_lr(optimizer, factor=10.):
     for params in optimizer.param_groups:
-        params['lr'] /= 10.
+        params['lr'] /= factor
 
     print(colorstr('magenta', optimizer))
 

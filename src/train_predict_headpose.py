@@ -2,20 +2,16 @@ import tempfile
 import time
 from pathlib import Path
 
+import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from loss.focal import FocalLoss
-from src.predictor.EmbeddingHPE import PoseAndFrontalizer
-from src.predictor.PoseFrontalizer import PoseFrontalizer
-from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
-from src.util.eval_model_multiview import evaluate_and_log_mv, evaluate_and_log_mv_verification
-from src.util.load_checkpoint import load_checkpoint
+from src.predictor.EmbeddingHPE import EmbeddingHPE
+from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset, split_with_shared_labels
+from src.util.datapipeline.datasets import AFLW2000EMB
 from src.util.misc import colorstr
-from util.utils import make_weights_for_balanced_classes, separate_bn_paras, warm_up_lr, schedule_lr, AverageMeter, \
-    train_accuracy
+from util.utils import warm_up_lr, schedule_lr, AverageMeter
 from torchinfo import summary
 from tqdm import tqdm
 import os
@@ -26,23 +22,48 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
+def evaluate(model, data_loader, device, perspective_range):
+    model.eval()
+    total = 0
+    yaw_error = 0.0
+    pitch_error = 0.0
 
-def eval_loop(backbone, data_root, epoch, batch_size, num_views, use_face_corr, eval_all, transform_size=(112, 112),
-              final_crop=(112, 112)):
-    evaluate_and_log_mv(backbone, data_root, "test_rgb_bff_crop8", epoch, transform_size, final_crop, batch_size * 4,
-                        num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_vox2test_crop8", epoch, transform_size, final_crop, batch_size * 4,
-                        num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_vox2train_crop8", epoch, transform_size, final_crop, batch_size * 4,
-                        num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_nersemble8", epoch, transform_size, final_crop, batch_size * 4,
-                        num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_multipie_crop8", epoch, transform_size, final_crop, batch_size * 4,
-                        num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv(backbone, data_root, "test_multipie8", epoch, transform_size, final_crop, batch_size * 4,
-                        num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
-    evaluate_and_log_mv_verification(backbone, data_root, "test_ytf_crop8", epoch, transform_size, final_crop,
-                                     batch_size * 4, num_views, use_face_corr, disable_bar=True, eval_all=eval_all)
+    for embs, r_label, cont_labels, name in data_loader:
+        embs = embs.to(device)
+        total += cont_labels.size(0)
+
+        # ---- Ground truth in degrees ----
+        p_gt_deg = cont_labels[:, 0].float() * 180 / np.pi  # pitch
+        y_gt_deg = cont_labels[:, 1].float() * 180 / np.pi  # yaw
+
+        # ---- Model prediction (B, 2): [yaw, pitch] ----
+        pred = model(embs).cpu()
+        yaw_pred = pred[:, 0]*perspective_range[1]
+        pitch_pred = pred[:, 1]*perspective_range[1]
+
+        # ---- Angular error (cyclic) ----
+        pitch_error += torch.sum(torch.min(torch.stack([
+            torch.abs(p_gt_deg - pitch_pred),
+            torch.abs(pitch_pred + 360 - p_gt_deg),
+            torch.abs(pitch_pred - 360 - p_gt_deg),
+            torch.abs(pitch_pred + 180 - p_gt_deg),
+            torch.abs(pitch_pred - 180 - p_gt_deg)
+        ]), dim=0)[0])
+
+        yaw_error += torch.sum(torch.min(torch.stack([
+            torch.abs(y_gt_deg - yaw_pred),
+            torch.abs(yaw_pred + 360 - y_gt_deg),
+            torch.abs(yaw_pred - 360 - y_gt_deg),
+            torch.abs(yaw_pred + 180 - y_gt_deg),
+            torch.abs(yaw_pred - 180 - y_gt_deg)
+        ]), dim=0)[0])
+
+    print(colorstr('bright_green',
+        f'Yaw: {yaw_error / total:.4f} '
+        f'Pitch: {pitch_error / total:.4f} '
+        f'MAE: {(yaw_error + pitch_error) / (total * 2):.4f}'
+    ))
+
 
 
 def main(cfg):
@@ -56,8 +77,7 @@ def main(cfg):
     MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
     LOG_ROOT = cfg['LOG_ROOT']
 
-    PREDICTOR_NAME = cfg[
-        'PREDICTOR_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
+    PREDICTOR_NAME = cfg['PREDICTOR_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
 
     LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
@@ -71,7 +91,6 @@ def main(cfg):
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
-    STOPPING_CRITERION = cfg.get('STOPPING_CRITERION', 99.9)
 
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     GPU_ID = cfg['GPU_ID']  # specify your GPU ids
@@ -98,20 +117,20 @@ def main(cfg):
 
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
-
-        full_dataset = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET))
+        perspective_range = (-25,25)
+        full_dataset = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET), perspective_range=perspective_range)
         dataset_size = len(full_dataset)
         split = int(0.9 * dataset_size)
+        #train_dataset, val_dataset = torch.utils.data.random_split(
+        #    full_dataset,
+        #    [split, dataset_size - split],
+        #    generator=torch.Generator().manual_seed(SEED)
+        #)
 
-        # create a weighted random sampler to process imbalanced data
-        # weights = make_weights_for_balanced_classes(dataset_train.samples, len(dataset_train.classes))
-        # weights = torch.DoubleTensor(weights)
-        # sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, len(weights))
-
-        train_dataset, val_dataset = torch.utils.data.random_split(
+        train_dataset, val_dataset = split_with_shared_labels(
             full_dataset,
-            [split, dataset_size - split],
-            generator=torch.Generator().manual_seed(SEED)
+            val_ratio=0.1,
+            seed=SEED
         )
 
         print(f"Train samples: {len(train_dataset)} | Val samples: {len(val_dataset)}")
@@ -135,12 +154,11 @@ def main(cfg):
         )
 
         # ======= Predictor =======
-        predictor_dict = {'PoseAndFrontalizer': lambda: PoseAndFrontalizer(),
-                          "PoseFrontalizer": lambda: PoseFrontalizer()}
+        predictor_dict = {'EmbeddingHPE': lambda: EmbeddingHPE()}
 
         predictor = predictor_dict[PREDICTOR_NAME]()
         predictor.to(DEVICE)
-        model_stats_predictor = summary(predictor, (torch.randn(BATCH_SIZE, EMBEDDING_SIZE).to(DEVICE), torch.randn(BATCH_SIZE, 2).to(DEVICE)), verbose=0)
+        model_stats_predictor = summary(predictor, (BATCH_SIZE, EMBEDDING_SIZE), verbose=0)
         print(colorstr('magenta', str(model_stats_predictor)))
         print(colorstr('blue', f"{PREDICTOR_NAME} Backbone Generated"))
         print("=" * 60)
@@ -166,8 +184,44 @@ def main(cfg):
         # print("=" * 60)
 
         # ======= Validation =======
-        # eval_loop(predictor, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True, INPUT_SIZE, INPUT_SIZE)
-        # print("=" * 60)
+        # TODO INPUT Embeddings+ POSe Normalisieren
+        # TODO Output POSe Normalisieren
+        # TODO: MODEL optimieren kleiner?
+        # TODO YAW und PITCH GETRENNT mindetsens eval
+        # TODO: Mehrere Modelle testen.
+        # TODO echten Posendatensatz
+
+        print("#" * 60)
+        predictor.eval()
+        val_losses = AverageMeter()
+        val_losses_l1 = AverageMeter()
+        with torch.no_grad():
+            for embeddings, labels, scan_ids, ref_p, true_poses, path in tqdm(iter(val_loader)):
+                B, V, D = embeddings.shape
+                rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
+                embedding = embeddings[torch.arange(B), rand_idx].to(DEVICE)
+                true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE)
+                pred_pose = predictor(embedding)
+
+                loss = F.mse_loss(pred_pose, true_pose)
+                loss_l1 = F.l1_loss(pred_pose, true_pose)
+                val_losses.update(loss.item()*perspective_range[1], embeddings[0].size(0))
+                val_losses_l1.update(loss_l1.item()*perspective_range[1], embeddings[0].size(0))
+
+        print(colorstr('bright_green', f'Validation MSE-Loss {val_losses.avg:.4f}\t'
+                                       f'Validation MAE {val_losses_l1.avg:.4f}\t'))
+
+
+        aflw_dataset = AFLW2000EMB("C:\\Users\\Eduard\\Desktop\\Face\\dataset11\\AFLW2000-3D\\")
+        aflw_loader = torch.utils.data.DataLoader(
+            dataset=aflw_dataset,
+            batch_size=32,
+            num_workers=1,
+            pin_memory=True
+        )
+        evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
+        print("#" * 60)
+
 
         # ======= train & early stopping parameters=======
         DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc
@@ -179,15 +233,12 @@ def main(cfg):
         for epoch in range(0, NUM_EPOCH):
 
             if epoch in STAGES:
-                schedule_lr(OPTIMIZER)
+                schedule_lr(OPTIMIZER, factor=2)
 
             predictor.train()
 
             # =========== Train Loop ========
             losses = AverageMeter()
-            losses_hpe = AverageMeter()
-            losses_posenorm = AverageMeter()
-            default_pose_errors = AverageMeter()
             for step, (embeddings, labels, scan_ids, ref_p, true_poses, path) in enumerate(tqdm(iter(train_loader))):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
@@ -195,36 +246,12 @@ def main(cfg):
 
                 B, V, D = embeddings.shape
                 rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
-
                 embedding = embeddings[torch.arange(B), rand_idx].to(DEVICE)
+                true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE).type(torch.float32)
+                pred_pose = predictor(embedding)
 
-                frontal_idx = (true_poses[0] == torch.tensor([0, 0])).all(dim=1).nonzero(as_tuple=True)[0]
-                emb_frontal = embeddings[torch.arange(B), frontal_idx].to(DEVICE)
-
-                true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE)
-
-                #pred_pose, pred_emb_front = predictor(embedding)
-                pred_emb_front = predictor(embedding, true_pose)
-
-                #loss_hpe = F.smooth_l1_loss(pred_pose, true_pose)
-
-                pred_norm = F.normalize(pred_emb_front, dim=1)
-                front_norm = F.normalize(emb_frontal, dim=1)
-                loss_emb = 1 - F.cosine_similarity(pred_norm, front_norm, dim=1).mean()
-                default_pose_error = 1 - F.cosine_similarity(embedding, front_norm, dim=1).mean()
-
-                #loss_emb = F.mse_loss(pred_emb_front, emb_frontal)
-
-                #loss = loss_hpe + loss_emb
-                loss = loss_emb
-
-                losses.update(loss.item(), embeddings[0].size(0))
-
-                #losses_hpe.update(loss_hpe.item(), embeddings[0].size(0))
-                losses_posenorm.update(loss_emb.item(), embeddings[0].size(0))
-                default_pose_errors.update(default_pose_error.item(), embeddings[0].size(0))
-
-                # mlflow.log_metric('train_batch_loss', losses.val, step=batch)
+                loss = F.mse_loss(pred_pose, true_pose)
+                losses.update(loss.item()*perspective_range[1], embeddings[0].size(0))
 
                 OPTIMIZER.zero_grad()
                 loss.backward()
@@ -234,49 +261,35 @@ def main(cfg):
                     print("=" * 60)
                     print(colorstr('cyan',
                                    f'Epoch {epoch + 1}/{NUM_EPOCH} Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
-                                   f'Training Loss {losses.avg:.4f}\t'
-                                   f'Loss-HPE {losses_hpe.avg:.3f}\t'
-                                   f'Loss-PoseNorm {losses_posenorm.avg:.3f}\t'
-                                   f'Default-PoseError {default_pose_errors.avg:.3f}'))
+                                   f'Training MSE-Loss {losses.avg:.4f}\t'))
                     print("=" * 60)
                 batch += 1
 
             # ===== Validation =====
             predictor.eval()
             val_losses = AverageMeter()
-            val_default_pose_errors = AverageMeter()
+            val_losses_l1 = AverageMeter()
             with torch.no_grad():
-                for embeddings, labels, scan_ids, ref_p, true_poses, path in val_loader:
+                for embeddings, labels, scan_ids, ref_p, true_poses, path in tqdm(iter(val_loader)):
                     B, V, D = embeddings.shape
                     rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
-
                     embedding = embeddings[torch.arange(B), rand_idx].to(DEVICE)
-
-                    frontal_idx = (true_poses[0] == torch.tensor([0, 0])).all(dim=1).nonzero(as_tuple=True)[0]
-                    emb_frontal = embeddings[torch.arange(B), frontal_idx].to(DEVICE)
-
-                    # TODO: Learn not front but specific Random pose
                     true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE)
+                    pred_pose = predictor(embedding)
 
-                    pred_emb_front = predictor(embedding, true_pose)
+                    loss = F.mse_loss(pred_pose, true_pose)
+                    loss_l1 = F.l1_loss(pred_pose, true_pose)
+                    val_losses.update(loss.item()*perspective_range[1], embeddings[0].size(0))
+                    val_losses_l1.update(loss_l1.item()*perspective_range[1], embeddings[0].size(0))
 
-                    pred_norm = F.normalize(pred_emb_front, dim=1)
-                    front_norm = F.normalize(emb_frontal, dim=1)
-                    loss_emb = 1 - F.cosine_similarity(pred_norm, front_norm, dim=1).mean()
-
-                    default_pose_error_val = 1 - F.cosine_similarity(embedding, front_norm, dim=1).mean()
-                    val_default_pose_errors.update(default_pose_error_val.item())
-                    val_losses.update(loss_emb.item())
 
             mlflow.log_metric('train_loss', losses.avg, step=epoch + 1)
             print("#" * 60)
             print(colorstr('bright_green', f'Epoch: {epoch + 1}/{NUM_EPOCH}\t'
-                                           f'Training Loss {losses.avg:.4f}\t'
-                                           #f'Loss-HPE {losses_hpe.avg:.3f}\t'
-                                           #f'Loss-PoseNorm {losses_posenorm.avg:.3f}\t'
-                                           f'Train Default-PoseError {default_pose_errors.avg:.3f}\t'
-                                           f'Val Loss: {val_losses.avg:.4f}\t'
-                                           f'Val Default-PoseError {val_default_pose_errors.avg:.3f}\t'))
+                                           f'Training MSE-Loss {losses.avg:.4f}\t'
+                                           f'Validation MSE-Loss {val_losses.avg:.4f}\t'
+                                            f'Validation MAE {val_losses_l1.avg:.4f}\t'))
+            evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
             print("#" * 60)
 
 

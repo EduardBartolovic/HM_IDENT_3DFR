@@ -1,12 +1,12 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP_LOCAL_TEST_LF'  # experiment_name
-DATA_ROOT_PATH: 'dataset11'  # the parent root
-TRAIN_SET: 'rgb_bff_crop8_emb'  # where your train/val data are stored
+DATA_ROOT_PATH: 'dataset11_emb'  # the parent root
+TRAIN_SET: 'rgb_bff_crop8_emb-gcr18'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
-LOG_ROOT: 'F:\\Face\\log'  # the root to log your train/val status
-PREDICTOR_NAME: 'PoseFrontalizer'
+LOG_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\log'  # the root to log your train/val status
+PREDICTOR_NAME: 'EmbeddingHPE'
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 
 INPUT_SIZE: [112, 112]  # support: [112, 112] and [224, 224]
@@ -17,15 +17,15 @@ EMBEDDING_SIZE: 512  # feature dimension
 BATCH_SIZE: 16
 ACCUMULATION_STEPS: 1
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
-OPTIMIZER_NAME: SGD
-LR: 0.15  # initial LR
-NUM_EPOCH: 80  # total epoch number (use the first 1/25 epochs to warm up)
+OPTIMIZER_NAME: ADAMW
+LR: 0.0005  # initial LR
+NUM_EPOCH: 120  # total epoch number (use the first 1/25 epochs to warm up)
 PATIENCE: 100  # patience for early stopping
-WEIGHT_DECAY: 0.0005  # do not apply to batch_norm parameters
+WEIGHT_DECAY: 0.005  # do not apply to batch_norm parameters
 MOMENTUM: 0.3
-STAGES: [15, 25, 35]  # epoch stages to decay learning rate
+STAGES: [15, 35, 65, 80, 100]  # epoch stages to decay learning rate
 
 MULTI_GPU: false # flag to use multiple GPUs; if you choose to train with single GPU, you should first run "export CUDA_VISILE_DEVICES=device_id" to specify the GPU card you want to use
 GPU_ID: [0]  # specify your GPU ids
 PIN_MEMORY: true
-NUM_WORKERS: 8
+NUM_WORKERS: 1
