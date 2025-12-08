@@ -223,10 +223,6 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         # x shape: (views, dim)
         return x / (np.linalg.norm(x, axis=1, keepdims=True) + 1e-8)
 
-    def normalize_full(x):
-        # x shape: (dim,)
-        return x / (np.linalg.norm(x) + 1e-8)
-
     pair_list = []
     folds = []
     unique_sample_paths = set()
@@ -302,10 +298,6 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         if norm_vector == "view":
             emb1_reg = normalize_viewwise(emb1_reg)
             emb2_reg = normalize_viewwise(emb2_reg)
-
-        elif norm_vector == "full":
-            emb1_reg = normalize_full(emb1_reg)
-            emb2_reg = normalize_full(emb2_reg)
 
         # Multiview compute cosine similarity
         sim = np.dot(emb1_agg, emb2_agg) / (norm(emb1_agg) * norm(emb2_agg))

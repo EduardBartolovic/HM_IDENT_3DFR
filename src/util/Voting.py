@@ -232,11 +232,6 @@ def concat(embedding_library, disable_bar: bool, reduce_with="", norm_vector="vi
     enrolled_embedding = enrolled_embedding.transpose(1, 0, 2).reshape(enrolled_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
     query_embedding = query_embedding.transpose(1, 0, 2).reshape(query_embedding.shape[1], -1)  # (views, ids, 512) -> (ids, views*512)
 
-    # ---------- Apply normalization AFTER concat if "full" ----------
-    if norm_vector == "full":
-        enrolled_embedding = normalize_full(enrolled_embedding)
-        query_embedding = normalize_full(query_embedding)
-
     if reduce_with == "pca":
         if enrolled_embedding.shape[0] <= 512:
             return {}, None, None, None, None
