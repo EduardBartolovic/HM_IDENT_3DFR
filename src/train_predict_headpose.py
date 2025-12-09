@@ -115,7 +115,13 @@ def main(cfg):
     with mlflow.start_run(run_name=f"{RUN_NAME}_[{run_count + 1}]") as run:
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
-        perspective_range = (-35,35)
+
+        (min_pitch, max_pitch) = (-35,35)
+        (min_yaw, max_yaw) = (-45,45)
+        perspective_range = (min_yaw, max_yaw), (min_pitch, max_pitch)
+        yaw_scale = (max_yaw - min_yaw) / 2.0  # 90 / 2  = 45
+        pitch_scale = (max_pitch - min_pitch) / 2.0  # 70 / 2  = 35
+
         full_dataset = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET), perspective_range=perspective_range)
         dataset_size = len(full_dataset)
         split = int(0.9 * dataset_size)
@@ -197,18 +203,25 @@ def main(cfg):
             for embeddings, labels, scan_ids, ref_p, true_poses, path in tqdm(iter(val_loader)):
                 B, V, D = embeddings.shape
                 rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
+
                 embedding = embeddings[torch.arange(B), rand_idx].to(DEVICE)
                 true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE)
                 pred_pose = predictor(embedding)
 
+                # loss in normalized space
                 loss = F.mse_loss(pred_pose, true_pose)
                 loss_l1 = F.l1_loss(pred_pose, true_pose)
-                val_losses.update(loss.item()*perspective_range[1], embeddings[0].size(0))
-                val_losses_l1.update(loss_l1.item()*perspective_range[1], embeddings[0].size(0))
+
+                # rescale errors axis-wise
+                # normalized error is 2D: [yaw, pitch]
+                mse_unscaled = loss.item() * (yaw_scale ** 2 + pitch_scale ** 2) / 2
+                l1_unscaled = loss_l1.item() * (yaw_scale + pitch_scale) / 2
+
+                val_losses.update(mse_unscaled, embeddings[0].size(0))
+                val_losses_l1.update(l1_unscaled, embeddings[0].size(0))
 
         print(colorstr('bright_green', f'Validation MSE-Loss {val_losses.avg:.4f}\t'
                                        f'Validation MAE {val_losses_l1.avg:.4f}\t'))
-
 
         aflw_dataset = AFLW2000EMB("C:\\Users\\Eduard\\Desktop\\Face\\dataset11\\AFLW2000-3D\\")
         aflw_loader = torch.utils.data.DataLoader(
@@ -219,7 +232,6 @@ def main(cfg):
         )
         evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
         print("#" * 60)
-
 
         # ======= train & early stopping parameters=======
         DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc
@@ -239,17 +251,23 @@ def main(cfg):
             losses = AverageMeter()
             for step, (embeddings, labels, scan_ids, ref_p, true_poses, path) in enumerate(tqdm(iter(train_loader))):
 
-                if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
+                if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP):
                     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
 
                 B, V, D = embeddings.shape
                 rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
+
                 embedding = embeddings[torch.arange(B), rand_idx].to(DEVICE)
-                true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE).type(torch.float32)
+                true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE).float()
                 pred_pose = predictor(embedding)
 
+                # loss in normalized [-1,1] domain
                 loss = F.mse_loss(pred_pose, true_pose)
-                losses.update(loss.item()*perspective_range[1], embeddings[0].size(0))
+
+                # convert normalized-space loss back into degree-space
+                mse_unscaled = loss.item() * ((yaw_scale ** 2 + pitch_scale ** 2) / 2)
+
+                losses.update(mse_unscaled, embeddings[0].size(0))
 
                 OPTIMIZER.zero_grad()
                 loss.backward()
@@ -258,10 +276,10 @@ def main(cfg):
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     print("=" * 60)
                     print(colorstr('cyan',
-                                   f'Epoch {epoch + 1}/{NUM_EPOCH} Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
+                                   f'Epoch {epoch + 1}/{NUM_EPOCH} '
+                                   f'Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
                                    f'Training MSE-Loss {losses.avg:.4f}\t'))
                     print("=" * 60)
-                batch += 1
 
             # ===== Validation =====
             predictor.eval()
@@ -271,14 +289,22 @@ def main(cfg):
                 for embeddings, labels, scan_ids, ref_p, true_poses, path in tqdm(iter(val_loader)):
                     B, V, D = embeddings.shape
                     rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
+
                     embedding = embeddings[torch.arange(B), rand_idx].to(DEVICE)
                     true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE)
                     pred_pose = predictor(embedding)
 
+                    # loss in normalized space
                     loss = F.mse_loss(pred_pose, true_pose)
                     loss_l1 = F.l1_loss(pred_pose, true_pose)
-                    val_losses.update(loss.item()*perspective_range[1], embeddings[0].size(0))
-                    val_losses_l1.update(loss_l1.item()*perspective_range[1], embeddings[0].size(0))
+
+                    # rescale errors axis-wise
+                    # normalized error is 2D: [yaw, pitch]
+                    mse_unscaled = loss.item() * (yaw_scale ** 2 + pitch_scale ** 2) / 2
+                    l1_unscaled = loss_l1.item() * (yaw_scale + pitch_scale) / 2
+
+                    val_losses.update(mse_unscaled, embeddings[0].size(0))
+                    val_losses_l1.update(l1_unscaled, embeddings[0].size(0))
 
 
             mlflow.log_metric('train_loss', losses.avg, step=epoch + 1)
