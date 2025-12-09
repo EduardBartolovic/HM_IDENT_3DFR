@@ -71,8 +71,7 @@ def main(cfg):
     torch.manual_seed(SEED)
 
     RUN_NAME = cfg['RUN_NAME']
-    DATA_ROOT = os.path.join(os.getenv("DATA_ROOT"),
-                             cfg['DATA_ROOT_PATH'])  # the parent root where the datasets are stored
+    DATA_ROOT = os.path.join(os.getenv("DATA_ROOT"), cfg['DATA_ROOT_PATH'])  # the parent root where the datasets are stored
     TRAIN_SET = cfg['TRAIN_SET']
     MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
     LOG_ROOT = cfg['LOG_ROOT']
@@ -114,10 +113,9 @@ def main(cfg):
         run_count = 0
 
     with mlflow.start_run(run_name=f"{RUN_NAME}_[{run_count + 1}]") as run:
-
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
-        perspective_range = (-25,25)
+        perspective_range = (-35,35)
         full_dataset = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET), perspective_range=perspective_range)
         dataset_size = len(full_dataset)
         split = int(0.9 * dataset_size)
@@ -289,7 +287,7 @@ def main(cfg):
                                            f'Training MSE-Loss {losses.avg:.4f}\t'
                                            f'Validation MSE-Loss {val_losses.avg:.4f}\t'
                                             f'Validation MAE {val_losses_l1.avg:.4f}\t'))
-            evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
+            #evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
             print("#" * 60)
 
 

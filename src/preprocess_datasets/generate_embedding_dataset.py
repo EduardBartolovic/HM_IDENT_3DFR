@@ -8,12 +8,8 @@ from src.backbone.multiview_onnx import onnx_mv
 from src.backbone.multiview_timmfr import timm_mv
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.load_checkpoint import load_checkpoint
-from src.util.misc import colorstr
-from torchinfo import summary
 from tqdm import tqdm
 import os
-import yaml
-import argparse
 from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
