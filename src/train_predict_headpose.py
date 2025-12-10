@@ -66,6 +66,44 @@ def evaluate(model, data_loader, device, perspective_range):
 
 
 
+def validate(model, data_loader, device, perspective_range):
+    model.eval()
+
+    mse_meter = AverageMeter()
+    mae_meter = AverageMeter()
+    mae_pitch_meter = AverageMeter()
+    mae_yaw_meter = AverageMeter()
+
+    with torch.no_grad():
+        for embeddings, labels, scan_ids, true_poses, path in iter(data_loader):
+            B, V, D = embeddings.shape
+
+            rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
+            embedding = embeddings[torch.arange(B), rand_idx].to(device)
+            true_pose = true_poses[torch.arange(B), rand_idx].to(device).float()
+
+            pred_pose = model(embedding)
+
+            # --- Compute errors ---
+            mse = F.mse_loss(pred_pose, true_pose)
+            mae = F.l1_loss(pred_pose, true_pose)
+            pitch_mae = torch.mean(torch.abs(pred_pose[:, 0] - true_pose[:, 0]))
+            yaw_mae   = torch.mean(torch.abs(pred_pose[:, 1] - true_pose[:, 1]))
+
+            # --- Update meters ---
+            batch_size = embedding.size(0)
+            mse_meter.update(mse.item(), batch_size)
+            mae_meter.update(mae.item(), batch_size)
+            mae_pitch_meter.update(pitch_mae.item(), batch_size)
+            mae_yaw_meter.update(yaw_mae.item(), batch_size)
+
+    return {
+        "mse": mse_meter.avg,
+        "mae": mae_meter.avg,
+        "mae_pitch": mae_pitch_meter.avg,
+        "mae_yaw": mae_yaw_meter.avg
+    }
+
 def main(cfg):
     SEED = cfg['SEED']
     torch.manual_seed(SEED)
@@ -115,14 +153,7 @@ def main(cfg):
     with mlflow.start_run(run_name=f"{RUN_NAME}_[{run_count + 1}]") as run:
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
-
-        (min_pitch, max_pitch) = (-35,35)
-        (min_yaw, max_yaw) = (-45,45)
-        perspective_range = (min_yaw, max_yaw), (min_pitch, max_pitch)
-        yaw_scale = (max_yaw - min_yaw) / 2.0  # 90 / 2  = 45
-        pitch_scale = (max_pitch - min_pitch) / 2.0  # 70 / 2  = 35
-
-        full_dataset = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET), perspective_range=perspective_range)
+        full_dataset = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET))
         dataset_size = len(full_dataset)
         split = int(0.9 * dataset_size)
         #train_dataset, val_dataset = torch.utils.data.random_split(
@@ -175,7 +206,6 @@ def main(cfg):
             mlflow.log_artifacts(str(tmp_dir), artifact_path="ModelSummary")
 
         # ======= Optimizer Settings =======
-
         params_list = [{'params': predictor.parameters(), 'weight_decay': WEIGHT_DECAY}]
         OPTIMIZER_DICT = {'SGD': lambda: optim.SGD(params_list, lr=LR, momentum=MOMENTUM),
                           'ADAM': lambda: optim.Adam(params_list, lr=LR),
@@ -189,57 +219,44 @@ def main(cfg):
 
         # ======= Validation =======
         # TODO INPUT Embeddings+ POSe Normalisieren
-        # TODO Output POSe Normalisieren
-        # TODO: MODEL optimieren kleiner?
         # TODO YAW und PITCH GETRENNT mindetsens eval
         # TODO: Mehrere Modelle testen.
         # TODO echten Posendatensatz
 
         print("#" * 60)
         predictor.eval()
-        val_losses = AverageMeter()
-        val_losses_l1 = AverageMeter()
-        with torch.no_grad():
-            for embeddings, labels, scan_ids, ref_p, true_poses, path in tqdm(iter(val_loader)):
-                B, V, D = embeddings.shape
-                rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
+        val_metrics = validate(predictor, val_loader, DEVICE, perspective_range)
 
-                embedding = embeddings[torch.arange(B), rand_idx].to(DEVICE)
-                true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE)
-                pred_pose = predictor(embedding)
+        mlflow.log_metric('val_mse', val_metrics["mse"], step=0)
+        mlflow.log_metric('val_mae', val_metrics["mae"], step=0)
+        mlflow.log_metric('val_mae_pitch', val_metrics["mae_pitch"], step=0)
+        mlflow.log_metric('val_mae_yaw', val_metrics["mae_yaw"], step=0)
 
-                # loss in normalized space
-                loss = F.mse_loss(pred_pose, true_pose)
-                loss_l1 = F.l1_loss(pred_pose, true_pose)
+        print(colorstr(
+            'bright_green',
+            f'Epoch 0 /{NUM_EPOCH} | '
+            f'MSE: {val_metrics["mse"]:.4f} | '
+            f'MAE: {val_metrics["mae"]:.4f} | '
+            f'Pitch MAE: {val_metrics["mae_pitch"]:.4f} | '
+            f'Yaw MAE: {val_metrics["mae_yaw"]:.4f}'
+        ))
 
-                # rescale errors axis-wise
-                # normalized error is 2D: [yaw, pitch]
-                mse_unscaled = loss.item() * (yaw_scale ** 2 + pitch_scale ** 2) / 2
-                l1_unscaled = loss_l1.item() * (yaw_scale + pitch_scale) / 2
-
-                val_losses.update(mse_unscaled, embeddings[0].size(0))
-                val_losses_l1.update(l1_unscaled, embeddings[0].size(0))
-
-        print(colorstr('bright_green', f'Validation MSE-Loss {val_losses.avg:.4f}\t'
-                                       f'Validation MAE {val_losses_l1.avg:.4f}\t'))
-
-        aflw_dataset = AFLW2000EMB("C:\\Users\\Eduard\\Desktop\\Face\\dataset11\\AFLW2000-3D\\")
-        aflw_loader = torch.utils.data.DataLoader(
-            dataset=aflw_dataset,
-            batch_size=32,
-            num_workers=1,
-            pin_memory=True
-        )
-        evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
+        #aflw_dataset = AFLW2000EMB("C:\\Users\\Eduard\\Desktop\\Face\\dataset11\\AFLW2000-3D\\")
+        #aflw_loader = torch.utils.data.DataLoader(
+        #    dataset=aflw_dataset,
+        #    batch_size=32,
+        #    num_workers=1,
+        #    pin_memory=True
+        #)
+        #evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
         print("#" * 60)
+
 
         # ======= train & early stopping parameters=======
         DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc
         NUM_EPOCH_WARM_UP = NUM_EPOCH // 25  # use the first 1/25 epochs to warm up
         NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP  # use the first 1/25 epochs to warm up
         batch = 0  # batch index
-        best_acc = 0  # Initial best value
-        counter = 0  # Counter for epochs without improvement
         for epoch in range(0, NUM_EPOCH):
 
             if epoch in STAGES:
@@ -249,25 +266,19 @@ def main(cfg):
 
             # =========== Train Loop ========
             losses = AverageMeter()
-            for step, (embeddings, labels, scan_ids, ref_p, true_poses, path) in enumerate(tqdm(iter(train_loader))):
+            for step, (embeddings, labels, scan_ids, true_poses, path) in enumerate(tqdm(iter(train_loader))):
 
-                if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP):
+                if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
                     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)
 
                 B, V, D = embeddings.shape
                 rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
-
                 embedding = embeddings[torch.arange(B), rand_idx].to(DEVICE)
-                true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE).float()
+                true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE).type(torch.float32)
                 pred_pose = predictor(embedding)
 
-                # loss in normalized [-1,1] domain
                 loss = F.mse_loss(pred_pose, true_pose)
-
-                # convert normalized-space loss back into degree-space
-                mse_unscaled = loss.item() * ((yaw_scale ** 2 + pitch_scale ** 2) / 2)
-
-                losses.update(mse_unscaled, embeddings[0].size(0))
+                losses.update(loss.item()*perspective_range[1], embeddings[0].size(0))
 
                 OPTIMIZER.zero_grad()
                 loss.backward()
@@ -276,63 +287,31 @@ def main(cfg):
                 if ((batch + 1) % DISP_FREQ == 0) and batch != 0:
                     print("=" * 60)
                     print(colorstr('cyan',
-                                   f'Epoch {epoch + 1}/{NUM_EPOCH} '
-                                   f'Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
+                                   f'Epoch {epoch + 1}/{NUM_EPOCH} Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
                                    f'Training MSE-Loss {losses.avg:.4f}\t'))
                     print("=" * 60)
+                batch += 1
 
             # ===== Validation =====
             predictor.eval()
-            val_losses = AverageMeter()
-            val_losses_l1 = AverageMeter()
-            with torch.no_grad():
-                for embeddings, labels, scan_ids, ref_p, true_poses, path in tqdm(iter(val_loader)):
-                    B, V, D = embeddings.shape
-                    rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
+            val_metrics = validate(predictor, val_loader, DEVICE, perspective_range)
 
-                    embedding = embeddings[torch.arange(B), rand_idx].to(DEVICE)
-                    true_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE)
-                    pred_pose = predictor(embedding)
+            mlflow.log_metric('val_mse', val_metrics["mse"], step=epoch + 1)
+            mlflow.log_metric('val_mae', val_metrics["mae"], step=epoch + 1)
+            mlflow.log_metric('val_mae_pitch', val_metrics["mae_pitch"], step=epoch + 1)
+            mlflow.log_metric('val_mae_yaw', val_metrics["mae_yaw"], step=epoch + 1)
 
-                    # loss in normalized space
-                    loss = F.mse_loss(pred_pose, true_pose)
-                    loss_l1 = F.l1_loss(pred_pose, true_pose)
-
-                    # rescale errors axis-wise
-                    # normalized error is 2D: [yaw, pitch]
-                    mse_unscaled = loss.item() * (yaw_scale ** 2 + pitch_scale ** 2) / 2
-                    l1_unscaled = loss_l1.item() * (yaw_scale + pitch_scale) / 2
-
-                    val_losses.update(mse_unscaled, embeddings[0].size(0))
-                    val_losses_l1.update(l1_unscaled, embeddings[0].size(0))
-
-
-            mlflow.log_metric('train_loss', losses.avg, step=epoch + 1)
-            print("#" * 60)
-            print(colorstr('bright_green', f'Epoch: {epoch + 1}/{NUM_EPOCH}\t'
-                                           f'Training MSE-Loss {losses.avg:.4f}\t'
-                                           f'Validation MSE-Loss {val_losses.avg:.4f}\t'
-                                            f'Validation MAE {val_losses_l1.avg:.4f}\t'))
+            print(colorstr(
+                'bright_green',
+                f'Epoch {epoch + 1}/{NUM_EPOCH} | '
+                f'Training MSE-Loss {losses.avg:.4f}\t'
+                f'Validation MSE-Loss: {val_metrics["mse"]:.4f} | '
+                f'Validation MAE: {val_metrics["mae"]:.4f} | '
+                f'Validation Pitch MAE: {val_metrics["mae_pitch"]:.4f} | '
+                f'Validation Yaw MAE: {val_metrics["mae_yaw"]:.4f}'
+            ))
             #evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
             print("#" * 60)
-
-
-
-            #if top1.avg > best_acc:  # Early stopping check
-            #    best_acc = top1.avg
-            #    counter = 0
-            #elif top1.avg > STOPPING_CRITERION and epoch > UNFREEZE_AGG_EPOCH:
-            #    print(colorstr('red', "=" * 60))
-            #    print(colorstr('red', f"======== Training Prec@1 reached > {STOPPING_CRITERION} -> Finishing ========"))
-            #    print(colorstr('red', "=" * 60))
-            #    break
-            #else:
-            #    counter += 1
-            #    if counter >= PATIENCE:
-            #        print(colorstr('red', "=" * 60))
-            #        print(colorstr('red', " ======== Early stopping triggered ======== "))
-            #        print(colorstr('red', "=" * 60))
-            #        break
 
             time.sleep(0.2)
 

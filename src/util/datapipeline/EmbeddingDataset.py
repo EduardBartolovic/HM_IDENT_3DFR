@@ -6,7 +6,7 @@ from collections import defaultdict
 
 class EmbeddingDataset(Dataset):
 
-    def __init__(self, root_dir, perspective_range=None):
+    def __init__(self, root_dir):
         self.root_dir = root_dir
 
         self.samples = []
@@ -37,44 +37,10 @@ class EmbeddingDataset(Dataset):
                 label = int(data["label"])
                 scan_id = str(data["scan_id"])
 
-                ref_p = convert_list(data["ref_perspective"].tolist())
                 true_p = convert_list(data["true_perspective"].tolist())
 
-                # ==============================================
-                # Normalize angles if requested
-                # ==============================================
-                if perspective_range is not None:
-                    # expects: perspective_range = ((min_yaw, max_yaw), (min_pitch, max_pitch))
-                    (min_yaw, max_yaw), (min_pitch, max_pitch) = perspective_range
-
-                    # normalize yaw
-                    yaw_range = max_yaw - min_yaw
-                    if yaw_range == 0:
-                        raise ValueError("Yaw min/max cannot be equal.")
-
-                    ref_yaw = (ref_p[:, 1] - min_yaw) / yaw_range
-                    true_yaw = (true_p[:, 1] - min_yaw) / yaw_range
-
-                    # normalize pitch
-                    pitch_range = max_pitch - min_pitch
-                    if pitch_range == 0:
-                        raise ValueError("Pitch min/max cannot be equal.")
-
-                    ref_pitch = (ref_p[:, 0] - min_pitch) / pitch_range
-                    true_pitch = (true_p[:, 0] - min_pitch) / pitch_range
-
-                    # scale both to [-1, 1]
-                    ref_yaw = ref_yaw * 2 - 1
-                    ref_pitch = ref_pitch * 2 - 1
-                    true_yaw = true_yaw * 2 - 1
-                    true_pitch = true_pitch * 2 - 1
-
-                    # reassemble tensors
-                    ref_p = torch.stack([ref_yaw, ref_pitch], dim=1)
-                    true_p = torch.stack([true_yaw, true_pitch], dim=1)
-
                 self.samples.append(
-                    (emb, label, scan_id, ref_p, true_p, path)
+                    (emb, label, scan_id, true_p, path)
                 )
 
     def __len__(self):
@@ -83,9 +49,6 @@ class EmbeddingDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.samples[idx]
         return sample
-
-
-
 
 
 def split_with_shared_labels(dataset, val_ratio=0.2, seed=42):
