@@ -65,8 +65,17 @@ def evaluate(model, data_loader, device, perspective_range):
     ))
 
 
+# aflw_dataset = AFLW2000EMB("C:\\Users\\Eduard\\Desktop\\Face\\dataset11\\AFLW2000-3D\\")
+# aflw_loader = torch.utils.data.DataLoader(
+#    dataset=aflw_dataset,
+#    batch_size=32,
+#    num_workers=1,
+#    pin_memory=True
+# )
+# evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
 
-def validate(model, data_loader, device, perspective_range):
+
+def validate(model, data_loader, device):
     model.eval()
 
     mse_meter = AverageMeter()
@@ -174,6 +183,8 @@ def main(cfg):
             train_dataset,
             batch_size=BATCH_SIZE,
             pin_memory=PIN_MEMORY,
+            prefetch_factor=4,
+            persistent_workers=True,
             num_workers=NUM_WORKERS,
             drop_last=DROP_LAST,
             shuffle=True
@@ -184,6 +195,8 @@ def main(cfg):
             batch_size=BATCH_SIZE,
             pin_memory=PIN_MEMORY,
             num_workers=NUM_WORKERS,
+            prefetch_factor=4,
+            persistent_workers=True,
             drop_last=False,
             shuffle=False
         )
@@ -218,14 +231,13 @@ def main(cfg):
         # print("=" * 60)
 
         # ======= Validation =======
-        # TODO INPUT Embeddings+ POSe Normalisieren
+        # TODO INPUT Embeddings+ POSE Normalisieren
         # TODO YAW und PITCH GETRENNT mindetsens eval
-        # TODO: Mehrere Modelle testen.
+        # TODO: Mehrere Embedding Modelle testen.
         # TODO echten Posendatensatz
 
         print("#" * 60)
-        predictor.eval()
-        val_metrics = validate(predictor, val_loader, DEVICE, perspective_range)
+        val_metrics = validate(predictor, val_loader, DEVICE)
 
         mlflow.log_metric('val_mse', val_metrics["mse"], step=0)
         mlflow.log_metric('val_mae', val_metrics["mae"], step=0)
@@ -241,14 +253,6 @@ def main(cfg):
             f'Yaw MAE: {val_metrics["mae_yaw"]:.4f}'
         ))
 
-        #aflw_dataset = AFLW2000EMB("C:\\Users\\Eduard\\Desktop\\Face\\dataset11\\AFLW2000-3D\\")
-        #aflw_loader = torch.utils.data.DataLoader(
-        #    dataset=aflw_dataset,
-        #    batch_size=32,
-        #    num_workers=1,
-        #    pin_memory=True
-        #)
-        #evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
         print("#" * 60)
 
 
@@ -278,7 +282,7 @@ def main(cfg):
                 pred_pose = predictor(embedding)
 
                 loss = F.mse_loss(pred_pose, true_pose)
-                losses.update(loss.item()*perspective_range[1], embeddings[0].size(0))
+                losses.update(loss.item(), BATCH_SIZE)
 
                 OPTIMIZER.zero_grad()
                 loss.backward()
@@ -293,9 +297,10 @@ def main(cfg):
                 batch += 1
 
             # ===== Validation =====
-            predictor.eval()
-            val_metrics = validate(predictor, val_loader, DEVICE, perspective_range)
+            val_metrics = validate(predictor, val_loader, DEVICE)
 
+            # ===== Logging =====
+            mlflow.log_metric('train_mse', losses.avg, step=epoch + 1)
             mlflow.log_metric('val_mse', val_metrics["mse"], step=epoch + 1)
             mlflow.log_metric('val_mae', val_metrics["mae"], step=epoch + 1)
             mlflow.log_metric('val_mae_pitch', val_metrics["mae_pitch"], step=epoch + 1)
@@ -304,13 +309,12 @@ def main(cfg):
             print(colorstr(
                 'bright_green',
                 f'Epoch {epoch + 1}/{NUM_EPOCH} | '
-                f'Training MSE-Loss {losses.avg:.4f}\t'
+                f'Training MSE-Loss {losses.avg:.4f} | '
                 f'Validation MSE-Loss: {val_metrics["mse"]:.4f} | '
                 f'Validation MAE: {val_metrics["mae"]:.4f} | '
                 f'Validation Pitch MAE: {val_metrics["mae_pitch"]:.4f} | '
                 f'Validation Yaw MAE: {val_metrics["mae_yaw"]:.4f}'
             ))
-            #evaluate(model=predictor, data_loader=aflw_loader, device=DEVICE, perspective_range=perspective_range)
             print("#" * 60)
 
             time.sleep(0.2)
