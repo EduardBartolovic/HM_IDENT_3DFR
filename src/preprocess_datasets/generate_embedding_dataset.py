@@ -72,8 +72,8 @@ def main(cfg):
                      'TIMM_MV': lambda: timm_mv(DEVICE, aggregators, EMBEDDING_SIZE),
                      'ONNX_MV': lambda: onnx_mv(DEVICE, BACKBONE_RESUME_ROOT)}
     BACKBONE = BACKBONE_DICT[BACKBONE_NAME]()
-    #BACKBONE.backbone_reg.to(DEVICE)
-    #BACKBONE.backbone_agg.to(DEVICE)
+    BACKBONE.backbone_reg.to(DEVICE)
+    BACKBONE.backbone_agg.to(DEVICE)
     #model_stats_backbone = summary(BACKBONE.backbone_reg, (BATCH_SIZE, 3, INPUT_SIZE[0], INPUT_SIZE[1]), verbose=0)
     #print(colorstr('magenta', str(model_stats_backbone)))
     #print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
@@ -117,14 +117,15 @@ def main(cfg):
 
 if __name__ == '__main__':
     cfg_yaml = {}
-    cfg_yaml['DATA_ROOT_PATH'] = "C:\\Users\\Eduard\\Desktop\\Face\\dataset11\\"
-    cfg_yaml["TRAIN_SET"] = "rgb_bff_crop8"
-    cfg_yaml['BACKBONE_RESUME_PATH'] = "C:\\Users\\Eduard\\Desktop\\Face\\HM_IDENT_3DFR\\pretrained\\aurafacer100.onnx"
-    cfg_yaml['BACKBONE_NAME'] = "ONNX_MV"
+    cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset13\\"
+    cfg_yaml["TRAIN_SET"] = "rgb_bff_crop187"
+    cfg_yaml['BACKBONE_RESUME_PATH'] = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\glint_cosface_r18_fp16.pth"
+    cfg_yaml['BACKBONE_NAME'] = "IR_MV_V2_18" #"ONNX_MV"
 
     cfg_yaml['INPUT_SIZE'] = [112, 112]
-    cfg_yaml['NUM_VIEWS'] = 8  # Number of views
+    cfg_yaml['NUM_VIEWS'] = 187  # Number of views
 
-    cfg_yaml['OUT'] = "C:\\Users\\Eduard\\Desktop\\Face\\dataset11_emb\\" + cfg_yaml["TRAIN_SET"] + "_emb-aurar100"
+    cfg_yaml['OUT'] = "F:\\Face\\data\\dataset13_emb\\" + cfg_yaml["TRAIN_SET"] + "_emb-irseglintr18"
+    #cfg_yaml['OUT'] = "H:\\Sync\\Uni\\dataset13_emb\\" + cfg_yaml["TRAIN_SET"] + "_emb-irseglintr18"
 
     main(cfg_yaml)
