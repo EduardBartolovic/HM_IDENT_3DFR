@@ -104,7 +104,7 @@ def generate_rotation_matrices_cross_x_y():
                 np.eye(3)  # y=0 => identity rotation around y
             )
         )
-        for x in range(-35, 36, 2)
+        for x in range(-35, 36, 1)
     ]
     # horizontal line
     horizontal = [
@@ -120,7 +120,7 @@ def generate_rotation_matrices_cross_x_y():
                 ])
             )
         )
-        for y in range(-45, 46, 2)
+        for y in range(-45, 46, 1)
     ]
 
     return vertical + horizontal
@@ -160,7 +160,7 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None):
         render_angles = [-10, 0, 10]
 
     file_abspath = headscan['obj_file_path']
-    rotation_matrices = generate_rotation_matrices_cross_x_y() #generate_rotation_matrices(render_angles)
+    rotation_matrices = generate_rotation_matrices_cross_x_y() + generate_rotation_matrices(render_angles)
 
     render_jobs = []
     for rotation_m in rotation_matrices:
@@ -181,7 +181,7 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None):
         img_path = os.path.join(folder, fn + "_image.jpg")
         depth_path = os.path.join(folder, fn + "_depth.jpg")
 
-        if not (os.path.exists(img_path) and os.path.exists(depth_path)):
+        if not os.path.exists(img_path): # and os.path.exists(depth_path)):
             render_jobs.append((rotation_m[0], rotation_m[1], rotation_m[2], folder, img_path, depth_path))
 
     if len(render_jobs) == 0:

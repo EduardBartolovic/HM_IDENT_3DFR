@@ -100,6 +100,18 @@ def prepare_dataset_rgb(input_path, output_dir, mode=''):
     os.makedirs(train_dir, exist_ok=True)
     os.makedirs(val_dir, exist_ok=True)
 
+    # Count files per scan_set first and warn if num_files is provided and mismatched
+    if num_files is not None:
+        scan_set_count = {}
+        for p in file_paths:
+            parts = Path(p).parts
+            scan_set = parts[-2] + parts[-3]
+            scan_set_count[scan_set] = scan_set_count.get(scan_set, 0) + 1
+
+        for scan, count in scan_set_count.items():
+            if count != num_files:
+                warnings.warn(f"Scan set '{scan}' has {count} files, expected {num_files}.", UserWarning)
+
     model_cache = []
     set_cache = []
 
@@ -555,11 +567,8 @@ def sanity_check(dir_path):
 
         input_size = [112, 112]
         test_transform = transforms.Compose([
-            # refer to https://pytorch.org/docs/stable/torchvision/transforms.html for more build-in online data augmentation
-            transforms.Resize([int(128 * input_size[0] / 112), int(128 * input_size[0] / 112)]),  # smaller side resized
             transforms.CenterCrop([input_size[0], input_size[1]]),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
 
         dataset_path = os.path.join(dir_path, dataset)
