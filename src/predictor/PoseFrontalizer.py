@@ -1,30 +1,23 @@
-import torch
 import torch.nn as nn
 
 
 class PoseFrontalizer(nn.Module):
-    def __init__(self, emb_dim=512, pose_dim=2, hidden_dim=256, out_emb_dim=512):
+    def __init__(self, embedding_dim=512):
         super().__init__()
 
-        self.mlp = nn.Sequential(
-            nn.Linear(emb_dim + pose_dim, hidden_dim),
+        self.net = nn.Sequential(
+            nn.Linear(embedding_dim, 512),
             nn.ReLU(inplace=True),
-            nn.Linear(hidden_dim, hidden_dim),
+            #nn.Dropout(0.05),
+
+            nn.Linear(512, 512),
             nn.ReLU(inplace=True),
-            nn.Linear(hidden_dim, out_emb_dim)
+
+            nn.Linear(512, embedding_dim)
         )
 
-        self.normalize = True
-        self.max_angle = 25
-
-    def forward(self, emb, headpose):
-        # allow headpose to be long (like angle bins)
-        headpose = headpose.float()
-
-        if self.normalize:
-            headpose /= self.max_angle
-
-        fused = torch.cat([emb, headpose], dim=1)
-        return self.mlp(fused)
+    def forward(self, x):
+        x = self.net(x)
+        return x
 
 
