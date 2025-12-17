@@ -63,7 +63,7 @@ class MultiviewDataset(Dataset):
                 if len(file_paths) == self.num_views:
                     data.append((sorted(file_paths, key=_sort_key), class_idx))  # Sort the data so perspectives are always at the same position
                 else:
-                    raise ValueError(f"Incorrect number of views ({len(file_paths)}), expected {self.num_views}: {file_paths}")
+                    raise ValueError(f"Incorrect number of views ({len(file_paths)}), expected {self.num_views}: {file_paths[:10]}")
 
         if not self.use_face_corr:  # When use_face_corr is deactivated then ignore face_corr
             self.face_cor_exist = False

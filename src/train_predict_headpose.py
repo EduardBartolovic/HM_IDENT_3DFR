@@ -231,11 +231,6 @@ def main(cfg):
         # print("=" * 60)
 
         # ======= Validation =======
-        # TODO INPUT Embeddings+ POSE Normalisieren
-        # TODO YAW und PITCH GETRENNT mindetsens eval
-        # TODO: Mehrere Embedding Modelle testen.
-        # TODO echten Posendatensatz
-
         print("#" * 60)
         val_metrics = validate(predictor, val_loader, DEVICE)
 
