@@ -1,15 +1,16 @@
+import itertools
 import time
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from copy import deepcopy
 
+import random
 import numpy as np
 import torch
 import os
-import yaml
-import argparse
 from dotenv import load_dotenv
 from tqdm import tqdm
 
+from src.preprocess_datasets.rendering.Facerender import generate_rotation_matrices_cross_x_y, generate_rotation_matrices
 from src.util.Voting import accuracy_front_perspective, concat, score_fusion
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.misc import colorstr, smart_round, bold, underscore
@@ -26,58 +27,56 @@ def get_embeddings_mv(enrolled_loader, query_loader, disable_bar=False):
     enrolled_scan_ids = []
     enrolled_perspectives = 0
     enrolled_true_perspectives = []
-    for embeddings, labels, perspectives, true_perspectives, face_corr, scan_id in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
-
-        enrolled_embeddings_reg.append(np.stack([t.cpu().numpy() for t in embeddings]))
+    for embeddings, labels, scan_id, true_perspectives, path in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
+        enrolled_embeddings_reg.append(embeddings.permute(1, 0, 2))
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         enrolled_scan_ids.extend(deepcopy(scan_id))
-        enrolled_perspectives = np.array(perspectives).T[0]
+        #enrolled_perspectives = np.array(perspectives).T[0]
         enrolled_true_perspectives.append(np.array(deepcopy(true_perspectives)).T)
 
     enrolled_embeddings_reg = np.concatenate(enrolled_embeddings_reg, axis=1)
     enrolled_labels = np.array([t.item() for t in enrolled_labels])
     enrolled_scan_ids = np.array(enrolled_scan_ids)
-    enrolled_perspectives = np.array(enrolled_perspectives)
+    #enrolled_perspectives = np.array(enrolled_perspectives)
     enrolled_true_perspectives = np.concatenate(enrolled_true_perspectives, axis=0)
 
-    if query_loader is None:
-        Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives","enrolled_true_perspectives"])
-        return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives, enrolled_true_perspectives)
+    #if query_loader is None:
+    #    Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives","enrolled_true_perspectives"])
+    #    return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives, enrolled_true_perspectives)
 
     query_embeddings_reg = []
     query_labels = []
     query_scan_ids = []
     query_perspectives = 0
     query_true_perspectives = []
-    for embeddings, labels, perspectives, true_perspectives, face_corr, scan_id in tqdm(iter(query_loader), disable=disable_bar, desc="Generate Query Embeddings"):
-        query_embeddings_reg.append(np.stack([t.cpu().numpy() for t in embeddings]))
+    for embeddings, labels, scan_id, true_perspectives, path in tqdm(iter(query_loader), disable=disable_bar, desc="Generate Query Embeddings"):
+        query_embeddings_reg.append(embeddings.permute(1, 0, 2))
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         query_scan_ids.extend(deepcopy(scan_id))
-        query_perspectives = np.array(perspectives).T[0]
+        #query_perspectives = np.array(perspectives).T[0]
         query_true_perspectives.append(np.array(deepcopy(true_perspectives)).T)
 
     query_embeddings_reg = np.concatenate(query_embeddings_reg, axis=1)
     query_labels = np.array([t.item() for t in query_labels])
     query_scan_ids = np.array(query_scan_ids)
-    query_perspectives = np.array(query_perspectives)
+    #query_perspectives = np.array(query_perspectives)
     query_true_perspectives = np.concatenate(query_true_perspectives, axis=0)
 
-    Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives", "enrolled_true_perspectives", "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives", "query_true_perspectives"])
-    return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives, enrolled_true_perspectives, query_embeddings_reg, query_labels, query_scan_ids, query_perspectives, query_true_perspectives)
+    Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives", "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives"])
+    return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_true_perspectives, query_embeddings_reg, query_labels, query_scan_ids, query_true_perspectives)
 
 
-def evaluate_mv_emb_1_n(test_path, batch_size, disable_bar: bool):
+def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = True):
     """
     Evaluate 1:N Model Performance on given test dataset
     """
-    dataset_name = os.path.basename(test_path)
     dataset_enrolled_path = os.path.join(test_path, 'enrolled')
     dataset_query_path = os.path.join(test_path, 'query')
 
-    dataset_enrolled = EmbeddingDataset(dataset_enrolled_path)
+    dataset_enrolled = EmbeddingDataset(dataset_enrolled_path, views, perspective_as_string=True)
     enrolled_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
 
-    dataset_query = EmbeddingDataset(dataset_query_path)
+    dataset_query = EmbeddingDataset(dataset_query_path, views, perspective_as_string=True)
     query_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
 
     if len(dataset_enrolled.classes) != len(dataset_enrolled):
@@ -150,17 +149,17 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     rank_1_front = smart_round(all_metrics["metrics_front"].get('Rank-1 Rate', 'N/A'))
     rank_5_front = smart_round(all_metrics["metrics_front"].get('Rank-5 Rate', 'N/A'))
     mrr_front = smart_round(all_metrics["metrics_front"].get('MRR', 'N/A'))
-    gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A')*100)
+    #gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A')*100)
 
     rank_1_concat = smart_round(all_metrics["metrics_concat"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat = smart_round(all_metrics["metrics_concat"].get('Rank-5 Rate', 'N/A'))
     mrr_concat = smart_round(all_metrics["metrics_concat"].get('MRR', 'N/A'))
-    gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A')*100)
+    #gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A')*100)
 
     rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-5 Rate', 'N/A'))
     mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
-    gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A')*100)
+    #gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A')*100)
 
     rank_1_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-5 Rate', 'N/A'))
@@ -171,94 +170,153 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     #mrr_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('MRR', 'N/A'))
 
     mrr_score_max = smart_round(all_metrics["metrics_score_max"].get('MRR', 'N/A'))
-    gbig_score_max = smart_round(all_metrics["emb_dist_score_max"].get('gbig', 'N/A')*100)
+    #gbig_score_max = smart_round(all_metrics["emb_dist_score_max"].get('gbig', 'N/A')*100)
 
     mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
-    gbig_score_prod = smart_round(all_metrics["emb_dist_score_product"].get('gbig', 'N/A')*100)
+    #gbig_score_prod = smart_round(all_metrics["emb_dist_score_product"].get('gbig', 'N/A')*100)
 
     mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
-    gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A')*100)
+    #gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A')*100)
 
     mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
-    gbig_score_majority = smart_round(all_metrics["emb_dist_score_majority"].get('gbig', 'N/A')*100)
+    #gbig_score_majority = smart_round(all_metrics["emb_dist_score_majority"].get('gbig', 'N/A')*100)
 
     # mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
     string = (
         colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
-        f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} {bold('GBIG')}: {underscore(gbig_front)} | "# {bold('GAIG')}: {underscore(gaig_front)} | "
-        f"{bold('Concat RR1')}: {rank_1_concat} {bold('MRR')}: {underscore(mrr_concat)} {bold('GBIG')}: {underscore(gbig_concat)} | "# {bold('GAIG')}: {underscore(gaig_concat)} | "
-        f"{bold('Concat_Mean RR1')}: {rank_1_concat_mean} {bold('MRR')}: {underscore(mrr_concat_mean)} {bold('GBIG')}: {underscore(gbig_concat_mean)} | "
+        f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} | "# {bold('GAIG')}: {underscore(gaig_front)} | "
+        f"{bold('Concat RR1')}: {rank_1_concat} {bold('MRR')}: {underscore(mrr_concat)} | "# {bold('GAIG')}: {underscore(gaig_concat)} | "
+        f"{bold('Concat_Mean RR1')}: {rank_1_concat_mean} {bold('MRR')}: {underscore(mrr_concat_mean)} | "
         f"{bold('Concat_Median RR1')}: {rank_1_concat_median} {bold('MRR')}: {underscore(mrr_concat_median)} | "
         #f"{bold('Concat_PCA RR1')}: {rank_1_concat_pca} {bold('MRR')}: {underscore(mrr_concat_pca)} | "
-        f"{bold('Score_prod MRR')}: {underscore(mrr_score_prod)} {bold('GBIG')}: {underscore(gbig_score_prod)} | "
-        f"{bold('Score_mean MRR')}: {underscore(mrr_score_mean)} {bold('GBIG')}: {underscore(gbig_score_mean)} | "
-        f"{bold('Score_max MRR')}: {underscore(mrr_score_max)} {bold('GBIG')}: {underscore(gbig_score_max)} | "
-        f"{bold('Score_maj MRR')}: {underscore(mrr_score_majority)} {bold('GBIG')}: {underscore(gbig_score_majority)} | "
+        f"{bold('Score_prod MRR')}: {underscore(mrr_score_prod)} | "
+        f"{bold('Score_mean MRR')}: {underscore(mrr_score_mean)} | "
+        f"{bold('Score_max MRR')}: {underscore(mrr_score_max)} | "
+        f"{bold('Score_maj MRR')}: {underscore(mrr_score_majority)} | "
         # f"{bold('Score_pdw MRR')}: {underscore(mrr_score_pdw)} | "
         #f"{bold('MV RR1')}: {rank_1_mv} {bold('MRR')}: {underscore(mrr_mv)} {bold('GBIG')}: {underscore(gbig_mv)}"
     )
     print(string)
 
 
-def evaluate_and_log_mv(data_root, dataset, batch_size, disable_bar: bool):
+def evaluate_and_log_mv(data_root, test_views, batch_size, disable_bar: bool = True):
 
 
-    print(colorstr('bright_green', f"Perform 1:N Evaluation on {dataset}"))
-    all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_emb_1_n(os.path.join(data_root, dataset), batch_size, disable_bar)
+    print(colorstr('bright_green', f"Perform 1:N Evaluation on {test_views}"))
+    all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_emb_1_n(data_root, batch_size, test_views, disable_bar)
 
-    neutral_dataset = next((dataset[len(p):] for p in ['depth_', 'rgbd_', 'rgb_', 'test_'] if dataset.startswith(p)), dataset)
+    neutral_dataset = "Dataset: " + str(test_views)
 
     print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
 
     return all_metrics
 
+def generate_view_subsets_sampled(
+    base_set,
+    max_k=30,
+    samples_per_k=200,
+    seed=0
+):
+    random.seed(seed)
 
-def eval_loop(data_root, batch_size, test_set):
-    evaluate_and_log_mv(data_root, test_set, batch_size * 4, disable_bar=True)
+    # Ensure 0_0 is present and fixed
+    base_set = list(base_set)
+    base_set.remove("0_0")
+    other_elements = base_set
 
+    sampled_subsets = []
+
+    for k in tqdm(range(2, max_k + 1), desc="Sampling view subsets"):
+        level = []
+
+        if k == 1:
+            level.append(["0_0"])
+        else:
+            seen = set()
+            while len(level) < samples_per_k:
+                perm = tuple(sorted(random.sample(other_elements, k - 1)))
+                if perm in seen:
+                    continue
+                seen.add(perm)
+                level.append(["0_0", *perm])
+
+        sampled_subsets.append(level)
+
+        print(f"Level {k}: {len(level)} sampled subsets")
+
+    return sampled_subsets
 
 def main(cfg):
-    SEED = cfg['SEED']
+    SEED = 42
     torch.manual_seed(SEED)
 
-    DATA_ROOT = "/home/gustav/dataset11-bff/"  # the parent root where the datasets are stored
-    BATCH_SIZE = cfg['BATCH_SIZE']  # Batch size in training
+    DATA_ROOT = "C:\\Users\\Eduard\\Desktop\\Face\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"#"/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
+    BATCH_SIZE = 16  # Batch size in training
 
     # ======= Validation =======
-    eval_loop(DATA_ROOT, BATCH_SIZE, cfg_copy['TEST_SET'])
+    evaluate_and_log_mv(DATA_ROOT, cfg['TEST_VIEWS'], BATCH_SIZE, disable_bar=True)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, help='Path to the config file', default='config_exp_X.yaml')
-    args = parser.parse_args()
 
-    with open(args.config, 'r') as file:
-        cfg_yaml = yaml.safe_load(file)
+    render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35]
+    all_views = (
+            generate_rotation_matrices_cross_x_y()
+            + generate_rotation_matrices(render_angles)
+    )
 
-    # Resolve root folder
-    base_data_root = "/home/gustav/dataset11-bff/"
+    yaw_pitch_pairs = [(x, y) for x, y, _ in all_views]
+    unique_views = sorted(set(yaw_pitch_pairs))
+    all_views_set = [f"{x}_{y}" for (x, y) in unique_views]
 
-    # find all subdirectories
-    subfolders = [f for f in os.listdir(base_data_root) if os.path.isdir(os.path.join(base_data_root, f))]
+    allowed = generate_view_subsets_sampled(all_views_set)
 
-    if not subfolders:
-        print(f"No subfolders found in {base_data_root}. Exiting.")
-        exit()
-
-    print(f"Found {len(subfolders)} datasets: {subfolders}")
-    print("=" * 80)
-
-    # Loop through each folder and run main(cfg) for each
-    for folder in subfolders:
-        print(f"\n🚀 Running for dataset: {folder}")
-
-        num_views_cfg = len(folder.replace("test_rgb_bff_crop_new_", "").split())
-
-        cfg_copy = dict(cfg_yaml)
-        cfg_copy['TEST_SET'] = folder
-        cfg_copy['NUM_VIEWS'] = num_views_cfg
-
-        main(cfg_copy)
-
-    print("\n✅ All dataset runs finished.")
+    print(f"✅ Using {len(allowed)} unique perspectives")
+    extras = [['0_0', '-25_0', '-10_0', '25_0', '10_0'],  # 1 Azimuth axis
+              ['0_0', '0_-25', '0_-10', '0_10', '0_25'],  # 2 Alitude axis
+              ['0_0', '-25_-25', '-10_-10', '10_10', '25_25'],  # 3 diagonal
+              ['0_0', '-25_25', '-10_10', '10_-10', '25_-25'],  # 4 diagonal
+              ['0_0', '-25_25', '-10_10', '10_-10', '25_-25', '-25_-25', '-10_-10', '10_10', '25_25'],  # 5 cross
+              ['0_0', '-25_-25', '-25_25', '25_-25', '25_25'],  # 6 Only corners
+              ['0_0', '-10_-10', '-10_10', '10_-10', '10_10'],  # 7 Only middle
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25'],  # 8 Top row
+              ['0_0', '10_-25', '10_-10', '10_0', '10_10', '10_25'],  # 9 2nd Top row
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25'], # 10 Top All
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25', '0_-25', '0_-10', '0_10', '0_25'],  # 11 Top All + Middle
+              ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25'],  # 12 Top Corners + Sides
+              ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0'], # 13 Top Corners + Sides + Mid  FAV! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+              ['0_0', '10_-10', '10_10', '-10_10', '-10_-10'],  # Inner Corners
+              ['0_0', '10_-10', '10_10', '-10_10', '-10_-10', '-10_0', '10_0', '0_10', '0_-10'],  # Inner Ring
+              ['0_0', '10_-10', '10_10', '10_0', '0_10', '0_-10'],  # Inner Top Ring
+              ['-25_-25'],
+              ['-25_-10'],
+              ['-25_0'],
+              ['-25_10'],
+              ['-25_25'],
+              ['-10_-25'],
+              ['-10_-10'],
+              ['-10_0'],
+              ['-10_10'],
+              ['-10_25'],
+              ['0_-25'],
+              ['0_-10'],
+              ['0_0'],
+              ['0_10'],
+              ['0_25'],
+              ['25_-25'],
+              ['25_-10'],
+              ['25_0'],
+              ['25_10'],
+              ['25_25'],
+              ['10_-25'],
+              ['10_-10'],
+              ['10_0'],
+              ['10_10'],
+              ['10_25']
+              ]
+    allowed.append(extras)
+    for num_views in allowed:
+        print(len(num_views))
+        for selected_views in num_views:
+            cfg_yaml = {"TEST_VIEWS": selected_views}
+            main(cfg_yaml)

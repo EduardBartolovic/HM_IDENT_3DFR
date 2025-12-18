@@ -6,8 +6,16 @@ from collections import defaultdict
 
 class EmbeddingDataset(Dataset):
 
-    def __init__(self, root_dir):
+    def __init__(self, root_dir, views: list[str] | None = None, perspective_as_string=False):
         self.root_dir = root_dir
+
+        self.views = views
+        if self.views is not None:
+            self.view_tuples = {
+                tuple(map(int, v.split("_"))) for v in self.views
+            }
+        else:
+            self.view_tuples = None
 
         self.samples = []
         class_dirs = sorted(os.listdir(root_dir))
@@ -31,13 +39,26 @@ class EmbeddingDataset(Dataset):
                 path = os.path.join(cls_path, fname)
                 data = np.load(path, allow_pickle=True)
 
-                emb = torch.tensor(data["embedding_reg"].astype(np.float32))
-                #emb = torch.nn.functional.normalize(emb, p=2, dim=-1) # L2-normalize embeddings
+                emb_np = data["embedding_reg"].astype(np.float32)
+                # --- load perspectives as STRINGS first ---
+                true_p_str = data["true_perspective"].tolist()
+
+                # --- FILTER VIEWS ---
+                if self.views is not None:
+                    mask = np.array([p in self.views for p in true_p_str])
+                    emb_np = emb_np[mask]
+                    true_p_str = [p for p, m in zip(true_p_str, mask) if m]
+
+                # --- convert perspectives to int tuple if needed ---
+                if perspective_as_string:
+                    true_p = true_p_str
+                else:
+                    true_p = convert_list(true_p_str)
+
+                emb = torch.from_numpy(emb_np)
 
                 label = int(data["label"])
                 scan_id = str(data["scan_id"])
-
-                true_p = convert_list(data["true_perspective"].tolist())
 
                 self.samples.append(
                     (emb, label, scan_id, true_p, path)
