@@ -1,6 +1,5 @@
-import itertools
 import time
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from copy import deepcopy
 
 import random
@@ -214,7 +213,7 @@ def evaluate_and_log_mv(data_root, test_views, batch_size, disable_bar: bool = T
 def generate_view_subsets_sampled(
     base_set,
     max_k=30,
-    samples_per_k=200,
+    samples_per_k=50,
     seed=0
 ):
     random.seed(seed)
@@ -226,7 +225,7 @@ def generate_view_subsets_sampled(
 
     sampled_subsets = []
 
-    for k in tqdm(range(2, max_k + 1), desc="Sampling view subsets"):
+    for k in range(2, max_k + 1):
         level = []
 
         if k == 1:
@@ -245,6 +244,44 @@ def generate_view_subsets_sampled(
         print(f"Level {k}: {len(level)} sampled subsets")
 
     return sampled_subsets
+
+def generate_cross_views(
+    max_angle=35,
+    step=5,
+):
+    """
+    Generate views where yaw=0 OR pitch=0 (cross),
+    sampled every `step` degrees up to `max_angle`.
+    """
+    angles = list(range(-max_angle, max_angle + 1, step))
+
+    views = set()
+
+    for a in angles:
+        views.add((a, 0))   # yaw axis
+        views.add((0, a))   # pitch axis
+
+    return sorted(views)
+
+def views_to_strings(views):
+    return [f"{yaw}_{pitch}" for yaw, pitch in views]
+
+def generate_cross_experiments(
+    max_angles=(10, 15, 25, 35),
+    steps=(1, 2, 3, 5, 10)
+):
+    experiments = []
+
+    for max_a in max_angles:
+        for step in steps:
+            views = generate_cross_views(
+                max_angle=max_a,
+                step=step
+            )
+            experiments.append(views_to_strings(views))
+
+    return experiments
+
 
 def main(cfg):
     SEED = 42
@@ -270,8 +307,16 @@ if __name__ == '__main__':
     all_views_set = [f"{x}_{y}" for (x, y) in unique_views]
 
     allowed = generate_view_subsets_sampled(all_views_set)
+    print(f"✅ Using {len(allowed)} random unique perspectives")
 
-    print(f"✅ Using {len(allowed)} unique perspectives")
+    cross_experiments = generate_cross_experiments(
+        max_angles=[10, 15, 25, 35],
+        steps=[1, 2, 3, 4, 5, 10, 15]
+    )
+    print(f"✅ Using {len(cross_experiments)} cross unique perspectives")
+    allowed.append(cross_experiments)
+
+    # TODO Add more extras: Diagnonal and cross and no neg pitch
     extras = [['0_0', '-25_0', '-10_0', '25_0', '10_0'],  # 1 Azimuth axis
               ['0_0', '0_-25', '0_-10', '0_10', '0_25'],  # 2 Alitude axis
               ['0_0', '-25_-25', '-10_-10', '10_10', '25_25'],  # 3 diagonal
@@ -315,6 +360,7 @@ if __name__ == '__main__':
               ['10_25']
               ]
     allowed.append(extras)
+
     for num_views in allowed:
         print(len(num_views))
         for selected_views in num_views:
