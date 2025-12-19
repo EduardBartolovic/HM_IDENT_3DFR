@@ -21,7 +21,6 @@ class MultiviewDataset(Dataset):
         self.num_views = num_views
         self.use_face_corr = use_face_corr
         self.shuffle_views = shuffle_views
-        self.face_cor_exist = False
 
         self.valid_image_ext = {".jpg", ".jpeg", ".png", ".webp"}
         self.filename_regex = re.compile(r"^[-+]?\d+_[-+]?\d+$")
@@ -55,18 +54,12 @@ class MultiviewDataset(Dataset):
                         sha_hash = filename.name[:15]
                         sha_groups[sha_hash].append(filename.path)
 
-                    elif ext == ".npz":
-                        self.face_cor_exist = True
-
             # Append each grouped data point to the dataset
             for file_paths in sha_groups.values():
                 if len(file_paths) == self.num_views:
                     data.append((sorted(file_paths, key=_sort_key), class_idx))  # Sort the data so perspectives are always at the same position
                 else:
                     raise ValueError(f"Incorrect number of views ({len(file_paths)}), expected {self.num_views}: {file_paths[:10]}")
-
-        if not self.use_face_corr:  # When use_face_corr is deactivated then ignore face_corr
-            self.face_cor_exist = False
 
         return data
 
@@ -82,31 +75,20 @@ class MultiviewDataset(Dataset):
         else:
             images = [Image.open(p).convert("RGB") for p in img_paths]
 
-        if self.face_cor_exist:
-            facial_corr = torch.stack([
-                torch.from_numpy(np.load(p.replace(".jpg", "_corr.npz"))["corr"]) for p in img_paths
-            ])
-        else:
-            facial_corr = torch.empty(0)
-
         # Load all ref perspectives and true perspectives and scan ids
         ref_perspectives = [os.path.basename(img_path)[16:-4].split("#")[0] for img_path in img_paths]
         true_perspectives = [os.path.basename(img_path)[16:-4].split("#")[1] for img_path in img_paths]
         scan_id = os.path.basename(img_paths[0])[:15]
 
         if self.shuffle_views:
-            if self.face_cor_exist:
-                combined = list(zip(images, ref_perspectives, true_perspectives, facial_corr))
-                random.shuffle(combined)
-                images, ref_perspectives, true_perspectives, facial_corr = zip(*combined)
-                facial_corr = torch.stack(facial_corr)
-            else:
-                combined = list(zip(images, ref_perspectives, true_perspectives))
-                random.shuffle(combined)
-                images, ref_perspectives, true_perspectives = zip(*combined)
+            combined = list(zip(images, ref_perspectives, true_perspectives))
+            random.shuffle(combined)
+            images, ref_perspectives, true_perspectives = zip(*combined)
             images = list(images)
             ref_perspectives = list(ref_perspectives)
             true_perspectives = list(true_perspectives)
+
+        facial_corr = torch.empty(0)  # Placeholder for deprecated function
 
         return images, class_idx, ref_perspectives, true_perspectives, facial_corr, scan_id
 
