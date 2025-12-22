@@ -299,6 +299,7 @@ def main(cfg):
 
 if __name__ == '__main__':
 
+    torch.multiprocessing.set_sharing_strategy('file_system')
     render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35]
     all_views = (
             generate_rotation_matrices_cross_x_y()
