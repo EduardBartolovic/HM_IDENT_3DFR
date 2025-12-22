@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
+
 def evaluate(model, data_loader, device, perspective_range):
     model.eval()
     total = 0
@@ -113,6 +114,7 @@ def validate(model, data_loader, device):
         "mae_yaw": mae_yaw_meter.avg
     }
 
+
 def main(cfg):
     SEED = cfg['SEED']
     torch.manual_seed(SEED)
@@ -125,7 +127,6 @@ def main(cfg):
 
     PREDICTOR_NAME = cfg['PREDICTOR_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
 
-    LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
 
     EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']  # embedding dimension

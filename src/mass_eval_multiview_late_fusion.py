@@ -76,7 +76,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
     enrolled_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
 
     dataset_query = EmbeddingDataset(dataset_query_path, views, perspective_as_string=True)
-    query_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
+    query_loader = torch.utils.data.DataLoader(dataset_query, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
 
     if len(dataset_enrolled.classes) != len(dataset_enrolled):
         raise Exception(f"len(dataset_enrolled.classes): {len(dataset_enrolled.classes)} doesnt match len(dataset_enrolled.samples): {len(dataset_enrolled)} -> Check your dataset: {test_path}")
@@ -200,7 +200,6 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
 
 def evaluate_and_log_mv(data_root, test_views, batch_size, disable_bar: bool = True):
 
-
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {test_views}"))
     all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_emb_1_n(data_root, batch_size, test_views, disable_bar)
 
@@ -209,6 +208,7 @@ def evaluate_and_log_mv(data_root, test_views, batch_size, disable_bar: bool = T
     print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
 
     return all_metrics
+
 
 def generate_view_subsets_sampled(
     base_set,
@@ -245,6 +245,7 @@ def generate_view_subsets_sampled(
 
     return sampled_subsets
 
+
 def generate_cross_views(
     max_angle=35,
     step=5,
@@ -263,8 +264,10 @@ def generate_cross_views(
 
     return sorted(views)
 
+
 def views_to_strings(views):
     return [f"{yaw}_{pitch}" for yaw, pitch in views]
+
 
 def generate_cross_experiments(
     max_angles=(10, 15, 25, 35),
@@ -287,7 +290,7 @@ def main(cfg):
     SEED = 42
     torch.manual_seed(SEED)
 
-    DATA_ROOT = "C:\\Users\\Eduard\\Desktop\\Face\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"#"/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
+    DATA_ROOT = "F:\\Face\\data\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"#"/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
     BATCH_SIZE = 16  # Batch size in training
 
     # ======= Validation =======
@@ -306,7 +309,7 @@ if __name__ == '__main__':
     unique_views = sorted(set(yaw_pitch_pairs))
     all_views_set = [f"{x}_{y}" for (x, y) in unique_views]
 
-    allowed = generate_view_subsets_sampled(all_views_set)
+    allowed = [] # generate_view_subsets_sampled(all_views_set)
     print(f"✅ Using {len(allowed)} random unique perspectives")
 
     cross_experiments = generate_cross_experiments(

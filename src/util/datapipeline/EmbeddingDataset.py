@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import Dataset
 from collections import defaultdict
 
+
 class EmbeddingDataset(Dataset):
 
     def __init__(self, root_dir, views: list[str] | None = None, perspective_as_string=False):
