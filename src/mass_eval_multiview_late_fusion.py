@@ -9,7 +9,8 @@ import os
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-from src.preprocess_datasets.rendering.Facerender import generate_rotation_matrices_cross_x_y, generate_rotation_matrices
+from src.preprocess_datasets.rendering.Facerender import generate_rotation_matrices_cross_x_y, \
+    generate_rotation_matrices
 from src.util.Voting import accuracy_front_perspective, concat, score_fusion
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.misc import colorstr, smart_round, bold, underscore
@@ -26,20 +27,22 @@ def get_embeddings_mv(enrolled_loader, query_loader, disable_bar=False):
     enrolled_scan_ids = []
     enrolled_perspectives = 0
     enrolled_true_perspectives = []
-    for embeddings, labels, scan_id, true_perspectives, path in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
+    for embeddings, labels, scan_id, true_perspectives, path in tqdm(iter(enrolled_loader), disable=disable_bar,
+                                                                     desc="Generate Enrolled Embeddings"):
         enrolled_embeddings_reg.append(embeddings.permute(1, 0, 2))
-        enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
+        enrolled_labels.extend(
+            deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         enrolled_scan_ids.extend(deepcopy(scan_id))
-        #enrolled_perspectives = np.array(perspectives).T[0]
+        # enrolled_perspectives = np.array(perspectives).T[0]
         enrolled_true_perspectives.append(np.array(deepcopy(true_perspectives)).T)
 
     enrolled_embeddings_reg = np.concatenate(enrolled_embeddings_reg, axis=1)
     enrolled_labels = np.array([t.item() for t in enrolled_labels])
     enrolled_scan_ids = np.array(enrolled_scan_ids)
-    #enrolled_perspectives = np.array(enrolled_perspectives)
+    # enrolled_perspectives = np.array(enrolled_perspectives)
     enrolled_true_perspectives = np.concatenate(enrolled_true_perspectives, axis=0)
 
-    #if query_loader is None:
+    # if query_loader is None:
     #    Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives","enrolled_true_perspectives"])
     #    return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives, enrolled_true_perspectives)
 
@@ -48,21 +51,26 @@ def get_embeddings_mv(enrolled_loader, query_loader, disable_bar=False):
     query_scan_ids = []
     query_perspectives = 0
     query_true_perspectives = []
-    for embeddings, labels, scan_id, true_perspectives, path in tqdm(iter(query_loader), disable=disable_bar, desc="Generate Query Embeddings"):
+    for embeddings, labels, scan_id, true_perspectives, path in tqdm(iter(query_loader), disable=disable_bar,
+                                                                     desc="Generate Query Embeddings"):
         query_embeddings_reg.append(embeddings.permute(1, 0, 2))
-        query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
+        query_labels.extend(
+            deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         query_scan_ids.extend(deepcopy(scan_id))
-        #query_perspectives = np.array(perspectives).T[0]
+        # query_perspectives = np.array(perspectives).T[0]
         query_true_perspectives.append(np.array(deepcopy(true_perspectives)).T)
 
     query_embeddings_reg = np.concatenate(query_embeddings_reg, axis=1)
     query_labels = np.array([t.item() for t in query_labels])
     query_scan_ids = np.array(query_scan_ids)
-    #query_perspectives = np.array(query_perspectives)
+    # query_perspectives = np.array(query_perspectives)
     query_true_perspectives = np.concatenate(query_true_perspectives, axis=0)
 
-    Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives", "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives"])
-    return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_true_perspectives, query_embeddings_reg, query_labels, query_scan_ids, query_true_perspectives)
+    Results = namedtuple("Results",
+                         ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives",
+                          "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives"])
+    return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_true_perspectives,
+                   query_embeddings_reg, query_labels, query_scan_ids, query_true_perspectives)
 
 
 def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = True):
@@ -73,133 +81,135 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
     dataset_query_path = os.path.join(test_path, 'query')
 
     dataset_enrolled = EmbeddingDataset(dataset_enrolled_path, views, perspective_as_string=True)
-    enrolled_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
+    enrolled_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8,
+                                                  drop_last=False)
 
     dataset_query = EmbeddingDataset(dataset_query_path, views, perspective_as_string=True)
-    query_loader = torch.utils.data.DataLoader(dataset_query, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
+    query_loader = torch.utils.data.DataLoader(dataset_query, batch_size=batch_size, shuffle=True, num_workers=8,
+                                               drop_last=False)
 
     if len(dataset_enrolled.classes) != len(dataset_enrolled):
-        raise Exception(f"len(dataset_enrolled.classes): {len(dataset_enrolled.classes)} doesnt match len(dataset_enrolled.samples): {len(dataset_enrolled)} -> Check your dataset: {test_path}")
+        raise Exception(
+            f"len(dataset_enrolled.classes): {len(dataset_enrolled.classes)} doesnt match len(dataset_enrolled.samples): {len(dataset_enrolled)} -> Check your dataset: {test_path}")
 
     time.sleep(0.1)
 
     embedding_library = get_embeddings_mv(enrolled_loader, query_loader, disable_bar)
-    #enrolled_labels, query_labels = embedding_library.enrolled_labels, embedding_library.query_labels
+    # enrolled_labels, query_labels = embedding_library.enrolled_labels, embedding_library.query_labels
 
     all_metrics = {}
 
     # --------- Single Front View ---------
     metrics_front, sim_front, top_idx, y_true_front, y_pred_front = accuracy_front_perspective(embedding_library)
-    #plot_cmc(sim_front, enrolled_labels, query_labels, dataset_name, "front")
-    #plot_rrk_histogram(query_labels, enrolled_labels, sim_front, dataset_name, "front")
-    #error_rate_per_class(query_labels, enrolled_labels, top_idx, dataset_enrolled, embedding_library.query_scan_ids, sim_front, dataset_name, "_front")
-    #all_metrics["emb_dist_front"] = analyze_embedding_distribution(sim_front, query_labels, enrolled_labels, dataset_name, "front", plot=True)
+    # plot_cmc(sim_front, enrolled_labels, query_labels, dataset_name, "front")
+    # plot_rrk_histogram(query_labels, enrolled_labels, sim_front, dataset_name, "front")
+    # error_rate_per_class(query_labels, enrolled_labels, top_idx, dataset_enrolled, embedding_library.query_scan_ids, sim_front, dataset_name, "_front")
+    # all_metrics["emb_dist_front"] = analyze_embedding_distribution(sim_front, query_labels, enrolled_labels, dataset_name, "front", plot=True)
     all_metrics["metrics_front"] = metrics_front
     del sim_front, top_idx, y_true_front, y_pred_front
 
     # --------- Concat Full ---------
     metrics_concat, sim_concat, top_idx, y_true_concat, y_pred_concat = concat(embedding_library, disable_bar)
-    #plot_cmc(sim_concat, enrolled_labels, query_labels, dataset_name, "concat")
-    #plot_rrk_histogram(query_labels, enrolled_labels, sim_concat, dataset_name, "concat")
-    #error_rate_per_class(query_labels, enrolled_labels, top_idx, dataset_enrolled, embedding_library.query_scan_ids, sim_concat, dataset_name, "_concat")
-    #all_metrics["emb_dist_concat"] = analyze_embedding_distribution(sim_concat, query_labels, enrolled_labels, dataset_name, "concat", plot=True)
+    # plot_cmc(sim_concat, enrolled_labels, query_labels, dataset_name, "concat")
+    # plot_rrk_histogram(query_labels, enrolled_labels, sim_concat, dataset_name, "concat")
+    # error_rate_per_class(query_labels, enrolled_labels, top_idx, dataset_enrolled, embedding_library.query_scan_ids, sim_concat, dataset_name, "_concat")
+    # all_metrics["emb_dist_concat"] = analyze_embedding_distribution(sim_concat, query_labels, enrolled_labels, dataset_name, "concat", plot=True)
     all_metrics["metrics_concat"] = metrics_concat
     del sim_concat, top_idx, y_true_concat, y_pred_concat
 
     # --------- Concat Mean ---------
-    metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
-    #plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, dataset_name, "concat_mean")
-    #plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_mean, dataset_name, "concat_mean")
-    #all_metrics["emb_dist_concat_mean"] = analyze_embedding_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, dataset_name, "concat_mean", plot=True)
+    metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(
+        embedding_library, disable_bar, reduce_with="mean")
+    # plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, dataset_name, "concat_mean")
+    # plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_mean, dataset_name, "concat_mean")
+    # all_metrics["emb_dist_concat_mean"] = analyze_embedding_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, dataset_name, "concat_mean", plot=True)
     all_metrics["metrics_concat_mean"] = metrics_concat_mean
     del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
 
     # --------- Concat Median ---------
-    metrics_concat_median, similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median = concat(embedding_library, disable_bar, reduce_with="median")
-    #plot_cmc(similarity_matrix_concat_median, enrolled_labels, query_labels, dataset_name, "concat_median")
-    #plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_median, dataset_name, "concat_median")
-    #all_metrics["emb_dist_concat_median"] = analyze_embedding_distribution(similarity_matrix_concat_median, query_labels, enrolled_labels, dataset_name, "concat_median", plot=True)
+    metrics_concat_median, similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median = concat(
+        embedding_library, disable_bar, reduce_with="median")
+    # plot_cmc(similarity_matrix_concat_median, enrolled_labels, query_labels, dataset_name, "concat_median")
+    # plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_median, dataset_name, "concat_median")
+    # all_metrics["emb_dist_concat_median"] = analyze_embedding_distribution(similarity_matrix_concat_median, query_labels, enrolled_labels, dataset_name, "concat_median", plot=True)
     all_metrics["metrics_concat_median"] = metrics_concat_median
     del similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median
 
     # --------- Concat PCA ---------
-    #metrics_concat_pca, similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, reduce_with="pca")
-    #plot_cmc(similarity_matrix_concat_pca, enrolled_labels, query_labels, dataset_name, "concat_pca")
-    #plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_pca, dataset_name, "concat_pca")
-    #all_metrics["metrics_concat_pca"] = metrics_concat_pca
-    #del similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca
+    # metrics_concat_pca, similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, reduce_with="pca")
+    # plot_cmc(similarity_matrix_concat_pca, enrolled_labels, query_labels, dataset_name, "concat_pca")
+    # plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_pca, dataset_name, "concat_pca")
+    # all_metrics["metrics_concat_pca"] = metrics_concat_pca
+    # del similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca
 
     # --------- Score fusion ---------
     fusion_methods = ["max", "product", "majority", "mean", "median"]
     sim_score = None
     for m in fusion_methods:
-        metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m, similarity_matrix=sim_score, distance_matrix=None)
+        metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m,
+                                                                similarity_matrix=sim_score, distance_matrix=None)
         all_metrics[f"metrics_score_{m}"] = metrics
-        #all_metrics[f"emb_dist_score_{m}"] = analyze_embedding_distribution(fused, query_labels, enrolled_labels, dataset_name, f"score_{m}", plot=True)
+        # all_metrics[f"emb_dist_score_{m}"] = analyze_embedding_distribution(fused, query_labels, enrolled_labels, dataset_name, f"score_{m}", plot=True)
 
-    #plot_all_cmc_from_txt(dataset_name)
+    # plot_all_cmc_from_txt(dataset_name)
 
     return all_metrics, embedding_library, dataset_enrolled, dataset_query
 
 
 def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics):
-
-
     rank_1_front = smart_round(all_metrics["metrics_front"].get('Rank-1 Rate', 'N/A'))
     rank_5_front = smart_round(all_metrics["metrics_front"].get('Rank-5 Rate', 'N/A'))
     mrr_front = smart_round(all_metrics["metrics_front"].get('MRR', 'N/A'))
-    #gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A')*100)
+    # gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A')*100)
 
     rank_1_concat = smart_round(all_metrics["metrics_concat"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat = smart_round(all_metrics["metrics_concat"].get('Rank-5 Rate', 'N/A'))
     mrr_concat = smart_round(all_metrics["metrics_concat"].get('MRR', 'N/A'))
-    #gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A')*100)
+    # gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A')*100)
 
     rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-5 Rate', 'N/A'))
     mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
-    #gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A')*100)
+    # gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A')*100)
 
     rank_1_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-5 Rate', 'N/A'))
     mrr_concat_median = smart_round(all_metrics["metrics_concat_median"].get('MRR', 'N/A'))
 
-    #rank_1_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('Rank-1 Rate', 'N/A'))
-    #rank_5_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('Rank-5 Rate', 'N/A'))
-    #mrr_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('MRR', 'N/A'))
+    # rank_1_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('Rank-1 Rate', 'N/A'))
+    # rank_5_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('Rank-5 Rate', 'N/A'))
+    # mrr_concat_pca = smart_round(all_metrics["metrics_concat_pca"].get('MRR', 'N/A'))
 
     mrr_score_max = smart_round(all_metrics["metrics_score_max"].get('MRR', 'N/A'))
-    #gbig_score_max = smart_round(all_metrics["emb_dist_score_max"].get('gbig', 'N/A')*100)
+    # gbig_score_max = smart_round(all_metrics["emb_dist_score_max"].get('gbig', 'N/A')*100)
 
     mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
-    #gbig_score_prod = smart_round(all_metrics["emb_dist_score_product"].get('gbig', 'N/A')*100)
+    # gbig_score_prod = smart_round(all_metrics["emb_dist_score_product"].get('gbig', 'N/A')*100)
 
     mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
-    #gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A')*100)
+    # gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A')*100)
 
     mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
-    #gbig_score_majority = smart_round(all_metrics["emb_dist_score_majority"].get('gbig', 'N/A')*100)
+    # gbig_score_majority = smart_round(all_metrics["emb_dist_score_majority"].get('gbig', 'N/A')*100)
 
     # mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
-    string = (
-        colorstr('bright_green', f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: ") +
-        f"{bold('Front RR1')}: {rank_1_front} {bold('MRR')}: {underscore(mrr_front)} | "# {bold('GAIG')}: {underscore(gaig_front)} | "
-        f"{bold('Concat RR1')}: {rank_1_concat} {bold('MRR')}: {underscore(mrr_concat)} | "# {bold('GAIG')}: {underscore(gaig_concat)} | "
-        f"{bold('Concat_Mean RR1')}: {rank_1_concat_mean} {bold('MRR')}: {underscore(mrr_concat_mean)} | "
-        f"{bold('Concat_Median RR1')}: {rank_1_concat_median} {bold('MRR')}: {underscore(mrr_concat_median)} | "
-        #f"{bold('Concat_PCA RR1')}: {rank_1_concat_pca} {bold('MRR')}: {underscore(mrr_concat_pca)} | "
-        f"{bold('Score_prod MRR')}: {underscore(mrr_score_prod)} | "
-        f"{bold('Score_mean MRR')}: {underscore(mrr_score_mean)} | "
-        f"{bold('Score_max MRR')}: {underscore(mrr_score_max)} | "
-        f"{bold('Score_maj MRR')}: {underscore(mrr_score_majority)} | "
-        # f"{bold('Score_pdw MRR')}: {underscore(mrr_score_pdw)} | "
-        #f"{bold('MV RR1')}: {rank_1_mv} {bold('MRR')}: {underscore(mrr_mv)} {bold('GBIG')}: {underscore(gbig_mv)}"
-    )
+    string = (f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: " +
+              f"{('Front RR1')}: {rank_1_front} {'MRR'}: {(mrr_front)} | "  # {bold('GAIG')}: {underscore(gaig_front)} | "
+              f"{('Concat RR1')}: {rank_1_concat} {'MRR'}: {(mrr_concat)} | "  # {bold('GAIG')}: {underscore(gaig_concat)} | "
+              f"{('Concat_Mean RR1')}: {rank_1_concat_mean} {('MRR')}: {(mrr_concat_mean)} | "
+              f"{('Concat_Median RR1')}: {rank_1_concat_median} {('MRR')}: {(mrr_concat_median)} | "
+              # f"{bold('Concat_PCA RR1')}: {rank_1_concat_pca} {bold('MRR')}: {underscore(mrr_concat_pca)} | "
+              f"{('Score_prod MRR')}: {(mrr_score_prod)} | "
+              f"{('Score_mean MRR')}: {(mrr_score_mean)} | "
+              f"{('Score_max MRR')}: {(mrr_score_max)} | "
+              f"{('Score_maj MRR')}: {(mrr_score_majority)} | "
+              # f"{bold('Score_pdw MRR')}: {underscore(mrr_score_pdw)} | "
+              # f"{bold('MV RR1')}: {rank_1_mv} {bold('MRR')}: {underscore(mrr_mv)} {bold('GBIG')}: {underscore(gbig_mv)}"
+              )
     print(string)
 
 
 def evaluate_and_log_mv(data_root, test_views, batch_size, disable_bar: bool = True):
-
     print(colorstr('bright_green', f"Perform 1:N Evaluation on {test_views}"))
     all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_emb_1_n(data_root, batch_size, test_views, disable_bar)
 
@@ -211,10 +221,10 @@ def evaluate_and_log_mv(data_root, test_views, batch_size, disable_bar: bool = T
 
 
 def generate_view_subsets_sampled(
-    base_set,
-    max_k=30,
-    samples_per_k=50,
-    seed=0
+        base_set,
+        max_k=30,
+        samples_per_k=50,
+        seed=0
 ):
     random.seed(seed)
 
@@ -247,8 +257,8 @@ def generate_view_subsets_sampled(
 
 
 def generate_cross_views(
-    max_angle=35,
-    step=5,
+        max_angle=35,
+        step=5,
 ):
     """
     Generate views where yaw=0 OR pitch=0 (cross),
@@ -259,8 +269,8 @@ def generate_cross_views(
     views = set()
 
     for a in angles:
-        views.add((a, 0))   # yaw axis
-        views.add((0, a))   # pitch axis
+        views.add((a, 0))  # yaw axis
+        views.add((0, a))  # pitch axis
 
     return sorted(views)
 
@@ -270,8 +280,8 @@ def views_to_strings(views):
 
 
 def generate_cross_experiments(
-    max_angles=(10, 15, 25, 35),
-    steps=(1, 2, 3, 5, 10)
+        max_angles=(10, 15, 25, 35),
+        steps=(1, 2, 3, 5, 10)
 ):
     experiments = []
 
@@ -290,7 +300,7 @@ def main(cfg):
     SEED = 42
     torch.manual_seed(SEED)
 
-    DATA_ROOT = "F:\\Face\\data\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"#"/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
+    DATA_ROOT = "F:\\Face\\data\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"  # "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
     BATCH_SIZE = 16  # Batch size in training
 
     # ======= Validation =======
@@ -310,7 +320,7 @@ if __name__ == '__main__':
     unique_views = sorted(set(yaw_pitch_pairs))
     all_views_set = [f"{x}_{y}" for (x, y) in unique_views]
 
-    allowed = [] # generate_view_subsets_sampled(all_views_set)
+    allowed = []  # generate_view_subsets_sampled(all_views_set)
     print(f"✅ Using {len(allowed)} random unique perspectives")
 
     cross_experiments = generate_cross_experiments(
@@ -330,10 +340,13 @@ if __name__ == '__main__':
               ['0_0', '-10_-10', '-10_10', '10_-10', '10_10'],  # 7 Only middle
               ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25'],  # 8 Top row
               ['0_0', '10_-25', '10_-10', '10_0', '10_10', '10_25'],  # 9 2nd Top row
-              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25'], # 10 Top All
-              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25', '0_-25', '0_-10', '0_10', '0_25'],  # 11 Top All + Middle
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25'],
+              # 10 Top All
+              ['0_0', '25_-25', '25_-10', '25_0', '25_10', '25_25', '10_-25', '10_-10', '10_0', '10_10', '10_25',
+               '0_-25', '0_-10', '0_10', '0_25'],  # 11 Top All + Middle
               ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25'],  # 12 Top Corners + Sides
-              ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0'], # 13 Top Corners + Sides + Mid  FAV! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+              ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0'],
+              # 13 Top Corners + Sides + Mid  FAV! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
               ['0_0', '10_-10', '10_10', '-10_10', '-10_-10'],  # Inner Corners
               ['0_0', '10_-10', '10_10', '-10_10', '-10_-10', '-10_0', '10_0', '0_10', '0_-10'],  # Inner Ring
               ['0_0', '10_-10', '10_10', '10_0', '0_10', '0_-10'],  # Inner Top Ring
