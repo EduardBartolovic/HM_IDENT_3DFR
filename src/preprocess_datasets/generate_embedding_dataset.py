@@ -33,8 +33,7 @@ def main(cfg):
     RGB_STD = [0.5, 0.5, 0.5]   # for normalize inputs
     use_face_corr = False
     EMBEDDING_SIZE = 512  # embedding dimension
-    BATCH_SIZE = 16  # Batch size in training
-    DROP_LAST = False
+    BATCH_SIZE = 8  # Batch size in training
 
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     PIN_MEMORY = True
@@ -51,11 +50,11 @@ def main(cfg):
         transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
     ])
 
-    dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=NUM_VIEWS, transform=train_transform, use_face_corr=use_face_corr, shuffle_views=False)
+    dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=NUM_VIEWS, transform=train_transform, use_face_corr=False, shuffle_views=False)
 
     train_loader = torch.utils.data.DataLoader(
         dataset_train, batch_size=BATCH_SIZE, pin_memory=PIN_MEMORY,
-        num_workers=NUM_WORKERS, drop_last=DROP_LAST
+        num_workers=NUM_WORKERS, drop_last=False
     )
 
     # ======= Aggregator =======
@@ -99,7 +98,7 @@ def main(cfg):
         ref_perspectives_np = np.array(ref_perspectives).transpose(1, 0)
         true_perspectives_np = np.array(true_perspectives).transpose(1, 0)
 
-        for i in range(min(BATCH_SIZE-1, len(scan_id))):
+        for i in range(len(scan_id)):
             sample_name = f"{scan_id[i]}.npz"
             save_dir = os.path.join(cfg['OUT'], str(class_idx_np[i]))
             sample_path = os.path.join(save_dir, sample_name)
@@ -117,15 +116,28 @@ def main(cfg):
 
 if __name__ == '__main__':
     cfg_yaml = {}
-    cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset13\\"
-    cfg_yaml["TRAIN_SET"] = "rgb_bff_crop187"
+    cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset14\\"
+    #cfg_yaml["TRAIN_SET"] = "rgb_bff_crop261"
     cfg_yaml['BACKBONE_RESUME_PATH'] = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\glint_cosface_r18_fp16.pth"
-    cfg_yaml['BACKBONE_NAME'] = "IR_MV_V2_18" #"ONNX_MV"
+    #cfg_yaml['BACKBONE_NAME'] = "IR_MV_V2_18"
 
+    #cfg_yaml['INPUT_SIZE'] = [112, 112]
+    #cfg_yaml['NUM_VIEWS'] = 261  # Number of views
+
+    #cfg_yaml['OUT'] = "F:\\Face\\data\\dataset13_emb\\" + cfg_yaml["TRAIN_SET"] + "_emb-irseglintr18"
+
+    #main(cfg_yaml)
+
+
+    #cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset14/"
+    cfg_yaml["TRAIN_SET"] = "test_rgb_bff_crop261\\enrolled\\"
+    #cfg_yaml['BACKBONE_RESUME_PATH'] = "/home/gustav/HM_IDENT_3DFR/pretrained/glint_cosface_r18_fp16.pth" # edgeface_xs_gamma_06.pt" #glint_cosface_r18_fp16.pth" #AdaFace_ARoFace_R100_WebFace12M.pt"
+    cfg_yaml['BACKBONE_NAME'] = "IR_MV_V2_18"
     cfg_yaml['INPUT_SIZE'] = [112, 112]
-    cfg_yaml['NUM_VIEWS'] = 187  # Number of views
-
-    cfg_yaml['OUT'] = "F:\\Face\\data\\dataset13_emb\\" + cfg_yaml["TRAIN_SET"] + "_emb-irseglintr18"
-    #cfg_yaml['OUT'] = "H:\\Sync\\Uni\\dataset13_emb\\" + cfg_yaml["TRAIN_SET"] + "_emb-irseglintr18"
-
+    cfg_yaml['NUM_VIEWS'] = 261
+    cfg_yaml['OUT'] = "F:\\Face\\data\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\enrolled\\"
     main(cfg_yaml)
+
+    #cfg_yaml["TRAIN_SET"] = "test_rgb_bff_crop261/query/"
+    #cfg_yaml['OUT'] = "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/query/"
+    #main(cfg_yaml)
