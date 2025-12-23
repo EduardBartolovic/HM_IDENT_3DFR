@@ -10,17 +10,19 @@ from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 def main():
 
     bellus = True
-    facescape = True
-    faceverse = True
+    facescape = False
+    faceverse = False
+
     texas = False
     facewarehouse = False
     mononphm = False
     ffhq = False
     prep_data = False
     colorferet = False
+
     bff = False
 
-    root = 'F:\\Face\\data\\dataset13\\'
+    root = 'F:\\Face\\data\\dataset14\\'
     render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35] #[-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
 
     # -------- Bellus --------
@@ -29,7 +31,7 @@ def main():
 
         # Image Rendering
         directory_path = Path(r'H:\\Maurer\\Bellus')
-        output_dir = Path(r"F:\Face\data\tmp3\3D_bellus")
+        output_dir = Path(r"F:\Face\data\tmp5_simulatederror\3D_bellus")
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
         obj_reader.render_obj_files("Bellus")
 
@@ -45,7 +47,7 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB:
-        input_path = Path('F:\\Face\\data\\tmp3\\3D_Bellus\\')
+        input_path = Path('F:\\Face\\data\\tmp4_283\\3D_Bellus\\')
         output_dir = Path(root+'test_rgb_bellus')
         #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
@@ -66,7 +68,7 @@ def main():
 
         # Image Rendering
         directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
-        output_dir = Path('F:\\Face\\data\\tmp3\\3D_facescape\\')
+        output_dir = Path('F:\\Face\\data\\tmp4_283\\3D_facescape\\')
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
         obj_reader.render_obj_files('facescape')
 
@@ -76,9 +78,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir, mode='facescape')
 
         # Prepare Dataset RGB:
-        input_path = Path('F:\\Face\\data\\tmp3\\3D_facescape\\')
+        input_path = Path('F:\\Face\\data\\tmp4_283\\3D_facescape\\')
         output_dir = Path(root+'test_rgb_facescape')
-        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir, mode='facescape')
+        PrepareDataset.prepare_dataset_rgb(input_path, output_dir, mode='facescape')
 
         # Prepare Dataset RGB + Depth:
         #input_path = Path(root+'test_rgb_facescape')
@@ -90,7 +92,7 @@ def main():
         print("################# FACEVERSE #################")
         # Image Rendering faceverse
         directory_path = Path('H:\\Maurer\\FaceVerse\\')
-        output_dir = Path('F:\\Face\\data\\tmp3\\3D_faceverse\\')
+        output_dir = Path('F:\\Face\\data\\tmp4_283\\3D_faceverse\\')
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
         obj_reader.render_obj_files("FaceVerse")
 
@@ -100,9 +102,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB faceverse:
-        input_path = Path('F:\\Face\\data\\tmp3\\3D_faceverse\\')
+        input_path = Path('F:\\Face\\data\\tmp4_283\\3D_faceverse\\')
         output_dir = Path(root+'test_rgb_faceverse')
-        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth faceverse:
         #input_path = Path(root+'test_rgb_faceverse')
@@ -206,18 +208,24 @@ def main():
         print("################# BFF #################")
         input_paths = [Path(root+'test_rgb_bellus'), Path(root+'test_rgb_facescape'), Path(root+'test_rgb_faceverse')]
         output_dir = Path(root + 'test_rgb_bff')
-        PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
+        #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
         face_crop_and_alignment(root + 'test_rgb_bff/enrolled', root + 'test_rgb_bff_crop/enrolled', face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(272, 272))
         face_crop_and_alignment(root + 'test_rgb_bff/query', root + 'test_rgb_bff_crop/query', face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(272, 272))
 
-        perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
-        PrepareDataset.filter_views(root + 'test_rgb_bff_crop/enrolled', root + 'test_rgb_bff_crop8/enrolled', perspective_filter, target_views=8)
-        PrepareDataset.filter_views(root + 'test_rgb_bff_crop/query', root + 'test_rgb_bff_crop8/query', perspective_filter, target_views=8)
+        #perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
+        #PrepareDataset.filter_views(root + 'test_rgb_bff_crop/enrolled', root + 'test_rgb_bff_crop8/enrolled', perspective_filter, target_views=8)
+        #PrepareDataset.filter_views(root + 'test_rgb_bff_crop/query', root + 'test_rgb_bff_crop8/query', perspective_filter, target_views=8)
+
+        #perspective_filter = ['0_0', '0_5', '0_10', '0_15', '0_20', '0_25', '0_30', '0_35', '0_40', '0_45',
+        #                      '0_-5', '0_-10', '0_-15', '0_-20', '0_-25', '0_-30', '0_-35', '0_-40', '0_-45',
+        #                      '5_0', '10_0', '15_0', '20_0', '25_0', '30_0', '35_0',
+        #                      '-5_0', '-10_0', '-15_0', '-20_0', '-25_0', '-30_0', '-35_0',]
+        #PrepareDataset.filter_views(root + 'test_rgb_bff/enrolled', root + 'test_rgb_bff_cross/enrolled', perspective_filter, target_views=33)
+        #PrepareDataset.filter_views(root + 'test_rgb_bff/query', root + 'test_rgb_bff_cross/query', perspective_filter, target_views=33)
 
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)
-
         PrepareDataset.sanity_check(root)
 
 

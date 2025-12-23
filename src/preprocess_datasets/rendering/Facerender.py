@@ -21,16 +21,7 @@ def read_mesh(path, texture):
         except:
             print('no texture')
     else:
-
-        if not mesh.has_triangle_uvs():
-            print("The mesh does not have UV coordinates.")
-            raise Exception('')
-
-        print(len(np.asarray(new_mesh.triangles)))
-        v_uv = np.random.rand(len(np.asarray(new_mesh.triangles)) * 3, 2)
-        new_mesh.triangle_uvs = o3d.open3d_pybind.utility.Vector2dVector(v_uv)
-
-        new_mesh.textures = [texture, texture]  # TODO: DOESNT WORK YET
+        raise Exception("unsupported State")
 
     return new_mesh
 
@@ -69,6 +60,25 @@ def postprocess_renderer_image(depth, image):
     # plt.imshow(cropped_image, interpolation='nearest')
     # plt.show()
     return cropped_depth, cropped_image
+
+
+def simulate_head_pose_euclidean_mae(target_pitch, target_yaw, target_euclidean_mae):
+    """
+    Simulates head pose estimation where the Mean Euclidean Distance (Vector Error)
+    matches the target_euclidean_mae.
+
+    We assume isotropic variance (same sigma for pitch and yaw).
+    The Euclidean distance of two independent Gaussians follows a Rayleigh distribution.
+    """
+    # Formula for Rayleigh Mean: Mean = sigma * sqrt(pi / 2)
+    # Therefore: sigma = Mean / sqrt(pi / 2) = Mean * sqrt(2 / pi)
+    # This factor is approx 0.798
+    sigma = target_euclidean_mae * np.sqrt(2 / np.pi)
+
+    sampled_pitch = np.random.normal(loc=target_pitch, scale=sigma)
+    sampled_yaw = np.random.normal(loc=target_yaw, scale=sigma)
+
+    return sampled_pitch, sampled_yaw
 
 
 def generate_rotation_matrices(angle_range):
@@ -126,6 +136,70 @@ def generate_rotation_matrices_cross_x_y():
     return vertical + horizontal
 
 
+def rotation_matrix_x(pitch_deg):
+    pitch = np.radians(pitch_deg)
+    return np.array([
+        [1, 0, 0],
+        [0, np.cos(pitch), -np.sin(pitch)],
+        [0, np.sin(pitch),  np.cos(pitch)]
+    ])
+
+
+def rotation_matrix_y(yaw_deg):
+    yaw = np.radians(yaw_deg)
+    return np.array([
+        [np.cos(yaw),  0, np.sin(yaw)],
+        [0,            1, 0          ],
+        [-np.sin(yaw), 0, np.cos(yaw)]
+    ])
+
+
+def generate_rotation_matrices_cross_x_y_with_simulated_error(
+    target_euclidean_mae
+):
+    """
+    Generates a cross (vertical + horizontal) of head poses and applies
+    simulated angular noise such that the expected Euclidean MAE equals
+    target_euclidean_mae.
+    """
+
+    rotations = []
+
+    # Vertical line: vary pitch, yaw = 0
+    for pitch in range(-35, 36, 1):
+        noisy_pitch, noisy_yaw = simulate_head_pose_euclidean_mae(
+            pitch, 0, target_euclidean_mae
+        )
+
+        R = rotation_matrix_x(noisy_pitch) @ rotation_matrix_y(noisy_yaw)
+
+        rotations.append((
+            pitch,           # ground-truth pitch
+            0,               # ground-truth yaw
+            noisy_pitch,     # noisy pitch
+            noisy_yaw,       # noisy yaw
+            R
+        ))
+
+    # Horizontal line: vary yaw, pitch = 0
+    for yaw in range(-45, 46, 1):
+        noisy_pitch, noisy_yaw = simulate_head_pose_euclidean_mae(
+            0, yaw, target_euclidean_mae
+        )
+
+        R = rotation_matrix_x(noisy_pitch) @ rotation_matrix_y(noisy_yaw)
+
+        rotations.append((
+            0,               # ground-truth pitch
+            yaw,             # ground-truth yaw
+            noisy_pitch,     # noisy pitch
+            noisy_yaw,       # noisy yaw
+            R
+        ))
+
+    return rotations
+
+
 def generate_rotation_matrices_full_x_y():
     xs = range(-45, 46, 1)
     ys = range(-45, 46, 1)
@@ -160,26 +234,49 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None):
         render_angles = [-10, 0, 10]
 
     file_abspath = headscan['obj_file_path']
-    rotation_matrices = generate_rotation_matrices_cross_x_y() + generate_rotation_matrices(render_angles)
+    #rotation_matrices = generate_rotation_matrices_cross_x_y() + generate_rotation_matrices(render_angles)
+    noisy = True
+    rotation_matrices = generate_rotation_matrices_cross_x_y_with_simulated_error(4)
 
     render_jobs = []
     for rotation_m in rotation_matrices:
-        if flipped:
-            R = rotation_m[2].copy()
-            R[1] = -R[1]
-            R[2] = -R[2]
-            rotation_m = (rotation_m[0], rotation_m[1], R)
+        if noisy:
+            if flipped:
+                R = rotation_m[2].copy()
+                R[1] = -R[1]
+                R[2] = -R[2]
+                R[3] = -R[3]
+                R[4] = -R[4]
+                rotation_m = (rotation_m[1], rotation_m[2], rotation_m[3], rotation_m[4], R)
 
-        folder = os.path.join(
-            output_image_dir,
-            headscan['user'],
-            headscan['date'],
-            headscan['scan_id'] + '_' + headscan['scan_name']
-        )
+            folder = os.path.join(
+                output_image_dir,
+                headscan['user'],
+                headscan['date'],
+                headscan['scan_id'] + '_' + headscan['scan_name']
+            )
 
-        fn = f"{rotation_m[0]}_{rotation_m[1]}"
-        img_path = os.path.join(folder, fn + "_image.jpg")
-        depth_path = os.path.join(folder, fn + "_depth.jpg")
+            fn = f"{rotation_m[0]}_{rotation_m[1]}_{rotation_m[2]:.2f}_{rotation_m[3]:.2f}"
+            rotation_m = (rotation_m[2], rotation_m[3], rotation_m[4])
+            img_path = os.path.join(folder, fn + "_image.jpg")
+            depth_path = os.path.join(folder, fn + "_depth.jpg")
+        else:
+            if flipped:
+                R = rotation_m[2].copy()
+                R[1] = -R[1]
+                R[2] = -R[2]
+                rotation_m = (rotation_m[0], rotation_m[1], R)
+
+            folder = os.path.join(
+                output_image_dir,
+                headscan['user'],
+                headscan['date'],
+                headscan['scan_id'] + '_' + headscan['scan_name']
+            )
+
+            fn = f"{rotation_m[0]}_{rotation_m[1]}"
+            img_path = os.path.join(folder, fn + "_image.jpg")
+            depth_path = os.path.join(folder, fn + "_depth.jpg")
 
         if not os.path.exists(img_path): # and os.path.exists(depth_path)):
             render_jobs.append((rotation_m[0], rotation_m[1], rotation_m[2], folder, img_path, depth_path))
@@ -238,10 +335,12 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None):
         rgb_float = vis.capture_screen_float_buffer(do_render=False)
         rgb_np = np.asarray(rgb_float)
 
+        #plt.imshow(rgb_np)
+        #plt.show()
         depth_np, rgb_np = postprocess_renderer_image(depth_np, rgb_np)
 
         os.makedirs(folder, exist_ok=True)
-        # plt.imsave(depth_path, depth_np, cmap='gray', dpi=1)
+        #plt.imsave(depth_path, depth_np, cmap='gray', dpi=1)
         plt.imsave(img_path, rgb_np, dpi=1)
 
     vis.destroy_window()

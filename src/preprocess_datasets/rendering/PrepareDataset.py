@@ -1,3 +1,5 @@
+import warnings
+
 import hashlib
 import os
 import shutil
@@ -88,7 +90,7 @@ def collect_data_files_rgb(input_path):
     return file_paths
 
 
-def prepare_dataset_rgb(input_path, output_dir, mode=''):
+def prepare_dataset_rgb(input_path, output_dir, mode='', num_files=None):
     print('input_dir:', input_path)
     print('output_dir:', output_dir)
     file_paths = collect_data_files_rgb(input_path)
