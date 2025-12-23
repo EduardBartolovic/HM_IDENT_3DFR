@@ -529,3 +529,5 @@ if __name__ == '__main__':
         for selected_views in num_views:
             cfg_yaml = {"TEST_VIEWS": selected_views}
             main(cfg_yaml)
+
+    print("DONE")
