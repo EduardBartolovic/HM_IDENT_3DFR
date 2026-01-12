@@ -320,15 +320,17 @@ if __name__ == '__main__':
     unique_views = sorted(set(yaw_pitch_pairs))
     all_views_set = [f"{x}_{y}" for (x, y) in unique_views]
 
-    allowed = []  # generate_view_subsets_sampled(all_views_set)
-    print(f"✅ Using {len(allowed)} random unique perspectives")
+    allowed = [['0_0']]
+    random_list = generate_view_subsets_sampled(all_views_set)
+    #allowed.extend(random_list)
+    print(f"✅ Using {len(random_list)} random unique perspectives")
 
     cross_experiments = generate_cross_experiments(
         max_angles=[10, 15, 25, 35],
         steps=[1, 2, 3, 4, 5, 10, 15]
     )
     print(f"✅ Using {len(cross_experiments)} cross unique perspectives")
-    allowed.append(cross_experiments)
+    allowed.extend(cross_experiments)
 
     # TODO Add more extras: Diagnonal and cross and no neg pitch
     extras = [['0_0', '-25_0', '-10_0', '25_0', '10_0'],  # 1 Azimuth axis
@@ -376,7 +378,7 @@ if __name__ == '__main__':
               ['10_10'],
               ['10_25']
               ]
-    allowed.append(extras)
+    allowed.extend(extras)
 
     extras2 = [
         # --- Pure large-angle axes ---
@@ -522,12 +524,10 @@ if __name__ == '__main__':
         ['-35_-35', '-25_-25', '0_0', '25_25', '35_35'],
         ['-35_35', '-25_25', '0_0', '25_-25', '35_-35'],
     ]
-    allowed.append(extras2)
+    allowed.extend(extras2)
 
-    for num_views in allowed:
-        print(len(num_views))
-        for selected_views in num_views:
-            cfg_yaml = {"TEST_VIEWS": selected_views}
-            main(cfg_yaml)
+    for selected_views in allowed:
+        cfg_yaml = {"TEST_VIEWS": selected_views}
+        main(cfg_yaml)
 
     print("DONE")
