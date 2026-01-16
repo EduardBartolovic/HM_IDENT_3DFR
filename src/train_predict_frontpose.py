@@ -222,7 +222,11 @@ def main(cfg):
                 rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
                 input_emb = embeddings[torch.arange(B), rand_idx].to(DEVICE)
 
-                front_emb = embeddings[:, 93].to(DEVICE) # TODO Check if x is FRONT?
+                # check where pose == (0, 0)
+                is_front = (true_poses == 0).all(dim=-1)  # (B, V) boolean
+                front_pose_index = is_front.long().argmax(dim=1)  # (B,)
+
+                front_emb = embeddings[:, front_pose_index].to(DEVICE)
 
                 pred_front = predictor(input_emb)
 

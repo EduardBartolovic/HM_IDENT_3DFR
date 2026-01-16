@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from src.preprocess_datasets.rendering.Facerender import generate_rotation_matrices_cross_x_y, \
     generate_rotation_matrices
+from src.util.Plotter import analyze_embedding_distribution
 from src.util.Voting import accuracy_front_perspective, concat, score_fusion
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.misc import colorstr, smart_round, bold, underscore
@@ -95,7 +96,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
     time.sleep(0.1)
 
     embedding_library = get_embeddings_mv(enrolled_loader, query_loader, disable_bar)
-    # enrolled_labels, query_labels = embedding_library.enrolled_labels, embedding_library.query_labels
+    enrolled_labels, query_labels = embedding_library.enrolled_labels, embedding_library.query_labels
 
     all_metrics = {}
 
@@ -104,7 +105,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
     # plot_cmc(sim_front, enrolled_labels, query_labels, dataset_name, "front")
     # plot_rrk_histogram(query_labels, enrolled_labels, sim_front, dataset_name, "front")
     # error_rate_per_class(query_labels, enrolled_labels, top_idx, dataset_enrolled, embedding_library.query_scan_ids, sim_front, dataset_name, "_front")
-    # all_metrics["emb_dist_front"] = analyze_embedding_distribution(sim_front, query_labels, enrolled_labels, dataset_name, "front", plot=True)
+    all_metrics["emb_dist_front"] = analyze_embedding_distribution(sim_front, query_labels, enrolled_labels, "", "front", plot=False)
     all_metrics["metrics_front"] = metrics_front
     del sim_front, top_idx, y_true_front, y_pred_front
 
@@ -113,7 +114,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
     # plot_cmc(sim_concat, enrolled_labels, query_labels, dataset_name, "concat")
     # plot_rrk_histogram(query_labels, enrolled_labels, sim_concat, dataset_name, "concat")
     # error_rate_per_class(query_labels, enrolled_labels, top_idx, dataset_enrolled, embedding_library.query_scan_ids, sim_concat, dataset_name, "_concat")
-    # all_metrics["emb_dist_concat"] = analyze_embedding_distribution(sim_concat, query_labels, enrolled_labels, dataset_name, "concat", plot=True)
+    all_metrics["emb_dist_concat"] = analyze_embedding_distribution(sim_concat, query_labels, enrolled_labels, "", "concat", plot=False)
     all_metrics["metrics_concat"] = metrics_concat
     del sim_concat, top_idx, y_true_concat, y_pred_concat
 
@@ -122,7 +123,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
         embedding_library, disable_bar, reduce_with="mean")
     # plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, dataset_name, "concat_mean")
     # plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_mean, dataset_name, "concat_mean")
-    # all_metrics["emb_dist_concat_mean"] = analyze_embedding_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, dataset_name, "concat_mean", plot=True)
+    all_metrics["emb_dist_concat_mean"] = analyze_embedding_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, "", "concat_mean", plot=False)
     all_metrics["metrics_concat_mean"] = metrics_concat_mean
     del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
 
@@ -131,7 +132,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
         embedding_library, disable_bar, reduce_with="median")
     # plot_cmc(similarity_matrix_concat_median, enrolled_labels, query_labels, dataset_name, "concat_median")
     # plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_median, dataset_name, "concat_median")
-    # all_metrics["emb_dist_concat_median"] = analyze_embedding_distribution(similarity_matrix_concat_median, query_labels, enrolled_labels, dataset_name, "concat_median", plot=True)
+    #all_metrics["emb_dist_concat_median"] = analyze_embedding_distribution(similarity_matrix_concat_median, query_labels, enrolled_labels, "", "concat_median", plot=False)
     all_metrics["metrics_concat_median"] = metrics_concat_median
     del similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median
 
@@ -146,8 +147,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
     fusion_methods = ["max", "product", "majority", "mean", "median"]
     sim_score = None
     for m in fusion_methods:
-        metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m,
-                                                                similarity_matrix=sim_score, distance_matrix=None)
+        metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m, similarity_matrix=sim_score, distance_matrix=None)
         all_metrics[f"metrics_score_{m}"] = metrics
         # all_metrics[f"emb_dist_score_{m}"] = analyze_embedding_distribution(fused, query_labels, enrolled_labels, dataset_name, f"score_{m}", plot=True)
 
@@ -160,17 +160,17 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     rank_1_front = smart_round(all_metrics["metrics_front"].get('Rank-1 Rate', 'N/A'))
     rank_5_front = smart_round(all_metrics["metrics_front"].get('Rank-5 Rate', 'N/A'))
     mrr_front = smart_round(all_metrics["metrics_front"].get('MRR', 'N/A'))
-    # gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A')*100)
+    gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A')*100)
 
     rank_1_concat = smart_round(all_metrics["metrics_concat"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat = smart_round(all_metrics["metrics_concat"].get('Rank-5 Rate', 'N/A'))
     mrr_concat = smart_round(all_metrics["metrics_concat"].get('MRR', 'N/A'))
-    # gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A')*100)
+    gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A')*100)
 
     rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-5 Rate', 'N/A'))
     mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
-    # gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A')*100)
+    gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A')*100)
 
     rank_1_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-5 Rate', 'N/A'))
@@ -194,10 +194,10 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
 
     # mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
     string = (f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: " +
-              f"{('Front RR1')}: {rank_1_front} {'MRR'}: {(mrr_front)} | "  # {bold('GAIG')}: {underscore(gaig_front)} | "
-              f"{('Concat RR1')}: {rank_1_concat} {'MRR'}: {(mrr_concat)} | "  # {bold('GAIG')}: {underscore(gaig_concat)} | "
-              f"{('Concat_Mean RR1')}: {rank_1_concat_mean} {('MRR')}: {(mrr_concat_mean)} | "
-              f"{('Concat_Median RR1')}: {rank_1_concat_median} {('MRR')}: {(mrr_concat_median)} | "
+              f"{'Front RR1'}: {rank_1_front} {'MRR'}: {mrr_front} {'GBIG'}: {gbig_front} | "  # {bold('GAIG')}: {underscore(gaig_front)} | "
+              f"{'Concat RR1'}: {rank_1_concat} {'MRR'}: {mrr_concat} {'GBIG'}: {gbig_concat} | "  # {bold('GAIG')}: {underscore(gaig_concat)} | "
+              f"{'Concat_Mean RR1'}: {rank_1_concat_mean} {'MRR'}: {mrr_concat_mean} {'GBIG'}: {gbig_concat_mean} | "
+              f"{'Concat_Median RR1'}: {rank_1_concat_median} {'MRR'}: {mrr_concat_median} | "
               # f"{bold('Concat_PCA RR1')}: {rank_1_concat_pca} {bold('MRR')}: {underscore(mrr_concat_pca)} | "
               f"{('Score_prod MRR')}: {(mrr_score_prod)} | "
               f"{('Score_mean MRR')}: {(mrr_score_mean)} | "
@@ -210,7 +210,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
 
 
 def evaluate_and_log_mv(data_root, test_views, batch_size, disable_bar: bool = True):
-    print(colorstr('bright_green', f"Perform 1:N Evaluation on {test_views}"))
+    print("Perform 1:N Evaluation on {test_views}")
     all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_emb_1_n(data_root, batch_size, test_views, disable_bar)
 
     neutral_dataset = "Dataset: " + str(test_views)
@@ -259,6 +259,8 @@ def generate_view_subsets_sampled(
 def generate_cross_views(
         max_angle=35,
         step=5,
+        yaw_zero = False,
+        pitch_zero = False,
 ):
     """
     Generate views where yaw=0 OR pitch=0 (cross),
@@ -269,8 +271,10 @@ def generate_cross_views(
     views = set()
 
     for a in angles:
-        views.add((a, 0))  # yaw axis
-        views.add((0, a))  # pitch axis
+        if pitch_zero:
+            views.add((a, 0))  # yaw axis
+        if yaw_zero:
+            views.add((0, a))  # pitch axis
 
     return sorted(views)
 
@@ -281,7 +285,9 @@ def views_to_strings(views):
 
 def generate_cross_experiments(
         max_angles=(10, 15, 25, 35),
-        steps=(1, 2, 3, 5, 10)
+        steps=(1, 2, 3, 5, 10),
+        yaw_zero=True,
+        pitch_zero=True,
 ):
     experiments = []
 
@@ -289,7 +295,9 @@ def generate_cross_experiments(
         for step in steps:
             views = generate_cross_views(
                 max_angle=max_a,
-                step=step
+                step=step,
+                yaw_zero=yaw_zero,
+                pitch_zero=pitch_zero
             )
             experiments.append(views_to_strings(views))
 
@@ -301,7 +309,7 @@ def main(cfg):
     torch.manual_seed(SEED)
 
     DATA_ROOT = "F:\\Face\\data\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"  # "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
-    BATCH_SIZE = 16  # Batch size in training
+    BATCH_SIZE = 16  # Batch size
 
     # ======= Validation =======
     evaluate_and_log_mv(DATA_ROOT, cfg['TEST_VIEWS'], BATCH_SIZE, disable_bar=True)
@@ -325,12 +333,32 @@ if __name__ == '__main__':
     #allowed.extend(random_list)
     print(f"✅ Using {len(random_list)} random unique perspectives")
 
-    cross_experiments = generate_cross_experiments(
+    cross_experiments1 = generate_cross_experiments(
         max_angles=[10, 15, 25, 35],
-        steps=[1, 2, 3, 4, 5, 10, 15]
+        steps=[1, 2, 3, 4, 5, 10, 15],
+        yaw_zero=True,
+        pitch_zero=True
     )
-    print(f"✅ Using {len(cross_experiments)} cross unique perspectives")
-    allowed.extend(cross_experiments)
+    print(f"✅ Using {len(cross_experiments1)} cross unique perspectives")
+    allowed.extend(cross_experiments1)
+
+    cross_experiments2 = generate_cross_experiments(
+        max_angles=[10, 15, 25, 35],
+        steps=[1, 2, 3, 4, 5, 10, 15],
+        yaw_zero=True,
+        pitch_zero=False
+    )
+    print(f"✅ Using {len(cross_experiments2)} cross unique perspectives")
+    allowed.extend(cross_experiments2)
+
+    cross_experiments3 = generate_cross_experiments(
+        max_angles=[10, 15, 25, 35],
+        steps=[1, 2, 3, 4, 5, 10, 15],
+        yaw_zero=False,
+        pitch_zero=True
+    )
+    print(f"✅ Using {len(cross_experiments3)} cross unique perspectives")
+    allowed.extend(cross_experiments3)
 
     # TODO Add more extras: Diagnonal and cross and no neg pitch
     extras = [['0_0', '-25_0', '-10_0', '25_0', '10_0'],  # 1 Azimuth axis
@@ -525,6 +553,37 @@ if __name__ == '__main__':
         ['-35_35', '-25_25', '0_0', '25_-25', '35_-35'],
     ]
     allowed.extend(extras2)
+
+    extras3 = [
+        # Full Yaw
+        ['0_0', '-35_0', '-30_0', '-25_0', '-20_0', '-15_0', '-10_0', '-5_0', '5_0', '10_0', '15_0', '20_0', '25_0', '30_0', '35_0'],  # Yaw
+        ['0_0', '-35_0', '-30_0', '-20_0', '-10_0', '10_0', '20_0', '25_0', '30_0', '35_0'],  # Yaw less resolution
+        ['0_0', '-35_0', '35_0'],  # Yaw less resolution
+        ['0_0', '-25_0', '25_0'],  # Yaw less resolution
+        ['0_0', '-20_0', '20_0'],  # Yaw less resolution
+        ['0_0', '-15_0', '15_0'],  # Yaw less resolution
+        ['0_0', '-35_0', '35_0', '-20_0', '20_0'],  # Yaw less resolution
+        # Full Pitch
+        ['0_0', '0_-35', '0_-30', '0_-25', '0_-20', '0_-15', '0_-10', '0_-5', '0_5', '0_10', '0_15', '0_20', '0_25', '0_30', '0_35'],  # Pitch
+        ['0_0', '0_-35', '0_-30', '0_-20', '0_-10', '0_10', '0_20', '0_25', '0_30', '0_35'],  # Less resolution
+        ['0_0', '0_-35', '0_35'],  # Less resolution
+        ['0_0', '0_-25', '0_25'],  # Less resolution
+        ['0_0', '0_-20', '0_20'],  # Less resolution
+        ['0_0', '0_-15', '0_15'],  # Less resolution
+        ['0_0', '0_-35', '0_35', '0_-20', '0_20'],  # Yaw less resolution
+        # --- Full Cross ---
+        ['0_0', '-35_0', '-30_0', '-25_0', '-20_0', '-15_0', '-10_0', '-5_0', '5_0', '10_0', '15_0', '20_0', '25_0', '30_0', '35_0', '0_-35', '0_-30', '0_-25', '0_-20', '0_-15', '0_-10', '0_-5', '0_5', '0_10', '0_15', '0_20', '0_25', '0_30', '0_35'],
+        ['0_0', '-35_0', '-30_0', '-20_0', '-10_0', '10_0', '20_0', '25_0', '30_0', '35_0', '0_-35', '0_-30', '0_-20', '0_-10', '0_10', '0_20', '0_25', '0_30', '0_35'],
+        ['0_0', '-35_0', '35_0', '0_-35', '0_35'],
+        ['0_0', '-25_0', '25_0', '0_0', '0_-25', '0_25'],
+        ['0_0', '-20_0', '20_0', '0_-20', '0_20'],
+        ['0_0', '-15_0', '15_0', '0_-15', '0_15'],
+        ['0_0', '-35_0', '35_0', '-20_0', '20_0', '0_-35', '0_35', '0_-20', '0_20'],
+        ['0_0', '-35_0', '35_0', '0_-25', '0_25'],
+        ['0_0', '-20_0', '20_0', '0_-10', '0_10'],
+        ['0_0', '-35_0', '35_0', '-20_0', '20_0', '0_-10', '0_10', '0_-25', '0_25'],
+    ]
+    allowed.extend(extras3)
 
     for selected_views in allowed:
         cfg_yaml = {"TEST_VIEWS": selected_views}
