@@ -1,13 +1,16 @@
 import os
 import numpy as np
 import torch
+from scripts.regsetup import description
 from torch.utils.data import Dataset
 from collections import defaultdict
+
+from tqdm import tqdm
 
 
 class EmbeddingDataset(Dataset):
 
-    def __init__(self, root_dir, views: list[str] | None = None, perspective_as_string=False):
+    def __init__(self, root_dir, views: list[str] | None = None, perspective_as_string=False, disable_tqdm=True):
         self.root_dir = root_dir
 
         self.views = views
@@ -28,7 +31,7 @@ class EmbeddingDataset(Dataset):
                 dtype=torch.int32
             )
 
-        for cls in class_dirs:
+        for cls in tqdm(class_dirs, desc="Loading classes", disable=disable_tqdm):
             cls_path = os.path.join(root_dir, cls)
             if not os.path.isdir(cls_path):
                 continue
