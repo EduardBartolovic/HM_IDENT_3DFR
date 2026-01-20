@@ -95,15 +95,21 @@ def main(cfg):
         class_idx_np = np.array(class_idx)
         scan_id_np = np.array(scan_id)
 
-        def str_to_tuple(p):
-            a, b = p.split('_')
-            return int(a), int(b)
+        def parse_perspective(p):
+            return [int(x) for x in p.split('_')]
 
         ref_perspectives_np = np.array(ref_perspectives).transpose(1, 0)
         true_perspectives_np = np.array(true_perspectives).transpose(1, 0)
 
-        ref_perspectives_np = np.vectorize(str_to_tuple, otypes=[object])(ref_perspectives_np)
-        true_perspectives_np = np.vectorize(str_to_tuple, otypes=[object])(true_perspectives_np)
+        ref_perspectives_np = np.array(
+            [[parse_perspective(p) for p in row] for row in ref_perspectives_np],
+            dtype=np.int16
+        )
+
+        true_perspectives_np = np.array(
+            [[parse_perspective(p) for p in row] for row in true_perspectives_np],
+            dtype=np.int16
+        )
 
         for i in range(len(scan_id)):
             sample_name = f"{scan_id[i]}.npz"

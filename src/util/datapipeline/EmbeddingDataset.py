@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 class EmbeddingDataset(Dataset):
 
-    def __init__(self, root_dir, views: list[str] | None = None, perspective_as_string=False, disable_tqdm=True):
+    def __init__(self, root_dir, views: list[str] | None = None, disable_tqdm=True):
         self.root_dir = root_dir
 
         self.views = views
@@ -24,12 +24,6 @@ class EmbeddingDataset(Dataset):
         class_dirs = sorted(os.listdir(root_dir))
         self.classes = class_dirs
 
-        def convert_list(str_list):
-            return torch.tensor(
-                [tuple(map(int, s.split("_"))) for s in str_list],
-                dtype=torch.int32
-            )
-
         for cls in tqdm(class_dirs, desc="Loading classes", disable=disable_tqdm):
             cls_path = os.path.join(root_dir, cls)
             if not os.path.isdir(cls_path):
@@ -43,28 +37,25 @@ class EmbeddingDataset(Dataset):
                 data = np.load(path, allow_pickle=True)
 
                 emb_np = data["embedding_reg"].astype(np.float32)
-                # --- load perspectives as STRINGS first ---
-                true_p_str = data["true_perspective"].tolist()
+                true_p_np = data["true_perspective"]  # shape: (num_views, 2)
+                ref_p_np = data["red_perspective"]  # shape: (num_views, 2)
 
-                # --- FILTER VIEWS ---
+                # --- FILTER VIEW FILTERING ---
                 if self.views is not None:
-                    mask = np.array([p in self.views for p in true_p_str])
+                    mask = np.array([tuple(p) in self.view_tuples for p in true_p_np])
                     emb_np = emb_np[mask]
-                    true_p_str = [p for p, m in zip(true_p_str, mask) if m]
+                    true_p_np = true_p_np[mask]
+                    ref_p_np = ref_p_np[mask]
 
-                # --- convert perspectives to int tuple if needed ---
-                if perspective_as_string:
-                    true_p = true_p_str
-                else:
-                    true_p = convert_list(true_p_str)
-
+                true_p = torch.from_numpy(true_p_np).to(torch.int16)
+                ref_p = torch.from_numpy(ref_p_np).to(torch.int16)
                 emb = torch.from_numpy(emb_np)
 
                 label = int(data["label"])
                 scan_id = str(data["scan_id"])
 
                 self.samples.append(
-                    (emb, label, scan_id, true_p, path)
+                    (emb, label, scan_id, true_p, ref_p, path)
                 )
 
     def __len__(self):
