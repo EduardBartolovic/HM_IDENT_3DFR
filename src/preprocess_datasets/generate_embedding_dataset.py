@@ -95,8 +95,15 @@ def main(cfg):
         class_idx_np = np.array(class_idx)
         scan_id_np = np.array(scan_id)
 
+        def str_to_tuple(p):
+            a, b = p.split('_')
+            return int(a), int(b)
+
         ref_perspectives_np = np.array(ref_perspectives).transpose(1, 0)
         true_perspectives_np = np.array(true_perspectives).transpose(1, 0)
+
+        ref_perspectives_np = np.vectorize(str_to_tuple, otypes=[object])(ref_perspectives_np)
+        true_perspectives_np = np.vectorize(str_to_tuple, otypes=[object])(true_perspectives_np)
 
         for i in range(len(scan_id)):
             sample_name = f"{scan_id[i]}.npz"
@@ -116,25 +123,20 @@ def main(cfg):
 
 if __name__ == '__main__':
     cfg_yaml = {}
-    cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset14\\"
-    #cfg_yaml["TRAIN_SET"] = "rgb_bff_crop261"
     cfg_yaml['BACKBONE_RESUME_PATH'] = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\glint_cosface_r18_fp16.pth"
-    #cfg_yaml['BACKBONE_NAME'] = "IR_MV_V2_18"
-
-    #cfg_yaml['INPUT_SIZE'] = [112, 112]
-    #cfg_yaml['NUM_VIEWS'] = 261  # Number of views
-
-    #cfg_yaml['OUT'] = "F:\\Face\\data\\dataset13_emb\\" + cfg_yaml["TRAIN_SET"] + "_emb-irseglintr18"
-
-    #main(cfg_yaml)
-
-
-    #cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset14/"
-    cfg_yaml["TRAIN_SET"] = "test_rgb_bff_crop261\\enrolled\\"
     #cfg_yaml['BACKBONE_RESUME_PATH'] = "/home/gustav/HM_IDENT_3DFR/pretrained/glint_cosface_r18_fp16.pth" # edgeface_xs_gamma_06.pt" #glint_cosface_r18_fp16.pth" #AdaFace_ARoFace_R100_WebFace12M.pt"
     cfg_yaml['BACKBONE_NAME'] = "IR_MV_V2_18"
     cfg_yaml['INPUT_SIZE'] = [112, 112]
     cfg_yaml['NUM_VIEWS'] = 261
+    cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset14\\"
+    #cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset14/"
+
+    #cfg_yaml["TRAIN_SET"] = "rgb_bff_crop261"
+    #cfg_yaml['OUT'] = "F:\\Face\\data\\dataset13_emb\\" + cfg_yaml["TRAIN_SET"] + "_emb-irseglintr18"
+    #main(cfg_yaml)
+
+
+    cfg_yaml["TRAIN_SET"] = "test_rgb_bff_crop261\\enrolled\\"
     cfg_yaml['OUT'] = "F:\\Face\\data\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\enrolled\\"
     main(cfg_yaml)
 
