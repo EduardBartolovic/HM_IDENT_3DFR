@@ -74,7 +74,6 @@ def analyze_result_verification(labels, similarities_mv,
                                 method_appendix="",
                                 far_targets=(1e-6, 1e-4),
                                 folds=None,
-                                random_state=42,
                                 plot=True,
                                 ):
     """
@@ -87,7 +86,6 @@ def analyze_result_verification(labels, similarities_mv,
         method_appendix: Extra string for logging/plotting
         far_targets: Tuple of FARs to compute TAR at (default: 1e-6 and 1e-4)
         folds: Array of fold indices (same length as labels/scores). If None, falls back to random 10-fold CV.
-        random_state: Random seed for reproducibility
         plot: If True, plots for the first fold only
 
     Returns:
