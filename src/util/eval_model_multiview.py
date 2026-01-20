@@ -15,15 +15,13 @@ from tqdm import tqdm
 
 from src.util.Metrics import error_rate_per_class
 from src.util.Plotter import plot_confusion_matrix, plot_rrk_histogram, plot_cmc, analyze_embedding_distribution, \
-    plot_all_cmc_from_txt, analyze_verification_distribution
+    plot_all_cmc_from_txt, analyze_verification_distribution, plot_roc_log_far
 from src.util.Voting import calculate_embedding_similarity, compute_ranking_matrices, analyze_result, concat, \
-    accuracy_front_perspective, analyze_result_verification, score_fusion, fuse_pairwise_scores
-from src.util.analyse_perspective import calc_perspective_distances, analyze_perspective_error_correlation, \
-    compute_per_view_distance_matrix, analyze_perspective_error_correlation_1v1, compute_pair_perspective_distance
+    accuracy_front_perspective, analyze_result_verification, score_fusion, fuse_pairwise_scores, \
+    face_verification_from_similarity
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.misc import colorstr, bold, underscore, smart_round
 
-#torch.set_float32_matmul_precision('high')
 
 
 @torch.no_grad()
@@ -128,9 +126,9 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     embedding_library = get_embeddings_mv(backbone, enrolled_loader, query_loader, use_face_corr, disable_bar)
     enrolled_labels, query_labels = embedding_library.enrolled_labels, embedding_library.query_labels
 
-    #enrolled_distances = calc_perspective_distances(embedding_library.enrolled_perspectives, embedding_library.enrolled_true_perspectives)
-    #query_distances = calc_perspective_distances(embedding_library.query_perspectives, embedding_library.query_true_perspectives)
-    distance_matrix, distance_matrix_avg = compute_per_view_distance_matrix(embedding_library.query_true_perspectives, embedding_library.enrolled_true_perspectives)
+    # enrolled_distances = calc_perspective_distances(embedding_library.enrolled_perspectives, embedding_library.enrolled_true_perspectives)
+    # query_distances = calc_perspective_distances(embedding_library.query_perspectives, embedding_library.query_true_perspectives)
+    # distance_matrix, distance_matrix_avg = compute_per_view_distance_matrix(embedding_library.query_true_perspectives, embedding_library.enrolled_true_perspectives)
 
     all_metrics = {}
 
@@ -165,6 +163,14 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     all_metrics["emb_dist_front"] = analyze_embedding_distribution(sim_front, query_labels, enrolled_labels, dataset_name, "front", plot=True)
     all_metrics["metrics_front"] = metrics_front
     # corr_analysis(top_idx, "front")
+
+    all_metrics["verification_results_front"] = face_verification_from_similarity(
+        sim_front,
+        query_labels,
+        enrolled_labels
+    )
+    plot_roc_log_far(all_metrics["verification_results_front"]["fpr"], all_metrics["verification_results_front"]["tpr"], all_metrics["verification_results_front"]["auc"], "front")
+
     del sim_front, top_idx, y_true_front, y_pred_front
 
     # --------- Concat Full ---------
@@ -175,15 +181,32 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     all_metrics["emb_dist_concat"] = analyze_embedding_distribution(sim_concat, query_labels, enrolled_labels, dataset_name, "concat", plot=True)
     all_metrics["metrics_concat"] = metrics_concat
     # corr_analysis(top_idx, "concat")
+
+    all_metrics["verification_results_concat"] = face_verification_from_similarity(
+        sim_concat,
+        query_labels,
+        enrolled_labels
+    )
+    plot_roc_log_far(all_metrics["verification_results_concat"]["fpr"], all_metrics["verification_results_concat"]["tpr"], all_metrics["verification_results_concat"]["auc"], "concat")
+
     del sim_concat, top_idx, y_true_concat, y_pred_concat
 
     # --------- Concat Mean ---------
-    metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
-    plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, dataset_name, "concat_mean")
-    plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_mean, dataset_name, "concat_mean")
-    all_metrics["emb_dist_concat_mean"] = analyze_embedding_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, dataset_name, "concat_mean", plot=True)
+    metrics_concat_mean, sim_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
+    plot_cmc(sim_concat_mean, enrolled_labels, query_labels, dataset_name, "concat_mean")
+    plot_rrk_histogram(query_labels, enrolled_labels, sim_concat_mean, dataset_name, "concat_mean")
+    all_metrics["emb_dist_concat_mean"] = analyze_embedding_distribution(sim_concat_mean, query_labels, enrolled_labels, dataset_name, "concat_mean", plot=True)
     all_metrics["metrics_concat_mean"] = metrics_concat_mean
-    del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
+
+    all_metrics["verification_results_concat_mean"] = face_verification_from_similarity(
+        sim_concat_mean,
+        query_labels,
+        enrolled_labels
+    )
+    plot_roc_log_far(all_metrics["verification_results_concat_mean"]["fpr"], all_metrics["verification_results_concat_mean"]["tpr"], all_metrics["verification_results_concat_mean"]["auc"], "concat_mean")
+
+    del sim_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
+
 
     # --------- Concat Median ---------
     metrics_concat_median, similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median = concat(embedding_library, disable_bar, reduce_with="median")
@@ -204,7 +227,7 @@ def evaluate_mv_1_n(backbone, test_path, test_transform, batch_size, num_views: 
     fusion_methods = ["max", "product", "majority", "mean", "median"]
     sim_score = None
     for m in fusion_methods:
-        metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m, similarity_matrix=sim_score, distance_matrix=(distance_matrix if m == "pdw" else None))
+        metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m, similarity_matrix=sim_score, distance_matrix=None)  # (distance_matrix if m == "pdw" else None))
         all_metrics[f"metrics_score_{m}"] = metrics
         all_metrics[f"emb_dist_score_{m}"] = analyze_embedding_distribution(fused, query_labels, enrolled_labels, dataset_name, f"score_{m}", plot=True)
 
@@ -324,21 +347,6 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
         sim = np.dot(emb1_reg_pca, emb2_reg_pca) / (norm(emb1_reg_pca) * norm(emb2_reg_pca))
         similarities_concat_pca.append(sim)
 
-        # Cross-view average similarity
-        #pairwise_sims = np.dot(normalize(emb1_reg), normalize(emb2_reg).T)  # shape: (num_views, num_views)
-        #sim = pairwise_sims.mean()
-        #similarities_crossview_avg.append(sim)
-
-        #pairwise_sims = np.dot(normalize(emb1_reg), normalize(emb2_reg).T)
-        #norms1 = np.linalg.norm(emb1_reg, axis=1)
-        #norms2 = np.linalg.norm(emb2_reg, axis=1)
-        #pairwise_sims /= np.outer(norms1, norms2)
-        # weight by norms or some learned reliability
-        #weights1 = norms1 / norms1.sum()
-        #weights2 = norms2 / norms2.sum()
-        #sim = np.sum(np.outer(weights1, weights2) * pairwise_sims)
-        #similarities_crossview_avg.append(sim)
-
         # Fusion Methods
         for m in fusion_methods:
             sim_fused = fuse_pairwise_scores(emb1_reg, emb2_reg, method=m)
@@ -361,20 +369,6 @@ def evaluate_mv_1_1(backbone, test_path, test_transform, batch_size, num_views: 
 
     for m in fusion_methods:
         all_metrics[f"metrics_score_{m}"] = analyze_result_verification(labels, similarities_fusion[m], dataset_name,f"_{m}", folds=folds)
-
-    # ---------- Perspective analysis --------- TODO
-    #perspective_distances = calc_perspective_distances(
-    #    embedding_library.enrolled_perspectives,
-    #    embedding_library.enrolled_true_perspectives
-    #)  # shape (num_samples, num_views)
-    #for tag, sim in {"_mvfa": similarities_mv, "_front": similarities_front, "_concat": similarities_concat}.items():
-    #    if f"metrics{tag}" in all_metrics.keys():
-    #        preds = (sim > all_metrics[f"metrics{tag}"]["Best_thresh"]).astype(int)
-    #        c = analyze_perspective_error_correlation_1v1(
-    #            pair_list, perspective_distances, embedding_library, preds,
-    #            name_to_class_dict, embedding_library.enrolled_true_perspectives,
-    #            plot=True, extension=f"_{dataset_name}{tag}"
-    #        )
 
     # ---------- Score Distribution Analysis ----------
     for ext, sims in sim_dict.items():

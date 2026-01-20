@@ -437,3 +437,94 @@ def accuracy_best_case(embedding_library):
     predicted_labels = enrolled_labels[top_indices[:, 0]]
 
     return result, similarity_matrix, top_indices, predicted_labels, query_labels
+
+
+def face_verification_from_similarity(
+    similarity_matrix,
+    query_labels,
+    enrolled_labels,
+    far_targets=(1e-1, 1e-2, 1e-3, 1e-4),
+):
+    """
+    Perform 1:1 face verification from a similarity matrix.
+
+    Args:
+        similarity_matrix (Tensor or ndarray):
+            Shape (num_queries, num_enrolled)
+        query_labels (Tensor or ndarray):
+            Shape (num_queries,)
+        enrolled_labels (Tensor or ndarray):
+            Shape (num_enrolled,)
+        far_targets (tuple):
+            FAR values at which TAR is reported
+
+    Returns:
+        dict containing:
+            - scores
+            - labels
+            - fpr
+            - tpr
+            - thresholds
+            - auc
+            - eer
+            - tar_at_far
+    """
+    genuine_mask = query_labels[:, None] == enrolled_labels[None, :]
+
+    # Flatten into verification trials
+    scores = similarity_matrix.reshape(-1)
+    labels = genuine_mask.reshape(-1).astype(np.int32)
+
+    # ROC
+    fpr, tpr, thresholds = roc_curve(labels, scores)
+    roc_auc = auc(fpr, tpr)
+
+    # EER
+    fnr = 1.0 - tpr
+    eer_idx = np.nanargmin(np.abs(fpr - fnr))
+    eer = (fpr[eer_idx] + fnr[eer_idx]) / 2.0
+
+    # TAR @ FAR
+    tar_at_far = {}
+    for far in far_targets:
+        idx = np.where(fpr <= far)[0]
+        tar_at_far[far] = tpr[idx[-1]] if len(idx) > 0 else 0.0
+
+    genuine_scores = scores[labels == 1]
+    impostor_scores = scores[labels == 0]
+
+    # Mean gap
+    mean_genuine = np.mean(genuine_scores)
+    mean_impostor = np.mean(impostor_scores)
+    mean_gap = mean_genuine - mean_impostor
+
+    # === Best Impostor Gap (per query) ===
+    # --- find the best impostor per query ---
+    best_impostor_scores = np.empty(len(query_labels), dtype=similarity_matrix.dtype)
+    avg_impostor_scores = np.empty(len(query_labels), dtype=similarity_matrix.dtype)
+    for i in range(len(query_labels)):
+        row = similarity_matrix[i]
+        mask = genuine_mask[i]
+        best_impostor_scores[i] = np.max(row[~mask])
+        avg_impostor_scores[i] = np.mean(row[~mask])
+
+    genuine_best_imposter_gap = np.mean(genuine_scores - best_impostor_scores)
+    genuine_average_imposter_gap = np.mean(genuine_scores - avg_impostor_scores)
+    print("genuine_best_imposter_gap", genuine_best_imposter_gap)
+    print("genuine_average_imposter_gap", genuine_average_imposter_gap)
+
+    return {
+        "scores": scores,
+        "labels": labels,
+        "fpr": fpr,
+        "tpr": tpr,
+        "thresholds": thresholds,
+        "auc": roc_auc,
+        "eer": eer,
+        "tar_at_far": tar_at_far,
+        "mean_genuine": mean_genuine,
+        "mean_impostor": mean_impostor,
+        "mean_gap": mean_gap,
+        "genuine_best_imposter_gap": genuine_best_imposter_gap,
+        "genuine_average_imposter_gap": genuine_average_imposter_gap,
+    }

@@ -725,3 +725,37 @@ def plot_weight_evolution(weights_log, save_dir="weights_logs"):
 
         plt.savefig(os.path.join(save_dir, f"aggregator_{i}_weight_evolution.png"))
         plt.close()
+
+
+def plot_roc_log_far(fpr, tpr, auc_value, method, far_targets=(1e-1, 1e-2, 1e-3, 1e-4),):
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir = Path(tmp_dir)
+        plt.figure(figsize=(10, 6))
+        plt.semilogx(fpr, tpr, label=f"AUC = {auc_value:.8f}")
+
+        # Plot TAR@FAR points
+        for far in far_targets:
+            idx = np.where(fpr <= far)[0]
+            if len(idx) == 0:
+                continue
+            tar = tpr[idx[-1]]
+
+            plt.scatter(far, tar, zorder=3)
+            plt.annotate(
+                f"TAR@FAR={far:.0e}\n{tar:.8f}",
+                (far, tar),
+                textcoords="offset points",
+                xytext=(0, -30),
+                fontsize=9,
+            )
+
+        plt.xlabel("False Accept Rate (log scale)")
+        plt.ylabel("True Accept Rate")
+        plt.title(f"ROC Curve (Log FAR) with {method}")
+        plt.grid(True, which="both")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(os.path.join(tmp_dir, f"roc_log_far_{method}.svg"), format="svg")
+        plt.close()
+
+        mlflow.log_artifacts(tmp_dir, artifact_path="ROC_Curve")
