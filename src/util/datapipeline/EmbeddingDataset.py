@@ -38,7 +38,7 @@ class EmbeddingDataset(Dataset):
 
                 emb_np = data["embedding_reg"].astype(np.float32)
                 true_p_np = data["true_perspective"]  # shape: (num_views, 2)
-                ref_p_np = data["red_perspective"]  # shape: (num_views, 2)
+                ref_p_np = data["ref_perspective"]  # shape: (num_views, 2)
 
                 # --- FILTER VIEW FILTERING ---
                 if self.views is not None:

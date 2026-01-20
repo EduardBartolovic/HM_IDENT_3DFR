@@ -79,7 +79,6 @@ def main(cfg):
     #print("=" * 60)
 
     load_checkpoint(BACKBONE.backbone_reg, None, BACKBONE_RESUME_ROOT, "", rgbd='rgbd' in TRAIN_SET)
-    #load_checkpoint(BACKBONE.backbone_agg, None, BACKBONE_RESUME_ROOT, "", rgbd='rgbd' in TRAIN_SET)
     print("=" * 60)
 
     BACKBONE.eval()
