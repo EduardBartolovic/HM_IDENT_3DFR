@@ -211,9 +211,6 @@ def main(cfg):
         load_checkpoint(BACKBONE.backbone_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         print("=" * 60)
 
-        #if TORCH_COMPILE_MODE:
-        #   torch.compile(BACKBONE.backbone_reg, mode=TORCH_COMPILE_MODE)
-
         # ======= Freezing Parameter Settings =======
         for param in aggregator.parameters():
             param.requires_grad = False

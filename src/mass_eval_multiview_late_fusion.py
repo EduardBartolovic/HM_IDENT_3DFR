@@ -12,7 +12,7 @@ from tqdm import tqdm
 from src.preprocess_datasets.rendering.Facerender import generate_rotation_matrices_cross_x_y, \
     generate_rotation_matrices
 from src.util.Plotter import analyze_embedding_distribution
-from src.util.Voting import accuracy_front_perspective, concat, score_fusion
+from src.util.Voting import accuracy_front_perspective, concat, score_fusion, face_verification_from_similarity
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.misc import colorstr, smart_round, bold, underscore
 
@@ -26,40 +26,31 @@ def get_embeddings_mv(enrolled_loader, query_loader, disable_bar=False):
     enrolled_embeddings_reg = []
     enrolled_labels = []
     enrolled_scan_ids = []
-    enrolled_perspectives = 0
     enrolled_true_perspectives = []
     for embeddings, labels, scan_id, true_perspectives, _, path in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
         enrolled_embeddings_reg.append(embeddings.permute(1, 0, 2))
-        enrolled_labels.extend(
-            deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
+        enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         enrolled_scan_ids.extend(deepcopy(scan_id))
-        # enrolled_perspectives = np.array(perspectives).T[0]
-        enrolled_true_perspectives.append(np.array(deepcopy(true_perspectives)).T)
+        enrolled_true_perspectives.append(np.array(deepcopy(true_perspectives)))
 
     enrolled_embeddings_reg = np.concatenate(enrolled_embeddings_reg, axis=1)
     enrolled_labels = np.array([t.item() for t in enrolled_labels])
     enrolled_scan_ids = np.array(enrolled_scan_ids)
-    # enrolled_perspectives = np.array(enrolled_perspectives)
     enrolled_true_perspectives = np.concatenate(enrolled_true_perspectives, axis=0)
 
     query_embeddings_reg = []
     query_labels = []
     query_scan_ids = []
-    query_perspectives = 0
     query_true_perspectives = []
-    for embeddings, labels, scan_id, true_perspectives, _, path in tqdm(iter(query_loader), disable=disable_bar,
-                                                                     desc="Generate Query Embeddings"):
+    for embeddings, labels, scan_id, true_perspectives, _, path in tqdm(iter(query_loader), disable=disable_bar,  desc="Generate Query Embeddings"):
         query_embeddings_reg.append(embeddings.permute(1, 0, 2))
-        query_labels.extend(
-            deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
+        query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         query_scan_ids.extend(deepcopy(scan_id))
-        # query_perspectives = np.array(perspectives).T[0]
-        query_true_perspectives.append(np.array(deepcopy(true_perspectives)).T)
+        query_true_perspectives.append(np.array(deepcopy(true_perspectives)))
 
     query_embeddings_reg = np.concatenate(query_embeddings_reg, axis=1)
     query_labels = np.array([t.item() for t in query_labels])
     query_scan_ids = np.array(query_scan_ids)
-    # query_perspectives = np.array(query_perspectives)
     query_true_perspectives = np.concatenate(query_true_perspectives, axis=0)
 
     Results = namedtuple("Results",
@@ -94,12 +85,13 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
     all_metrics = {}
 
     # --------- Single Front View ---------
-    metrics_front, sim_front, top_idx, y_true_front, y_pred_front = accuracy_front_perspective(embedding_library)
+    metrics_front, sim_front, top_idx, y_true_front, y_pred_front = accuracy_front_perspective(embedding_library, string_mask=False)
     # plot_cmc(sim_front, enrolled_labels, query_labels, dataset_name, "front")
     # plot_rrk_histogram(query_labels, enrolled_labels, sim_front, dataset_name, "front")
     # error_rate_per_class(query_labels, enrolled_labels, top_idx, dataset_enrolled, embedding_library.query_scan_ids, sim_front, dataset_name, "_front")
     all_metrics["emb_dist_front"] = analyze_embedding_distribution(sim_front, query_labels, enrolled_labels, "", "front", plot=False)
     all_metrics["metrics_front"] = metrics_front
+    all_metrics["verification_results_front"] = face_verification_from_similarity(sim_front, query_labels, enrolled_labels)
     del sim_front, top_idx, y_true_front, y_pred_front
 
     # --------- Concat Full ---------
@@ -109,16 +101,17 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
     # error_rate_per_class(query_labels, enrolled_labels, top_idx, dataset_enrolled, embedding_library.query_scan_ids, sim_concat, dataset_name, "_concat")
     all_metrics["emb_dist_concat"] = analyze_embedding_distribution(sim_concat, query_labels, enrolled_labels, "", "concat", plot=False)
     all_metrics["metrics_concat"] = metrics_concat
+    all_metrics["verification_results_concat"] = face_verification_from_similarity(sim_concat, query_labels, enrolled_labels)
     del sim_concat, top_idx, y_true_concat, y_pred_concat
 
     # --------- Concat Mean ---------
-    metrics_concat_mean, similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(
-        embedding_library, disable_bar, reduce_with="mean")
+    metrics_concat_mean, sim_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
     # plot_cmc(similarity_matrix_concat_mean, enrolled_labels, query_labels, dataset_name, "concat_mean")
     # plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_mean, dataset_name, "concat_mean")
-    all_metrics["emb_dist_concat_mean"] = analyze_embedding_distribution(similarity_matrix_concat_mean, query_labels, enrolled_labels, "", "concat_mean", plot=False)
+    all_metrics["emb_dist_concat_mean"] = analyze_embedding_distribution(sim_concat_mean, query_labels, enrolled_labels, "", "concat_mean", plot=False)
     all_metrics["metrics_concat_mean"] = metrics_concat_mean
-    del similarity_matrix_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
+    all_metrics["verification_results_concat_mean"] = face_verification_from_similarity(sim_concat_mean, query_labels, enrolled_labels)
+    del sim_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
 
     # --------- Concat Median ---------
     metrics_concat_median, similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median = concat(
@@ -154,16 +147,19 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     rank_5_front = smart_round(all_metrics["metrics_front"].get('Rank-5 Rate', 'N/A'))
     mrr_front = smart_round(all_metrics["metrics_front"].get('MRR', 'N/A'))
     gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A')*100)
+    auc_front = smart_round(all_metrics["verification_results_front"].get('auc', 'N/A')*100, rounding_prec=8)
 
     rank_1_concat = smart_round(all_metrics["metrics_concat"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat = smart_round(all_metrics["metrics_concat"].get('Rank-5 Rate', 'N/A'))
     mrr_concat = smart_round(all_metrics["metrics_concat"].get('MRR', 'N/A'))
     gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A')*100)
+    auc_concat = smart_round(all_metrics["verification_results_concat"].get('auc', 'N/A')*100, rounding_prec=8)
 
     rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-5 Rate', 'N/A'))
     mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
     gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A')*100)
+    auc_concat_mean = smart_round(all_metrics["verification_results_concat_mean"].get('auc', 'N/A')*100, rounding_prec=8)
 
     rank_1_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-1 Rate', 'N/A'))
     rank_5_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-5 Rate', 'N/A'))
@@ -187,9 +183,9 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
 
     # mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
     string = (f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: " +
-              f"{'Front RR1'}: {rank_1_front} {'MRR'}: {mrr_front} {'GBIG'}: {gbig_front} | "  # {bold('GAIG')}: {underscore(gaig_front)} | "
-              f"{'Concat RR1'}: {rank_1_concat} {'MRR'}: {mrr_concat} {'GBIG'}: {gbig_concat} | "  # {bold('GAIG')}: {underscore(gaig_concat)} | "
-              f"{'Concat_Mean RR1'}: {rank_1_concat_mean} {'MRR'}: {mrr_concat_mean} {'GBIG'}: {gbig_concat_mean} | "
+              f"{'Front RR1'}: {rank_1_front} {'MRR'}: {mrr_front} {'GBIG'}: {gbig_front} {'AUC'}: {auc_front} | "  # {bold('GAIG')}: {underscore(gaig_front)} | "
+              f"{'Concat RR1'}: {rank_1_concat} {'MRR'}: {mrr_concat} {'GBIG'}: {gbig_concat} {'AUC'}: {auc_concat} | "  # {bold('GAIG')}: {underscore(gaig_concat)} | "
+              f"{'Concat_Mean RR1'}: {rank_1_concat_mean} {'MRR'}: {mrr_concat_mean} {'GBIG'}: {gbig_concat_mean} {'AUC'}: {auc_concat_mean} | "
               f"{'Concat_Median RR1'}: {rank_1_concat_median} {'MRR'}: {mrr_concat_median} | "
               # f"{bold('Concat_PCA RR1')}: {rank_1_concat_pca} {bold('MRR')}: {underscore(mrr_concat_pca)} | "
               f"{('Score_prod MRR')}: {(mrr_score_prod)} | "
@@ -203,7 +199,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
 
 
 def evaluate_and_log_mv(data_root, test_views, batch_size, disable_bar: bool = True):
-    print("Perform 1:N Evaluation on {test_views}")
+    print(f"Perform 1:N Evaluation on {test_views}")
     all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_emb_1_n(data_root, batch_size, test_views, disable_bar)
 
     neutral_dataset = "Dataset: " + str(test_views)
@@ -304,7 +300,6 @@ def main(cfg):
     DATA_ROOT = "F:\\Face\\data\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"  # "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
     BATCH_SIZE = 16  # Batch size
 
-    # ======= Validation =======
     evaluate_and_log_mv(DATA_ROOT, cfg['TEST_VIEWS'], BATCH_SIZE, disable_bar=True)
 
 

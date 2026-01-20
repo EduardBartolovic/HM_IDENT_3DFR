@@ -49,12 +49,12 @@ def safe_round(value, digits=2):
     return round(value, digits) if isinstance(value, (int, float)) else 'N/A'
 
 
-def smart_round(value):
+def smart_round(value, rounding_prec=3):
     if isinstance(value, (int, float)):
         if value == 100:
             return int(100)
         elif value > 99:
-            return round(value, 3)
+            return round(value, rounding_prec)
         else:
             return round(value, 2)
     return value

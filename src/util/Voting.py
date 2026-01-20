@@ -385,18 +385,27 @@ def fuse_pairwise_scores(emb1_reg, emb2_reg, method="sum"):
         raise ValueError(f"Unknown fusion method '{method}'")
 
 
-def accuracy_front_perspective(embedding_library):
+def accuracy_front_perspective(embedding_library, string_mask=True):
     # enrolled_embeddings.shape -> (views, num_samples, embedding_dim)
     # enrolled_labels.shape -> (num_samples,)
     # enrolled_perspectives.shape -> (num_samples, views)
 
-    view_mask = np.array(embedding_library.enrolled_perspectives) == "0_0"
-    selected_view_index = np.argmax(view_mask)
+    if string_mask:
+        view_mask = np.array(embedding_library.enrolled_perspectives) == "0_0"
+        selected_view_index = np.argmax(view_mask)
+    else:
+        view_mask = np.all(embedding_library.enrolled_perspectives == (0,0), axis=-1)
+        selected_view_index = np.argmax(np.any(view_mask, axis=0))
     enrolled_embeddings = embedding_library.enrolled_embeddings[selected_view_index]
     enrolled_labels = embedding_library.enrolled_labels
 
-    view_mask = np.array(embedding_library.query_perspectives) == "0_0"
-    selected_view_index = np.argmax(view_mask)
+    if string_mask:
+        view_mask = np.array(embedding_library.query_perspectives) == "0_0"
+        selected_view_index = np.argmax(view_mask)
+    else:
+        view_mask = np.all(embedding_library.query_perspectives == (0, 0), axis=-1)
+        selected_view_index = np.argmax(np.any(view_mask, axis=0))
+
     query_embeddings = embedding_library.query_embeddings[selected_view_index]
     query_labels = embedding_library.query_labels
 
@@ -404,6 +413,7 @@ def accuracy_front_perspective(embedding_library):
     top_indices, top_values = compute_ranking_matrices(similarity_matrix)
     result = analyze_result(similarity_matrix, top_indices, enrolled_labels, query_labels, top_k_acc_k=5)
     predicted_labels = enrolled_labels[top_indices[:, 0]]
+
     return result, similarity_matrix, top_indices, predicted_labels, query_labels
 
 
@@ -510,8 +520,6 @@ def face_verification_from_similarity(
 
     genuine_best_imposter_gap = np.mean(genuine_scores - best_impostor_scores)
     genuine_average_imposter_gap = np.mean(genuine_scores - avg_impostor_scores)
-    print("genuine_best_imposter_gap", genuine_best_imposter_gap)
-    print("genuine_average_imposter_gap", genuine_average_imposter_gap)
 
     return {
         "scores": scores,
