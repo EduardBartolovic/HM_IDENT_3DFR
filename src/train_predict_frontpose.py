@@ -20,10 +20,12 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
+
 def cosine_loss(pred, target):
     pred = F.normalize(pred, dim=-1)
     target = F.normalize(target, dim=-1)
     return 1 - F.cosine_similarity(pred, target, dim=-1).mean()
+
 
 def validate(model, data_loader, device):
     model.eval()
@@ -32,7 +34,7 @@ def validate(model, data_loader, device):
     cos_baseline_meter = AverageMeter()
 
     with torch.no_grad():
-        for embeddings, labels, scan_ids, true_poses, path in data_loader:
+        for embeddings, labels, scan_ids, true_poses, _, path in data_loader:
             B, V, D = embeddings.shape
 
             rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
@@ -64,6 +66,7 @@ def validate(model, data_loader, device):
         "cosine_baseline": cos_baseline_meter.avg,
         "cosine_gain": cos_model_meter.avg - cos_baseline_meter.avg
     }
+
 
 def main(cfg):
     SEED = cfg['SEED']
@@ -215,7 +218,7 @@ def main(cfg):
             # ======= Train Loop ========
             losses = AverageMeter()
 
-            for step, (embeddings, labels, scan_ids, true_poses, path) in enumerate(tqdm(train_loader)):
+            for step, (embeddings, labels, scan_ids, true_poses, _, path) in enumerate(tqdm(train_loader)):
 
                 B, V, D = embeddings.shape
 

@@ -85,7 +85,7 @@ def validate(model, data_loader, device):
     mae_yaw_meter = AverageMeter()
 
     with torch.no_grad():
-        for embeddings, labels, scan_ids, true_poses, path in iter(data_loader):
+        for embeddings, labels, scan_ids, true_poses, _, path in iter(data_loader):
             B, V, D = embeddings.shape
 
             rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
@@ -266,7 +266,7 @@ def main(cfg):
 
             # =========== Train Loop ========
             losses = AverageMeter()
-            for step, (embeddings, labels, scan_ids, true_poses, path) in enumerate(tqdm(iter(train_loader))):
+            for step, (embeddings, labels, scan_ids, true_poses, _, path) in enumerate(tqdm(iter(train_loader))):
 
                 if (epoch + 1 <= NUM_EPOCH_WARM_UP) and (batch + 1 <= NUM_BATCH_WARM_UP):  # adjust LR for each training batch during warm up
                     warm_up_lr(batch + 1, NUM_BATCH_WARM_UP, LR, OPTIMIZER)

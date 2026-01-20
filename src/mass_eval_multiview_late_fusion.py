@@ -28,8 +28,7 @@ def get_embeddings_mv(enrolled_loader, query_loader, disable_bar=False):
     enrolled_scan_ids = []
     enrolled_perspectives = 0
     enrolled_true_perspectives = []
-    for embeddings, labels, scan_id, true_perspectives, path in tqdm(iter(enrolled_loader), disable=disable_bar,
-                                                                     desc="Generate Enrolled Embeddings"):
+    for embeddings, labels, scan_id, true_perspectives, _, path in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
         enrolled_embeddings_reg.append(embeddings.permute(1, 0, 2))
         enrolled_labels.extend(
             deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
@@ -43,16 +42,12 @@ def get_embeddings_mv(enrolled_loader, query_loader, disable_bar=False):
     # enrolled_perspectives = np.array(enrolled_perspectives)
     enrolled_true_perspectives = np.concatenate(enrolled_true_perspectives, axis=0)
 
-    # if query_loader is None:
-    #    Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives","enrolled_true_perspectives"])
-    #    return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_perspectives, enrolled_true_perspectives)
-
     query_embeddings_reg = []
     query_labels = []
     query_scan_ids = []
     query_perspectives = 0
     query_true_perspectives = []
-    for embeddings, labels, scan_id, true_perspectives, path in tqdm(iter(query_loader), disable=disable_bar,
+    for embeddings, labels, scan_id, true_perspectives, _, path in tqdm(iter(query_loader), disable=disable_bar,
                                                                      desc="Generate Query Embeddings"):
         query_embeddings_reg.append(embeddings.permute(1, 0, 2))
         query_labels.extend(
@@ -81,13 +76,11 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, disable_bar: bool = T
     dataset_enrolled_path = os.path.join(test_path, 'enrolled')
     dataset_query_path = os.path.join(test_path, 'query')
 
-    dataset_enrolled = EmbeddingDataset(dataset_enrolled_path, views, perspective_as_string=True)
-    enrolled_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8,
-                                                  drop_last=False)
+    dataset_enrolled = EmbeddingDataset(dataset_enrolled_path, views)
+    enrolled_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
 
-    dataset_query = EmbeddingDataset(dataset_query_path, views, perspective_as_string=True)
-    query_loader = torch.utils.data.DataLoader(dataset_query, batch_size=batch_size, shuffle=True, num_workers=8,
-                                               drop_last=False)
+    dataset_query = EmbeddingDataset(dataset_query_path, views)
+    query_loader = torch.utils.data.DataLoader(dataset_query, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
 
     if len(dataset_enrolled.classes) != len(dataset_enrolled):
         raise Exception(
