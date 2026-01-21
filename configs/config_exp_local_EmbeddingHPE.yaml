@@ -1,8 +1,8 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP_LOCAL_TEST_HPE'  # experiment_name
-DATA_ROOT_PATH: 'dataset13_emb'  # the parent root
-TRAIN_SET: 'rgb_bff_crop187_emb-irseglintr18'  # where your train/val data are stored
+DATA_ROOT_PATH: 'dataset14_emb'  # the parent root
+TRAIN_SET: 'rgb_bff_crop261_emb-irseglintr18'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\log'  # the root to log your train/val status

@@ -6,7 +6,7 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
-from src.predictor.PoseFrontalizer import PoseFrontalizer
+from src.predictor.PoseFrontalizer import PoseFrontalizer, PoseFrontalizerWithPose
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset, split_with_shared_labels
 from src.util.misc import colorstr
 from util.utils import schedule_lr, AverageMeter
@@ -27,7 +27,7 @@ def cosine_loss(pred, target):
     return 1 - F.cosine_similarity(pred, target, dim=-1).mean()
 
 
-def validate(model, data_loader, device):
+def validate(model, data_loader, device, with_pose):
     model.eval()
 
     cos_model_meter = AverageMeter()
@@ -39,11 +39,19 @@ def validate(model, data_loader, device):
 
             rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
             input_emb = embeddings[torch.arange(B), rand_idx].to(device)
+            input_pose = true_poses[torch.arange(B), rand_idx].to(device) # (B, 2)
 
-            front_emb = embeddings[:, 93].to(device)  # dein FRONT index
+            # check where pose == (0, 0)
+            is_front = (true_poses == 0).all(dim=-1)  # (B, V) boolean
+            assert (is_front.sum(dim=1) == 1).all(), "Missing or multiple front views!"
+            front_pose_index = is_front.long().argmax(dim=1)  # (B,)
+            front_emb = embeddings[torch.arange(B), front_pose_index].to(device)
 
-            # --- model prediction ---
-            pred_front = model(input_emb)
+            if with_pose:
+                model_input = torch.cat([input_emb, input_pose], dim=1)  # (B, D+2)
+                pred_front = model(model_input)
+            else:
+                pred_front = model(input_emb)
 
             cos_model = F.cosine_similarity(
                 F.normalize(pred_front, dim=-1),
@@ -75,12 +83,10 @@ def main(cfg):
     RUN_NAME = cfg['RUN_NAME']
     DATA_ROOT = os.path.join(os.getenv("DATA_ROOT"), cfg['DATA_ROOT_PATH'])  # the parent root where the datasets are stored
     TRAIN_SET = cfg['TRAIN_SET']
-    MODEL_ROOT = cfg['MODEL_ROOT']  # the root to buffer your checkpoints
     LOG_ROOT = cfg['LOG_ROOT']
 
     PREDICTOR_NAME = cfg['PREDICTOR_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
 
-    LOSS_NAME = cfg['LOSS_NAME']  # support: ['Focal', 'Softmax']
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
 
     EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']  # embedding dimension
@@ -88,13 +94,11 @@ def main(cfg):
     DROP_LAST = cfg['DROP_LAST']  # whether drop the last batch to ensure consistent batch_norm statistics
     LR = cfg['LR']  # initial LR
     NUM_EPOCH = cfg['NUM_EPOCH']
-    PATIENCE = cfg.get('PATIENCE', 10)
     WEIGHT_DECAY = cfg['WEIGHT_DECAY']
     MOMENTUM = cfg['MOMENTUM']
     STAGES = cfg['STAGES']  # epoch stages to decay learning rate
 
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    GPU_ID = cfg['GPU_ID']  # specify your GPU ids
     PIN_MEMORY = cfg['PIN_MEMORY']
     NUM_WORKERS = cfg['NUM_WORKERS']
     print("=" * 60)
@@ -117,9 +121,9 @@ def main(cfg):
     with mlflow.start_run(run_name=f"{RUN_NAME}_[{run_count + 1}]") as run:
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
-        full_dataset = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET))
-        dataset_size = len(full_dataset)
-        split = int(0.9 * dataset_size)
+        full_dataset = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET), disable_tqdm=False)
+        #dataset_size = len(full_dataset)
+        #split = int(0.9 * dataset_size)
         #train_dataset, val_dataset = torch.utils.data.random_split(
         #    full_dataset,
         #    [split, dataset_size - split],
@@ -157,11 +161,15 @@ def main(cfg):
         )
 
         # ======= Predictor =======
-        predictor_dict = {'PoseFrontalizer': lambda: PoseFrontalizer()}
+        predictor_dict = {'PoseFrontalizer': lambda: PoseFrontalizer(),
+                          'PoseFrontalizerWithPose': lambda : PoseFrontalizerWithPose()}
 
         predictor = predictor_dict[PREDICTOR_NAME]()
         predictor.to(DEVICE)
-        model_stats_predictor = summary(predictor, (BATCH_SIZE, EMBEDDING_SIZE), verbose=0)
+        if PREDICTOR_NAME == "PoseFrontalizerWithPose":
+            model_stats_predictor = summary(predictor, (BATCH_SIZE, EMBEDDING_SIZE+2), verbose=0)
+        else:
+            model_stats_predictor = summary(predictor, (BATCH_SIZE, EMBEDDING_SIZE), verbose=0)
         print(colorstr('magenta', str(model_stats_predictor)))
         print(colorstr('blue', f"{PREDICTOR_NAME} Backbone Generated"))
         print("=" * 60)
@@ -187,7 +195,7 @@ def main(cfg):
 
         # ======= Validation =======
         print("#" * 60)
-        val_metrics = validate(predictor, val_loader, DEVICE)
+        val_metrics = validate(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose")
 
         mlflow.log_metric('val_cosine_model', val_metrics["cosine_model"], step=0)
         mlflow.log_metric('val_cosine_baseline', val_metrics["cosine_baseline"], step=0)
@@ -205,8 +213,6 @@ def main(cfg):
 
         # ======= train & early stopping parameters=======
         DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc
-        NUM_EPOCH_WARM_UP = NUM_EPOCH // 25  # use the first 1/25 epochs to warm up
-        NUM_BATCH_WARM_UP = len(train_loader) * NUM_EPOCH_WARM_UP  # use the first 1/25 epochs to warm up
         batch = 0  # batch index
         for epoch in range(0, NUM_EPOCH):
 
@@ -223,15 +229,21 @@ def main(cfg):
                 B, V, D = embeddings.shape
 
                 rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
-                input_emb = embeddings[torch.arange(B), rand_idx].to(DEVICE)
+                input_emb = embeddings[torch.arange(B), rand_idx].to(DEVICE) # (B, D)
+                input_pose = true_poses[torch.arange(B), rand_idx].to(DEVICE) # (B, 2)
 
                 # check where pose == (0, 0)
                 is_front = (true_poses == 0).all(dim=-1)  # (B, V) boolean
+                assert (is_front.sum(dim=1) == 1).all(), "Missing or multiple front views!"
                 front_pose_index = is_front.long().argmax(dim=1)  # (B,)
+                front_emb = embeddings[torch.arange(B), front_pose_index].to(DEVICE)
 
-                front_emb = embeddings[:, front_pose_index].to(DEVICE)
 
-                pred_front = predictor(input_emb)
+                if PREDICTOR_NAME == "PoseFrontalizerWithPose":
+                    model_input = torch.cat([input_emb, input_pose], dim=1)  # (B, D+2)
+                    pred_front = predictor(model_input)
+                else:
+                    pred_front = predictor(input_emb)
 
                 loss = cosine_loss(pred_front, front_emb)
                 losses.update(loss.item(), B)
@@ -249,7 +261,7 @@ def main(cfg):
                 batch += 1
 
             # ===== Validation =====
-            val_metrics = validate(predictor, val_loader, DEVICE)
+            val_metrics = validate(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose")
 
             mlflow.log_metric('val_cosine_model', val_metrics["cosine_model"], step=epoch + 1)
             mlflow.log_metric('val_cosine_baseline', val_metrics["cosine_baseline"], step=epoch + 1)

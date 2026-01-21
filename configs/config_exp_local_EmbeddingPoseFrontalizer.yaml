@@ -1,12 +1,12 @@
 SEED: 1337  # random seed for reproduce results
 
 RUN_NAME: 'EXP_LOCAL_TEST_HPE'  # experiment_name
-DATA_ROOT_PATH: 'dataset13_emb'  # the parent root
-TRAIN_SET: 'rgb_bff_crop187_emb-irseglintr18'  # where your train/val data are stored
+DATA_ROOT_PATH: 'dataset14_emb'  # the parent root
+TRAIN_SET: 'rgb_bff_crop261_emb-irseglintr18'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
 LOG_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\log'  # the root to log your train/val status
-PREDICTOR_NAME: 'PoseFrontalizer'
+PREDICTOR_NAME: 'PoseFrontalizerWithPose' # PoseFrontalizer, PoseFrontalizerWithPose
 LOSS_NAME: 'Focal'  # support: ['Focal', 'Softmax']
 
 INPUT_SIZE: [112, 112]  # support: [112, 112] and [224, 224]
@@ -18,7 +18,7 @@ BATCH_SIZE: 16
 ACCUMULATION_STEPS: 1
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
 OPTIMIZER_NAME: ADAMW
-LR: 0.001  # initial LR
+LR: 0.005  # initial LR
 NUM_EPOCH: 120  # total epoch number (use the first 1/25 epochs to warm up)
 PATIENCE: 100  # patience for early stopping
 WEIGHT_DECAY: 0.005  # do not apply to batch_norm parameters
