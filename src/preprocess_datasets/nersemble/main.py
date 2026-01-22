@@ -7,7 +7,7 @@ from src.preprocess_datasets.misc.create_test_dataset import create_train_test_s
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_nersemble_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
 from src.preprocess_datasets.preprocess_video import analyse_video_hpe
-from src.preprocess_datasets.process_dataset_retinaface import face_crop_and_alignment
+from src.preprocess_datasets.cropping.process_dataset_retinaface import face_crop_and_alignment
 from src.preprocess_datasets.rendering import PrepareDataset
 
 if __name__ == '__main__':

@@ -1,7 +1,9 @@
 import torch
 from pathlib import Path
 
-from src.preprocess_datasets.process_dataset_retinaface import face_crop_and_alignment
+from src.preprocess_datasets.cropping.croppingv3.cropping_and_alignment import run_batch_alignment
+from src.preprocess_datasets.cropping.croppingv3.face_detection import FaceAligner
+from src.preprocess_datasets.cropping.process_dataset_retinaface import face_crop_and_alignment
 from src.preprocess_datasets.rendering import PrepareDataset
 from src.preprocess_datasets.rendering.Extract2DFaces import Extract2DFaces
 from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
@@ -209,6 +211,27 @@ def main():
         input_paths = [Path(root+'test_rgb_bellus'), Path(root+'test_rgb_facescape'), Path(root+'test_rgb_faceverse')]
         output_dir = Path(root + 'test_rgb_bff')
         #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
+
+        MODEL_FILE = Path('mobile0.25.onnx')
+        DATASET_ROOT = Path(r'F:/Face/data/dataset14/test_rgb_bff/')
+        OUTPUT_DIR = Path(r'F:/Face/data/dataset14/BOUNDING_BOX_SCALING')
+
+        # Select Device Here ("cpu" or "cuda")
+        DEVICE = "cpu"
+
+        folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+
+        run_batch_alignment(
+            data_folders=folder_paths,
+            model_path=str(MODEL_FILE),
+            align_method=FaceAligner.AlignmentMethod.AURA_FROM_BOUNDING_BOX_SCALING,
+            batch_size=32,
+            output_dir=OUTPUT_DIR,
+            num_processes=1,
+            device=DEVICE
+        )
+
+
 
         face_crop_and_alignment(root + 'test_rgb_bff/enrolled', root + 'test_rgb_bff_crop/enrolled', face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(272, 272))
         face_crop_and_alignment(root + 'test_rgb_bff/query', root + 'test_rgb_bff_crop/query', face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(272, 272))

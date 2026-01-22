@@ -5,7 +5,7 @@ import torch
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_ytf_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
 from src.preprocess_datasets.preprocess_video import analyse_video_ytf
-from src.preprocess_datasets.process_dataset_retinaface import face_crop_and_alignment_deepfolder
+from src.preprocess_datasets.cropping.process_dataset_retinaface import face_crop_and_alignment_deepfolder
 from src.preprocess_datasets.rendering import PrepareDataset
 
 
