@@ -12,7 +12,7 @@ from head.metrics import ArcFace, CosFace, SphereFace, Am_softmax
 from loss.focal import FocalLoss
 from src.aggregator.Autoencoder import make_ae_head
 from src.backbone.multiview_ires_lf import ir_mv_v2_18_lf, ir_mv_v2_34_lf, ir_mv_v2_50_lf, ir_mv_v2_100_lf, ir_mv_50_lf, \
-    ir_mv_facenet_50_lf
+    ir_mv_facenet_50_lf, ir_mv_hyper_50_lf
 from src.backbone.multiview_timmfr_lf import timm_mv_lf
 from src.fuser.CosineDistanceWeightedAggregator import make_cosinedistance_fusion
 from src.fuser.TransformerAggregator import make_transformer_fusion
@@ -156,6 +156,7 @@ def main(cfg):
                          'IR_MV_V2_34': lambda: ir_mv_v2_34_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'IR_MV_V2_50': lambda: ir_mv_v2_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'IR_MV_V2_100': lambda: ir_mv_v2_100_lf(DEVICE, aggregator, EMBEDDING_SIZE),
+                         'IR_MV_HYPER_50': lambda: ir_mv_hyper_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                          'TIMM_MV': lambda: timm_mv_lf(DEVICE, aggregator)}
 
         BACKBONE = BACKBONE_DICT[BACKBONE_NAME]()

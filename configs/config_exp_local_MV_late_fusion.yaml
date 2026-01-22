@@ -5,9 +5,9 @@ DATA_ROOT_PATH: 'dataset11'  # the parent root
 TRAIN_SET: 'rgb_bff_crop8'  # where your train/val data are stored
 
 MODEL_ROOT: './model'  # the root to buffer your checkpoints
-LOG_ROOT: 'C:\\Users\\Eduard\\Desktop\\Face\\log'  # the root to log your train/val status
+LOG_ROOT: 'F:\\Face\\Face\\log'  # the root to log your train/val status
 #BACKBONE_RESUME_PATH: 'backbone_ir50_ms1m_epoch63.pth' #backbone_ir50_asia.pth'# the root to resume training from a saved checkpoint
-BACKBONE_RESUME_PATH: 'glint_cosface_r18_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'glint_cosface_r18_fp16.pth'  # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'glint_cosface_r50_fp16.pth'  # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'glint_cosface_r100_fp16.pth'  # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'ms1mv3_arcface_r18_fp16.pth'  # the root to resume training from a saved checkpoint
@@ -19,14 +19,16 @@ BACKBONE_RESUME_PATH: 'glint_cosface_r18_fp16.pth'  # the root to resume trainin
 #BACKBONE_RESUME_PATH: 'AdaFace_ARoFace_R100_WebFace12M.pt' # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'edgeface_s_gamma_05.pt' # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'edgeface_xs_gamma_06.pt' # the root to resume training from a saved checkpoint
+BACKBONE_RESUME_PATH: 'HyperFace50K_ir50_adaface.ckpt' # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 USE_FACE_CORR: False
 #BACKBONE_NAME: 'IR_MV_50'
-BACKBONE_NAME: 'IR_MV_V2_18'
+#BACKBONE_NAME: 'IR_MV_V2_18'
 #BACKBONE_NAME: 'IR_MV_V2_50'
 #BACKBONE_NAME: 'IR_MV_V2_100'
 #BACKBONE_NAME: 'TIMM_MV'
 #BACKBONE_NAME: 'IR_MV_Facenet'
+BACKBONE_NAME: 'IR_MV_HYPER_50'
 AGG:
   AGG_NAME: 'AEFusion'
   AGG_CONFIG:

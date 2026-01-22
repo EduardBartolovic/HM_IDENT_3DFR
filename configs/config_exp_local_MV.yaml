@@ -12,21 +12,23 @@ LOG_ROOT: 'F:\\Face\\log'  # the root to log your train/val status
 #BACKBONE_RESUME_PATH: 'glint_cosface_r100_fp16.pth'  # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'ms1mv3_arcface_r18_fp16.pth'  # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'ms1mv3_arcface_r50_fp16.pth'  # the root to resume training from a saved checkpoint
-BACKBONE_RESUME_PATH: 'ms1mv3_arcface_r100_fp16.pth'  # the root to resume training from a saved checkpoint
+#BACKBONE_RESUME_PATH: 'ms1mv3_arcface_r100_fp16.pth'  # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'facenet-casia-webface.pt' # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'facenet-vggface2.pt' # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'AdaFace_ARoFace_R100_MS1MV3.pt' # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'AdaFace_ARoFace_R100_WebFace12M.pt' # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'edgeface_s_gamma_05.pt' # the root to resume training from a saved checkpoint
 #BACKBONE_RESUME_PATH: 'edgeface_xs_gamma_06.pt' # the root to resume training from a saved checkpoint
+BACKBONE_RESUME_PATH: 'HyperFace50K_ir50_adaface.ckpt' # the root to resume training from a saved checkpoint
 HEAD_RESUME_ROOT: ''  # the root to resume training from a saved checkpoint
 USE_FACE_CORR: False
 #BACKBONE_NAME: 'IR_MV_50'
 #BACKBONE_NAME: 'IR_MV_V2_18'
 #BACKBONE_NAME: 'IR_MV_V2_50'
-BACKBONE_NAME: 'IR_MV_V2_100'
+#BACKBONE_NAME: 'IR_MV_V2_100'
 #BACKBONE_NAME: 'TIMM_MV'
 #BACKBONE_NAME: 'IR_MV_Facenet'
+BACKBONE_NAME: 'IR_MV_HYPER_50'
 AGG:
   AGG_NAME: 'MeanAggregator'
   AGG_CONFIG:

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from src.backbone.facenet import ir_facenet_50
+from src.backbone.ireshyper import ir_50_hyper
 from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18, iresnet100
 from src.backbone.model_irse import ir_50
 
@@ -62,4 +63,8 @@ def ir_mv_v2_18_lf(device, aggregator, embedding_size=512, fp16=False):
 
 def ir_mv_facenet_50_lf(device, aggregators, embedding_size=512, fp16=False):
     return MultiviewIResnetLF(device, aggregators, ir_facenet_50, embedding_size, fp16)
+
+
+def ir_mv_hyper_50_lf(device, aggregators, embedding_size=512, fp16=False):
+    return MultiviewIResnetLF(device, aggregators, ir_50_hyper, embedding_size, fp16)
 

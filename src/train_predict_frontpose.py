@@ -238,7 +238,6 @@ def main(cfg):
                 front_pose_index = is_front.long().argmax(dim=1)  # (B,)
                 front_emb = embeddings[torch.arange(B), front_pose_index].to(DEVICE)
 
-
                 if PREDICTOR_NAME == "PoseFrontalizerWithPose":
                     model_input = torch.cat([input_emb, input_pose], dim=1)  # (B, D+2)
                     pred_front = predictor(model_input)
@@ -247,6 +246,7 @@ def main(cfg):
 
                 loss = cosine_loss(pred_front, front_emb)
                 losses.update(loss.item(), B)
+                mlflow.log_metric('train_cosine_loss', losses.avg, step=epoch + 1)
 
                 OPTIMIZER.zero_grad()
                 loss.backward()
