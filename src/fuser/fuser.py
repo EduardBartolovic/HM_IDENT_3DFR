@@ -45,11 +45,8 @@ class TransformerFusion(nn.Module):
         return fused
 
 
-def make_mlp_fusion():
-    return MLPFusion(views=8, hidden=1024, out_dim=512, dim=512)
-
-
-
+def make_mlp_fusion(views):
+    return MLPFusion(views=views, hidden=1024, out_dim=512, dim=512)
 
 
 def make_softmax_fusion():
