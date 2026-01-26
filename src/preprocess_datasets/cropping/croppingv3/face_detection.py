@@ -538,7 +538,7 @@ class FaceAligner:
                     if len(os.listdir(debug_folder)) >= 1:
                         print(f'[FaceAligner] debug folder Not Empty!, files might be overwritten: {debug_folder}')
 
-                [cv2.imwrite(f'{debug_folder}/{name}.jpg', aligned) for name, aligned in zip(face_image_names,aligned_images)]
+                [cv2.imwrite(f'{debug_folder}/{name}', aligned) for name, aligned in zip(face_image_names,aligned_images)]
                 print(f"[FaceAligner] Alignment successful, results saved in  → {debug_folder}")
 
         return aligned_images
