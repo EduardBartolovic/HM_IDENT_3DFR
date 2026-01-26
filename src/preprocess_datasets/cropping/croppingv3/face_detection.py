@@ -610,7 +610,7 @@ class FaceAligner:
         result = self.detect_face(img)
         if result is None:
             if type(image) == str:
-                print(f"[FaceAligner] No face detected in {image_path}")
+                print(f"[FaceAligner] No face detected in {image}")
             else:
                 print(f"[FaceAligner] No face detected")
 
