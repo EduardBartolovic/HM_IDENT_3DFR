@@ -6,7 +6,7 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
-from src.predictor.PoseFrontalizer import PoseFrontalizer, PoseFrontalizerWithPose
+from src.predictor.PoseFrontalizer import PoseFrontalizer, PoseFrontalizerWithPose, PoseFrontalizerWithPoseResidual
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset, split_with_shared_labels
 from src.util.misc import colorstr
 from util.utils import schedule_lr, AverageMeter
@@ -26,6 +26,27 @@ def cosine_loss(pred, target):
     target = F.normalize(target, dim=-1)
     return 1 - F.cosine_similarity(pred, target, dim=-1).mean()
 
+def mse_loss_normalized(pred, target):
+    pred = F.normalize(pred, dim=-1)
+    target = F.normalize(target, dim=-1)
+    return F.mse_loss(pred, target)
+
+def cosine_mse_loss(pred, target, mse_weight=0.3):
+    pred = F.normalize(pred, dim=-1)
+    target = F.normalize(target, dim=-1)
+
+    cos = 1 - F.cosine_similarity(pred, target, dim=-1).mean()
+    mse = F.mse_loss(pred, target)
+    return cos + mse_weight * mse
+
+def cosine_smoothl1_loss(pred, target, l1_weight=0.3):
+    pred = F.normalize(pred, dim=-1)
+    target = F.normalize(target, dim=-1)
+
+    cos = 1 - F.cosine_similarity(pred, target, dim=-1).mean()
+    l1 = F.smooth_l1_loss(pred, target)
+
+    return cos + l1_weight * l1
 
 def validate(model, data_loader, device, with_pose):
     model.eval()
@@ -48,8 +69,7 @@ def validate(model, data_loader, device, with_pose):
             front_emb = embeddings[torch.arange(B), front_pose_index].to(device)
 
             if with_pose:
-                model_input = torch.cat([input_emb, input_pose], dim=1)  # (B, D+2)
-                pred_front = model(model_input)
+                pred_front = model(input_emb, input_pose)
             else:
                 pred_front = model(input_emb)
 
@@ -86,8 +106,8 @@ def main(cfg):
     LOG_ROOT = cfg['LOG_ROOT']
 
     PREDICTOR_NAME = cfg['PREDICTOR_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
-
     OPTIMIZER_NAME = cfg.get('OPTIMIZER_NAME', 'SGD')  # support: ['SGD', 'ADAM']
+    LOSS_NAME = cfg.get("LOSS_NAME", "cosine")
 
     EMBEDDING_SIZE = cfg['EMBEDDING_SIZE']  # embedding dimension
     BATCH_SIZE = cfg['BATCH_SIZE']  # Batch size in training
@@ -162,12 +182,19 @@ def main(cfg):
 
         # ======= Predictor =======
         predictor_dict = {'PoseFrontalizer': lambda: PoseFrontalizer(),
-                          'PoseFrontalizerWithPose': lambda : PoseFrontalizerWithPose()}
+                          'PoseFrontalizerWithPose': lambda : PoseFrontalizerWithPose(),
+                          'PoseFrontalizerWithPoseResidual': lambda : PoseFrontalizerWithPoseResidual()}
 
         predictor = predictor_dict[PREDICTOR_NAME]()
         predictor.to(DEVICE)
-        if PREDICTOR_NAME == "PoseFrontalizerWithPose":
-            model_stats_predictor = summary(predictor, (BATCH_SIZE, EMBEDDING_SIZE+2), verbose=0)
+        if PREDICTOR_NAME == "PoseFrontalizerWithPose" or PREDICTOR_NAME == "PoseFrontalizerWithPoseResidual":
+            dummy_emb = torch.zeros(BATCH_SIZE, EMBEDDING_SIZE).to(DEVICE)
+            dummy_pose = torch.zeros(BATCH_SIZE, 2).to(DEVICE)
+            model_stats_predictor = summary(
+                predictor,
+                input_data=(dummy_emb, dummy_pose),
+                verbose=0
+            )
         else:
             model_stats_predictor = summary(predictor, (BATCH_SIZE, EMBEDDING_SIZE), verbose=0)
         print(colorstr('magenta', str(model_stats_predictor)))
@@ -190,6 +217,16 @@ def main(cfg):
         print(colorstr('magenta', OPTIMIZER))
         print("=" * 60)
 
+        LOSS_DICT = {
+            "cosine": cosine_loss,
+            "mse_norm": mse_loss_normalized,
+            "cosine_mse": cosine_mse_loss,
+            "cosine_smoothl1": cosine_smoothl1_loss,
+        }
+        loss_fn = LOSS_DICT[LOSS_NAME]
+        print(colorstr("magenta", f"Using loss: {LOSS_NAME}"))
+        print("=" * 60)
+
         # load_checkpoint(BACKBONE.backbone_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
         # print("=" * 60)
 
@@ -197,15 +234,15 @@ def main(cfg):
         print("#" * 60)
         val_metrics = validate(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose")
 
-        mlflow.log_metric('val_cosine_model', val_metrics["cosine_model"], step=0)
+        mlflow.log_metric('val_cosine_prediction', val_metrics["cosine_model"], step=0)
         mlflow.log_metric('val_cosine_baseline', val_metrics["cosine_baseline"], step=0)
         mlflow.log_metric('val_cosine_gain', val_metrics["cosine_gain"], step=0)
 
         print(colorstr(
             'bright_green',
-            f'CosSim Model: {val_metrics["cosine_model"]:.4f} | '
-            f'Baseline: {val_metrics["cosine_baseline"]:.4f} | '
-            f'Gain: {val_metrics["cosine_gain"]:+.4f}'
+            f'Val Model Cosine Similarity: {val_metrics["cosine_model"]:.4f} | '
+            f'Val Baseline Cosine Similarity: {val_metrics["cosine_baseline"]:.4f} | '
+            f'Val Gain: {val_metrics["cosine_gain"]:+.4f}'
         ))
 
         print("#" * 60)
@@ -239,14 +276,13 @@ def main(cfg):
                 front_emb = embeddings[torch.arange(B), front_pose_index].to(DEVICE)
 
                 if PREDICTOR_NAME == "PoseFrontalizerWithPose":
-                    model_input = torch.cat([input_emb, input_pose], dim=1)  # (B, D+2)
-                    pred_front = predictor(model_input)
+                    pred_front = predictor(input_emb, input_pose)
                 else:
                     pred_front = predictor(input_emb)
 
-                loss = cosine_loss(pred_front, front_emb)
+                loss = loss_fn(pred_front, front_emb)
                 losses.update(loss.item(), B)
-                mlflow.log_metric('train_cosine_loss', losses.avg, step=epoch + 1)
+                mlflow.log_metric('train_loss', losses.avg, step=epoch + 1)
 
                 OPTIMIZER.zero_grad()
                 loss.backward()
@@ -256,24 +292,24 @@ def main(cfg):
                     print("=" * 60)
                     print(colorstr('cyan',
                                    f'Epoch {epoch + 1}/{NUM_EPOCH} Batch {batch + 1}/{len(train_loader) * NUM_EPOCH}\t'
-                                   f'Training MSE-Loss {losses.avg:.4f}\t'))
+                                   f'Training Loss {losses.avg:.4f}\t'))
                     print("=" * 60)
                 batch += 1
 
             # ===== Validation =====
             val_metrics = validate(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose")
 
-            mlflow.log_metric('val_cosine_model', val_metrics["cosine_model"], step=epoch + 1)
+            mlflow.log_metric('val_cosine_prediction', val_metrics["cosine_model"], step=epoch + 1)
             mlflow.log_metric('val_cosine_baseline', val_metrics["cosine_baseline"], step=epoch + 1)
             mlflow.log_metric('val_cosine_gain', val_metrics["cosine_gain"], step=epoch + 1)
 
             print(colorstr(
                 'bright_green',
                 f'Epoch {epoch + 1}/{NUM_EPOCH} | '
-                f'Train CosLoss: {losses.avg:.4f} | '
-                f'Val CosSim: {val_metrics["cosine_model"]:.4f} | '
-                f'Baseline: {val_metrics["cosine_baseline"]:.4f} | '
-                f'Gain: {val_metrics["cosine_gain"]:+.4f}'
+                f'Train Cosine Similarity Loss: {losses.avg:.4f} | '
+                f'Val Model Cosine Similarity: {val_metrics["cosine_model"]:.4f} | '
+                f'Val Baseline Cosine Similarity: {val_metrics["cosine_baseline"]:.4f} | '
+                f'Val Gain: {val_metrics["cosine_gain"]:+.4f}'
             ))
             print("#" * 60)
 
