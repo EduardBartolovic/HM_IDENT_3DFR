@@ -57,7 +57,6 @@ def resize_and_pad(image: np.ndarray, max_side: int = 512):
 
 
 def preprocess_image_for_retinaface(img: np.ndarray):
-    #cv2.imwrite("retina_input.png", img)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_float = img.astype(np.float32)
     img_float -= (104, 117, 123)
@@ -156,29 +155,6 @@ class FaceAligner:
         # Pass STD landmarks as target landms
         self.landmarks_target = std_landmarks
 
-    def save_image_with_timestamp(self, image_array, prefix="image", file_extension=".png"):
-        """
-        Saves a NumPy array (CV2 image) to a file with a timestamp in milliseconds.
-
-        Args:
-            image_array (numpy.ndarray): The image data as a NumPy array.
-            prefix (str): A prefix for the filename (e.g., "capture", "frame").
-            file_extension (str): The desired file extension (e.g., ".png", ".jpg").
-                                Make sure it includes the dot.
-        """
-        # Get the current time in milliseconds since the epoch
-        # time.time() returns seconds since epoch as a float
-        # Multiply by 1000 to get milliseconds and convert to integer
-        milliseconds = int(time.time() * 1000)
-
-        # Construct the filename
-        filename = f"{prefix}_{milliseconds}{file_extension}"
-
-        # Save the image using cv2.imwrite()
-        success = cv2.imwrite(filename, image_array)
-        
-        return filename # Return the generated filename
-
     def detect_face(self, img: np.ndarray):
         padded, scale, top, left = resize_and_pad(img, self.max_side)
         input_blob = preprocess_image_for_retinaface(padded)
@@ -200,8 +176,6 @@ class FaceAligner:
 
         inds = np.where(scores > self.conf_threshold)[0]
         if len(inds) == 0:
-            #self.save_image_with_timestamp(img, "original")
-            #self.save_image_with_timestamp(padded, "pad")
             return None
 
         best_idx = inds[np.argmax(scores[inds])]
@@ -564,7 +538,7 @@ class FaceAligner:
                     if len(os.listdir(debug_folder)) >= 1:
                         print(f'[FaceAligner] debug folder Not Empty!, files might be overwritten: {debug_folder}')
 
-                [cv2.imwrite(f'{debug_folder}/{name}.png', aligned) for name, aligned in zip(face_image_names,aligned_images)]
+                [cv2.imwrite(f'{debug_folder}/{name}.jpg', aligned) for name, aligned in zip(face_image_names,aligned_images)]
                 print(f"[FaceAligner] Alignment successful, results saved in  → {debug_folder}")
 
         return aligned_images
@@ -620,7 +594,7 @@ class FaceAligner:
                     if len(os.listdir(debug_folder)) >= 1:
                         print(f'[FaceAligner] debug folder Not Empty!, files might be overwritten: {debug_folder}')
 
-                [cv2.imwrite(f'{debug_folder}/{i}.png', aligned) for i, aligned in enumerate(aligned_images)]
+                [cv2.imwrite(f'{debug_folder}/{i}.jpg', aligned) for i, aligned in enumerate(aligned_images)]
                 print(f"[FaceAligner] Alignment successful, results saved in  → {debug_folder}")
 
         return aligned_images
