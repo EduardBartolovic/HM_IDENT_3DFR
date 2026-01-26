@@ -19,7 +19,7 @@ sys.path.append(current_directory)
 DEBUG_DIR = "../app/debug_outputs"
 os.makedirs(DEBUG_DIR, exist_ok=True)
 
-CONF_THRESHOLD = 0.8
+CONF_THRESHOLD = 0.25
 
 STANDARD_LANDMARKS_5 = np.float32([
     [0.31556875000000000, 0.4615741071428571],
