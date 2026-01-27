@@ -118,8 +118,8 @@ def validate(model, data_loader, device, with_pose):
                 F.normalize(front_emb, dim=-1),
                 dim=-1
             )
-            cos_baseline_cosmax = torch.max(cos1, cos2)
-            cos_baseline_cosmean = 0.5 * (cos1 + cos2)
+            cos_baseline_cosmax = torch.max(cos1, cos2).mean()
+            cos_baseline_cosmean = (0.5 * (cos1 + cos2)).mean()
 
             cos_model_meter.update(cos_model.item(), B)
             cos_baseline_meter_embmean.update(cos_baseline_embmean.item(), B)
@@ -294,8 +294,12 @@ def main(cfg):
         print(colorstr(
             'bright_green',
             f'Val Model Cosine Similarity: {val_metrics["cosine_model"]:.4f} | '
-            f'Val Baseline Cosine Similarity: {val_metrics["cosine_baseline"]:.4f} | '
-            f'Val Gain: {val_metrics["cosine_gain"]:+.4f}'
+            f'Val Baseline Cosine Similarity1: {val_metrics["cosine_baseline_embmean"]:.4f} | '
+            f'Val Baseline Cosine Similarity2: {val_metrics["cosine_baseline_cosmean"]:.4f} | '
+            f'Val Baseline Cosine Similarity3: {val_metrics["cosine_baseline_cosmax"]:.4f} | '
+            f'Val Gain1: {val_metrics["cosine_gain_embmean"]:+.4f}'
+            f'Val Gain2: {val_metrics["cosine_gain_cosmean"]:+.4f}'
+            f'Val Gain3: {val_metrics["cosine_gain_cosmax"]:+.4f}'
         ))
 
         print("#" * 60)
@@ -378,8 +382,12 @@ def main(cfg):
                 f'Epoch {epoch + 1}/{NUM_EPOCH} | '
                 f'Train Cosine Similarity Loss: {losses.avg:.4f} | '
                 f'Val Model Cosine Similarity: {val_metrics["cosine_model"]:.4f} | '
-                f'Val Baseline Cosine Similarity: {val_metrics["cosine_baseline"]:.4f} | '
-                f'Val Gain: {val_metrics["cosine_gain"]:+.4f}'
+                f'Val Baseline Cosine Similarity_embmean: {val_metrics["cosine_baseline_embmean"]:.4f} | '
+                f'Val Baseline Cosine Similarity_cosmean: {val_metrics["cosine_baseline_cosmean"]:.4f} | '
+                f'Val Baseline Cosine Similarity_cosmax: {val_metrics["cosine_baseline_cosmax"]:.4f} | '
+                f'Val Gain_embmean: {val_metrics["cosine_gain_embmean"]:+.4f} | '
+                f'Val Gain_cosmean: {val_metrics["cosine_gain_cosmean"]:+.4f} | '
+                f'Val Gain_cosmax: {val_metrics["cosine_gain_cosmax"]:+.4f} | '
             ))
             print("#" * 60)
 

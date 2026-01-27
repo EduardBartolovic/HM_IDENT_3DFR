@@ -26,10 +26,12 @@ def cosine_loss(pred, target):
     target = F.normalize(target, dim=-1)
     return 1 - F.cosine_similarity(pred, target, dim=-1).mean()
 
+
 def mse_loss_normalized(pred, target):
     pred = F.normalize(pred, dim=-1)
     target = F.normalize(target, dim=-1)
     return F.mse_loss(pred, target)
+
 
 def cosine_mse_loss(pred, target, mse_weight=0.3):
     pred = F.normalize(pred, dim=-1)
@@ -39,6 +41,7 @@ def cosine_mse_loss(pred, target, mse_weight=0.3):
     mse = F.mse_loss(pred, target)
     return cos + mse_weight * mse
 
+
 def cosine_smoothl1_loss(pred, target, l1_weight=0.3):
     pred = F.normalize(pred, dim=-1)
     target = F.normalize(target, dim=-1)
@@ -47,6 +50,7 @@ def cosine_smoothl1_loss(pred, target, l1_weight=0.3):
     l1 = F.smooth_l1_loss(pred, target)
 
     return cos + l1_weight * l1
+
 
 def validate(model, data_loader, device, with_pose):
     model.eval()
@@ -142,13 +146,6 @@ def main(cfg):
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
         full_dataset = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET), disable_tqdm=False)
-        #dataset_size = len(full_dataset)
-        #split = int(0.9 * dataset_size)
-        #train_dataset, val_dataset = torch.utils.data.random_split(
-        #    full_dataset,
-        #    [split, dataset_size - split],
-        #    generator=torch.Generator().manual_seed(SEED)
-        #)
 
         train_dataset, val_dataset = split_with_shared_labels(
             full_dataset,

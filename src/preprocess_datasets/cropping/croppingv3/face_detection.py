@@ -16,8 +16,6 @@ sys.path.append(current_directory)
 # CONFIG
 # ========================
 
-CONF_THRESHOLD = 0.1
-
 STANDARD_LANDMARKS_5 = np.float32([
     [0.31556875000000000, 0.4615741071428571],
     [0.68262291666666670, 0.4615741071428571],
