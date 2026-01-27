@@ -7,8 +7,7 @@ import os
 
 from typing import Tuple, List
 
-from src.preprocess_datasets.cropping.croppingv3.onnx_inference import InferenceType, ONNX_Inference_Windows, \
-    ONNX_Inference_Android
+from src.preprocess_datasets.cropping.croppingv3.onnx_inference import InferenceType, ONNX_Inference_Windows
 
 current_directory = os.getcwd()
 sys.path.append(current_directory)
@@ -16,10 +15,8 @@ sys.path.append(current_directory)
 # ========================
 # CONFIG
 # ========================
-DEBUG_DIR = "../app/debug_outputs"
-os.makedirs(DEBUG_DIR, exist_ok=True)
 
-CONF_THRESHOLD = 0.25
+CONF_THRESHOLD = 0.1
 
 STANDARD_LANDMARKS_5 = np.float32([
     [0.31556875000000000, 0.4615741071428571],
@@ -119,7 +116,7 @@ class FaceAligner:
         AURA_FROM_BOUNDING_BOX_SCALING = 4
         AFFINE_FROM_BOUNDING_BOX_SCALING = 5
 
-    def __init__(self, model_path: str, target_size=(112, 112), max_side=512, conf_threshold=0.9,
+    def __init__(self, model_path: str, target_size=(112, 112), max_side=512, conf_threshold=0.1,
                  inference_type=InferenceType.WINDOWS,device_type="cpu",
                  face_factor=0.8, bbox_offset =(0,0),
                  alignment_method=AlignmentMethod.AFFINE_TRANSFORM):
@@ -129,8 +126,6 @@ class FaceAligner:
         self.device_type = device_type
         if inference_type == InferenceType.WINDOWS:
             self.onnx_inference = ONNX_Inference_Windows(model_path,device=self.device_type)
-        elif inference_type == InferenceType.Android:
-            self.onnx_inference = ONNX_Inference_Android()
 
         self.target_size = target_size
         self.max_side = max_side
@@ -473,7 +468,7 @@ class FaceAligner:
         aligned_image = self.align_face_from_bounding_box(img, bounding_box)
         return aligned_image
 
-    def align_faces(self, image_paths: list,batch_size:int ,debug_folder=''):
+    def align_faces(self, image_paths: list,batch_size:int, debug_folder=''):
         aligned_images=[]
 
         # Collect results using the new batched method
