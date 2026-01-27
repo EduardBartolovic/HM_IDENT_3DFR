@@ -60,3 +60,23 @@ class PoseFrontalizerWithPoseResidual(nn.Module):
         x = torch.cat([emb, pose], dim=1)
         delta = self.net(x)
         return emb + delta
+
+
+class PoseFrontalizerTwoView(nn.Module):
+    def __init__(self, embedding_dim=512, hidden_dim=512):
+        super().__init__()
+
+        self.net = nn.Sequential(
+            nn.Linear(embedding_dim * 2, hidden_dim),
+            nn.ReLU(inplace=True),
+
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(inplace=True),
+
+            nn.Linear(hidden_dim, embedding_dim)
+        )
+
+    def forward(self, x1, x2):
+        # x1, x2: (B, D)
+        x = torch.cat([x1, x2], dim=-1)  # (B, 2D)
+        return self.net(x)
