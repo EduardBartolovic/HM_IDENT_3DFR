@@ -53,7 +53,7 @@ def load_checkpoint(model, head, backbone_resume_path, head_resume_path, rgbd=Fa
             load_rgbd_backbone_checkpoint(model, backbone_resume_path)
         else:
             if ".ckpt" in backbone_resume_path:
-                ckpt = torch.load(backbone_resume_path, map_location="cpu")
+                ckpt = torch.load(backbone_resume_path, map_location="cpu", weights_only=True)
                 state_dict = ckpt["state_dict"]
 
                 new_state_dict = {
