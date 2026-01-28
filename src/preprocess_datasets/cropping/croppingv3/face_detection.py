@@ -114,7 +114,7 @@ class FaceAligner:
         AURA_FROM_BOUNDING_BOX_SCALING = 4
         AFFINE_FROM_BOUNDING_BOX_SCALING = 5
 
-    def __init__(self, model_path: str, target_size=(112, 112), max_side=512, conf_threshold=0.1,
+    def __init__(self, model_path: str, target_size=(112, 112), max_side=512, conf_threshold=0.001,
                  inference_type=InferenceType.WINDOWS,device_type="cpu",
                  face_factor=0.8, bbox_offset =(0,0),
                  alignment_method=AlignmentMethod.AFFINE_TRANSFORM):
