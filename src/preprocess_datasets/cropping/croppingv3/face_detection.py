@@ -114,13 +114,12 @@ class FaceAligner:
         AURA_FROM_BOUNDING_BOX_SCALING = 4
         AFFINE_FROM_BOUNDING_BOX_SCALING = 5
 
-    def __init__(self, model_path: str, target_size=(112, 112), max_side=512, conf_threshold=0.001,
+    def __init__(self, model_path: str, target_size=(112, 112), max_side=512, conf_threshold=0.0001,
                  inference_type=InferenceType.WINDOWS,device_type="cpu",
                  face_factor=0.8, bbox_offset =(0,0),
                  alignment_method=AlignmentMethod.AFFINE_TRANSFORM):
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
-        #self.session = ort.InferenceSession(model_path, providers=['CPUExecutionProvider'])
         self.device_type = device_type
         if inference_type == InferenceType.WINDOWS:
             self.onnx_inference = ONNX_Inference_Windows(model_path,device=self.device_type)

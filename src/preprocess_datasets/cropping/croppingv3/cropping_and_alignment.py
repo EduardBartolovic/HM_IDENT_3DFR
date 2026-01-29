@@ -92,19 +92,108 @@ def run_batch_alignment(
 
 if __name__ == "__main__":
 
-    MODEL_FILE = Path('mobile0.25.onnx')
-    DATASET_ROOT = Path(r'F:/Face/data/dataset14/test_rgb_bff/enrolled')
-    OUTPUT_DIR = Path(r'F:/Face/data/dataset14/BOUNDING_BOX_SCALING/enrolled')
-
     # Select Device Here ("cpu" or "cuda")
     DEVICE = "cpu"
 
-    folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+    root = "F:/Face/data/dataset15/"
 
+    MODEL_FILE = Path('mobile0.25.onnx')
+    DATASET_ROOT = Path(root + r'test_rgb_bff8/enrolled')
+
+    OUTPUT_DIR = Path(root + r'test_rgb_bff_crop8_2/enrolled')
+    folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+    run_batch_alignment(
+        data_folders=folder_paths,
+        model_path=str(MODEL_FILE),
+        align_method=FaceAligner.AlignmentMethod.BOUNDING_BOX_SCALING,  # FaceAligner.AlignmentMethod.AURA_FROM_BOUNDING_BOX_SCALING, #
+        batch_size=32,
+        output_dir=OUTPUT_DIR,
+        num_processes=4,
+        device=DEVICE
+    )
+
+    OUTPUT_DIR = Path(root + r'test_rgb_bff_crop8_3/enrolled')
+    folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+    run_batch_alignment(
+        data_folders=folder_paths,
+        model_path=str(MODEL_FILE),
+        align_method=FaceAligner.AlignmentMethod.AURA_FACE_ALIGNER,  # FaceAligner.AlignmentMethod.AURA_FROM_BOUNDING_BOX_SCALING, #
+        batch_size=32,
+        output_dir=OUTPUT_DIR,
+        num_processes=4,
+        device=DEVICE
+    )
+
+    OUTPUT_DIR = Path(root + r'test_rgb_bff_crop8_4/enrolled')
+    folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+    run_batch_alignment(
+        data_folders=folder_paths,
+        model_path=str(MODEL_FILE),
+        align_method=FaceAligner.AlignmentMethod.AURA_FROM_BOUNDING_BOX_SCALING,  # FaceAligner.AlignmentMethod.AURA_FROM_BOUNDING_BOX_SCALING, #
+        batch_size=32,
+        output_dir=OUTPUT_DIR,
+        num_processes=4,
+        device=DEVICE
+    )
+
+    OUTPUT_DIR = Path(root + r'test_rgb_bff_crop8_5/enrolled')
+    folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+    run_batch_alignment(
+        data_folders=folder_paths,
+        model_path=str(MODEL_FILE),
+        align_method=FaceAligner.AlignmentMethod.AFFINE_FROM_BOUNDING_BOX_SCALING,  # FaceAligner.AlignmentMethod.AURA_FROM_BOUNDING_BOX_SCALING, #
+        batch_size=32,
+        output_dir=OUTPUT_DIR,
+        num_processes=4,
+        device=DEVICE
+    )
+
+    # +++++++++++++++++
+
+    DATASET_ROOT = Path(root + r'test_rgb_bff8/query')
+
+    OUTPUT_DIR = Path(root + r'test_rgb_bff_crop8_2/query')
+    folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+    run_batch_alignment(
+        data_folders=folder_paths,
+        model_path=str(MODEL_FILE),
+        align_method=FaceAligner.AlignmentMethod.BOUNDING_BOX_SCALING,
+        batch_size=32,
+        output_dir=OUTPUT_DIR,
+        num_processes=4,
+        device=DEVICE
+    )
+
+    OUTPUT_DIR = Path(root + r'test_rgb_bff_crop8_3/query')
+    folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+    run_batch_alignment(
+        data_folders=folder_paths,
+        model_path=str(MODEL_FILE),
+        align_method=FaceAligner.AlignmentMethod.AURA_FACE_ALIGNER,
+        batch_size=32,
+        output_dir=OUTPUT_DIR,
+        num_processes=4,
+        device=DEVICE
+    )
+
+    OUTPUT_DIR = Path(root + r'test_rgb_bff_crop8_4/query')
+    folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
     run_batch_alignment(
         data_folders=folder_paths,
         model_path=str(MODEL_FILE),
         align_method=FaceAligner.AlignmentMethod.AURA_FROM_BOUNDING_BOX_SCALING,
+        batch_size=32,
+        output_dir=OUTPUT_DIR,
+        num_processes=4,
+        device=DEVICE
+    )
+
+    OUTPUT_DIR = Path(root + r'test_rgb_bff_crop8_5/query')
+    folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+    run_batch_alignment(
+        data_folders=folder_paths,
+        model_path=str(MODEL_FILE),
+        align_method=FaceAligner.AlignmentMethod.AFFINE_FROM_BOUNDING_BOX_SCALING,
         batch_size=32,
         output_dir=OUTPUT_DIR,
         num_processes=4,
