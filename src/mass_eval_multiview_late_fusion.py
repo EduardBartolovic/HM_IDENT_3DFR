@@ -293,18 +293,7 @@ def generate_cross_experiments(
     return experiments
 
 
-def main(cfg):
-    SEED = 42
-    torch.manual_seed(SEED)
-
-    DATA_ROOT = "F:\\Face\\data\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"  # "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
-    BATCH_SIZE = 16  # Batch size
-
-    evaluate_and_log_mv(DATA_ROOT, cfg['TEST_VIEWS'], BATCH_SIZE, disable_bar=True)
-
-
-if __name__ == '__main__':
-
+def main_perspective_test():
     torch.multiprocessing.set_sharing_strategy('file_system')
     render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35]
     all_views = (
@@ -663,6 +652,28 @@ if __name__ == '__main__':
 
     for selected_views in allowed:
         cfg_yaml = {"TEST_VIEWS": selected_views}
-        main(cfg_yaml)
+        DATA_ROOT = "F:\\Face\\data\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"  # "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
+        BATCH_SIZE = 16  # Batch size
+        evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, disable_bar=True)
 
     print("DONE")
+
+
+def dataset_test():
+    TEST_SETS = ["F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop8_2_emb-irseglintr18\\",
+                 "F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop8_3_emb-irseglintr18\\",
+                 "F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop8_4_emb-irseglintr18\\",
+                 "F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop8_5_emb-irseglintr18\\",]
+    for DATA_ROOT in TEST_SETS:
+        cfg_yaml = {"TEST_VIEWS": ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']}
+        BATCH_SIZE = 16  # Batch size
+        evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, disable_bar=True)
+
+
+if __name__ == '__main__':
+    SEED = 42
+    torch.manual_seed(SEED)
+    #main_perspective_test()
+    dataset_test()
+
+
