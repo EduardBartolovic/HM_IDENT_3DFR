@@ -6,10 +6,10 @@ from src.backbone.timmfr import timm_fr
 
 class MultiviewTimmFRLF(nn.Module):
 
-    def __init__(self, device, aggregators, backbone_fn):
+    def __init__(self, device, aggregator, backbone_fn):
         super().__init__()
         self.backbone_reg = backbone_fn()
-        self.aggregators = aggregators
+        self.aggregator = aggregator
         self.device = device
 
     def forward(self, inputs, perspectives, face_corr, use_face_corr):
@@ -34,7 +34,7 @@ class MultiviewTimmFRLF(nn.Module):
 
     def eval(self):
         self.backbone_reg.eval()
-        self.aggregators.eval()
+        self.aggregator.eval()
 
 
 def timm_mv_lf(device, aggregators):
