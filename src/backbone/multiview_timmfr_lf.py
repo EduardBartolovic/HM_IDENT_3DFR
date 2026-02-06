@@ -34,7 +34,7 @@ class MultiviewTimmFRLF(nn.Module):
 
     def eval(self):
         self.backbone_reg.eval()
-        self.aggregator.eval()
+        self.aggregators.eval()
 
 
 def timm_mv_lf(device, aggregators):
