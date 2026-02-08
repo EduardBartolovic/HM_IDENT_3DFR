@@ -671,6 +671,7 @@ def dataset_test():
 
 
 if __name__ == '__main__':
+    torch.multiprocessing.set_sharing_strategy('file_system')
     SEED = 42
     torch.manual_seed(SEED)
     #main_perspective_test()
