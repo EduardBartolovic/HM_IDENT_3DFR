@@ -335,8 +335,9 @@ class Backbone(Module):
 
     def forward(self, x):
 
-        # current code only supports one extra image
-        # it comes with a extra dimension for number of extra image. We will just squeeze it out for now
+        # RGB -> BGR channel swap
+        x = x[:, [2, 1, 0], :, :]
+
         x = self.input_layer(x)
 
         for idx, module in enumerate(self.body):
