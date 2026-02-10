@@ -15,7 +15,7 @@ ACCUMULATION_STEPS: 1
 DROP_LAST: true  # whether drop the last batch to ensure consistent batch_norm statistics
 OPTIMIZER_NAME: ADAMW
 LR: 0.005  # initial LR
-NUM_EPOCH: 120  # total epoch number (use the first 1/25 epochs to warm up)
+NUM_EPOCH: 150  # total epoch number (use the first 1/25 epochs to warm up)
 PATIENCE: 100  # patience for early stopping
 WEIGHT_DECAY: 0.005  # do not apply to batch_norm parameters
 MOMENTUM: 0.3

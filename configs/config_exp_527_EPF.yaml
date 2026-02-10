@@ -1,6 +1,6 @@
 SEED: 1337  # random seed for reproduce results
 
-RUN_NAME: 'EXP_522_PoseFrontalizer_data15emb_edgeface'  # experiment_name
+RUN_NAME: 'EXP_527_PoseFrontalizer_data15emb_edgeface'  # experiment_name
 DATA_ROOT_PATH: 'dataset15_emb'  # the parent root
 TRAIN_SET: 'rgb_bff_crop261_emb-edgeface'  # where your train/val data are stored
 
