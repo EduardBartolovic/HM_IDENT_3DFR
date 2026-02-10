@@ -68,13 +68,25 @@ def process_txt_file_to_video_voxceleb(args):
     errors = 0
     success_count = 0
     video_cache = {}  # Cache for open VideoCapture objects
+
     for info in data:
         try:
             video_name, frame_index = info[7].split('#')
             frame_index = int(frame_index)
-            #x_min, y_min, x_max, y_max = map(int, info[8:])
-            dst_filename = f'{hash_name[:15]}#{info[0]}_{info[1]}#{info[3].split(".")[0]}_{info[4].split(".")[0]}.jpg'
+
+            # last column = flipped flag (True/False or 1/0)
+            val = info[12]
+            was_flipped = str(val).lower() in ["true"]
+
+            flip_tag = "_f" if was_flipped else ""
+
+            dst_filename = (
+                f'{hash_name[:15]}#{info[0]}_{info[1]}'
+                f'#{info[3].split(".")[0]}_{info[4].split(".")[0]}'
+                f'{flip_tag}.jpg'
+            )
             dst_path = os.path.join(destination, dst_filename)
+
         except ValueError as e:
             print("Error in :", file_path)
             raise e
@@ -95,6 +107,10 @@ def process_txt_file_to_video_voxceleb(args):
         if not ret:
             errors += 1
             continue
+
+        # apply horizontal flip if needed
+        if was_flipped:
+            frame = cv2.flip(frame, 1)
 
         cv2.imwrite(dst_path, frame)
         success_count += 1

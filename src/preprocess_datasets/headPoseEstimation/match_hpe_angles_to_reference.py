@@ -36,6 +36,7 @@ def parse_analysis_file(file_path, correct_angles=False):
 def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_flip=False, random_choice=False):
     used_indices = set()
     matches = []
+
     for reference in references:
 
         # consider roll or not
@@ -48,33 +49,36 @@ def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_fli
 
         # compute distances
         distances = np.linalg.norm(data_vecs - ref_vec, axis=1)
+        was_flipped_array = np.zeros(len(data), dtype=bool)
 
         if allow_flip:
-            # flipping means negating yaw (first angle, index 0)
+            # flip yaw (index 0)
             flipped_ref = ref_vec.copy()
             flipped_ref[0] = -flipped_ref[0]
+
             flipped_distances = np.linalg.norm(data_vecs - flipped_ref, axis=1)
 
-            # take whichever gives smaller distance
+            # check where flipped is better
             better_is_flipped = flipped_distances < distances
+            was_flipped_array = better_is_flipped.copy()
+
+            # use better distance
             distances = np.where(better_is_flipped, flipped_distances, distances)
-            ref_vec = np.where(better_is_flipped[:, None], flipped_ref, ref_vec)  # keep ref consistent
-            # TODO: Add flipping to txt file and apply it to gen dataset
 
         if random_choice:
-            # pick ANY index from remaining
             available_indices = [i for i in range(len(data)) if i not in used_indices]
             if not available_indices:
                 chosen_index = random.choice(range(len(data)))
-                #raise ValueError("No remaining indices left for random selection.")
             else:
                 chosen_index = random.choice(available_indices)
         else:
-            # pick best match
             chosen_index = int(np.argmin(distances))
 
         min_distance = distances[chosen_index]
-        matches.append((reference, data[chosen_index], min_distance))
+        was_flipped = bool(was_flipped_array[chosen_index]) if allow_flip else False
+
+        # add flip info to matches
+        matches.append((reference, data[chosen_index], min_distance, was_flipped))
         used_indices.add(chosen_index)
 
     return matches
@@ -122,16 +126,16 @@ def save_matches(output_file, infos):
             "Hpe_X", "Hpe_Y", "Hpe_Z",
             "Error",
             "file_name",
-            "BBox_x_min", "BBox_y_min", "BBox_x_max", "BBox_y_max"
+            "BBox_x_min", "BBox_y_min", "BBox_x_max", "BBox_y_max", "Flipped"
         ])
-        for ref_angles, hpe_data, error in infos:
+        for ref_angles, hpe_data, error, flipped in infos:
             ref_angles = ref_angles.tolist()
             hpe_angles = hpe_data[:3].tolist()
             filename = hpe_data[3]
             if len(filename.split("#")) >= 2:
                 filename = "#".join(filename.split("#")[0:2])
             bbox = hpe_data[4:8]
-            writer.writerow(ref_angles + hpe_angles + [error] + [filename] + list(bbox))
+            writer.writerow(ref_angles + hpe_angles + [error] + [filename] + list(bbox) + [flipped])
 
 
 def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angles=False, remove_outliers=True, threshold_std=4.0, ignore_roll=True, allow_flip=True, random_choice=False):
@@ -172,7 +176,7 @@ def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angl
     print(f"Processed {counter} files in {round(elapsed_time, 2)}s")
     print(f"Average angle error: {avg_error:.4f}")
 
-    total_frames = total_removed + sum(len(data) for _, _, _ in infos)
+    total_frames = total_removed + sum(len(data) for _, _, _, _ in infos)
     overall_percentage = (total_removed / total_frames) * 100 if total_frames > 0 else 0.0
     print(f"Total outliers removed: {total_removed} from {total_frames} ({overall_percentage:.2f}%)")
 
