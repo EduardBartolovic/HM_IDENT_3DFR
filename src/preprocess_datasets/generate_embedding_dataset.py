@@ -129,13 +129,15 @@ def main(cfg):
 
 if __name__ == '__main__':
     cfg_yaml = {}
-    cfg_yaml['BACKBONE_RESUME_PATH'] = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\glint_cosface_r18_fp16.pth"
-    #cfg_yaml['BACKBONE_RESUME_PATH'] = "/home/gustav/HM_IDENT_3DFR/pretrained/glint_cosface_r18_fp16.pth" # edgeface_xs_gamma_06.pt" #glint_cosface_r18_fp16.pth" #AdaFace_ARoFace_R100_WebFace12M.pt"
-    cfg_yaml['BACKBONE_NAME'] = "IR_MV_V2_18"
-    cfg_yaml['INPUT_SIZE'] = [112, 112]
+    #cfg_yaml['BACKBONE_RESUME_PATH'] = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\glint_cosface_r18_fp16.pth"
+    cfg_yaml['BACKBONE_RESUME_PATH'] = "/home/gustav/HM_IDENT_3DFR/pretrained/facenet-casia-webface.pt" # facenet-vggface2.pt # AdaFace_ARoFace_R100_WebFace12M.pt" # HyperFace50K_ir50_adaface.ckpt" # glint_cosface_r100_fp16.pth" # " # glint_cosface_r18_fp16.pth" # edgeface_xs_gamma_06.pt" #glint_cosface_r100_fp16.pth" #AdaFace_ARoFace_R100_WebFace12M.pt"
+    cfg_yaml['BACKBONE_NAME'] = "IR_MV_Facenet_50" #"IR_MV_HYPER_50" #"TIMM_MV" # "IR_MV_V2_100" #  "IR_MV_HYPER_50" #
+    cfg_yaml['INPUT_SIZE'] = [160, 160] # [112, 112]
     cfg_yaml['NUM_VIEWS'] = 261
-    cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset14\\"
-    #cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset14/"
+    #cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset14\\"
+    #cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset11/"
+    cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset15/"
+
 
     #cfg_yaml["TRAIN_SET"] = "rgb_bff_crop261"
     #cfg_yaml['OUT'] = "F:\\Face\\data\\dataset13_emb\\" + cfg_yaml["TRAIN_SET"] + "_emb-irseglintr18"
