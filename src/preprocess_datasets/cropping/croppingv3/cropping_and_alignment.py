@@ -3,8 +3,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import List, Optional
 from tqdm import tqdm
 
-from face_detection import FaceAligner
-
+from src.preprocess_datasets.cropping.croppingv3.face_detection import FaceAligner
 
 # --- Global variable for worker processes ---
 worker_aligner: Optional[FaceAligner] = None
