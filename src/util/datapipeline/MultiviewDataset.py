@@ -83,10 +83,7 @@ class MultiviewDataset(Dataset):
         if self.shuffle_views:
             combined = list(zip(images, ref_perspectives, true_perspectives))
             random.shuffle(combined)
-            images, ref_perspectives, true_perspectives = zip(*combined)
-            images = list(images)
-            ref_perspectives = list(ref_perspectives)
-            true_perspectives = list(true_perspectives)
+            images, ref_perspectives, true_perspectives = map(list, zip(*combined))
 
         facial_corr = torch.empty(0)  # Placeholder for deprecated function
 
