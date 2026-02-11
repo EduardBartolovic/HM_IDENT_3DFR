@@ -1,3 +1,7 @@
+import sys
+
+import traceback
+
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import List, Optional
@@ -33,25 +37,31 @@ def process_single_folder(data_dir: Path, output_root: Path, batch_size: int):
     """
     Worker task: Processes images in a single folder using the pre-loaded global aligner.
     """
-    global worker_aligner
+    try:
+        global worker_aligner
 
-    if worker_aligner is None:
-        raise RuntimeError("Worker aligner not initialized.")
+        if worker_aligner is None:
+            raise RuntimeError("Worker aligner not initialized.")
 
-    folder_name = data_dir.name
-    output_path = output_root / folder_name
-    output_path.mkdir(parents=True, exist_ok=True)
+        folder_name = data_dir.name
+        output_path = output_root / folder_name
+        output_path.mkdir(parents=True, exist_ok=True)
 
-    image_paths = list(data_dir.glob("*.jpg"))
+        image_paths = list(data_dir.glob("*.jpg"))
 
-    if not image_paths:
-        return f"Skipped {folder_name} (No images found)"
+        if not image_paths:
+            return f"Skipped {folder_name} (No images found)"
 
-    worker_aligner.align_faces(
-        [str(p) for p in image_paths],
-        batch_size=batch_size,
-        debug_folder=str(output_path)
-    )
+        worker_aligner.align_faces(
+            [str(p) for p in image_paths],
+            batch_size=batch_size,
+            debug_folder=str(output_path)
+        )
+    except Exception as e:
+        print(f"\n🔥 ERROR in folder {data_dir}")
+        traceback.print_exc()
+        sys.stdout.flush()
+        raise
 
     return f"Processed {folder_name}: {len(image_paths)} images"
 
