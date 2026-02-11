@@ -9,8 +9,7 @@ from src.preprocess_datasets.cropping.croppingv3.face_detection import FaceAlign
 from src.preprocess_datasets.misc.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_voxceleb_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
-#from src.preprocess_datasets.preprocess_video import analyse_video_hpe
-from src.preprocess_datasets.cropping.process_dataset_retinaface import face_crop_and_alignment
+from src.preprocess_datasets.preprocess_video import analyse_video_hpe
 from src.preprocess_datasets.rendering import PrepareDataset
 
 
@@ -40,7 +39,7 @@ def preprocessing():
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    #analyse_video_hpe(folder_root, "analysis", model_path_hpe, device, batch_size=batch_size, keep=True, max_workers=16, face_confidence=0.5, padding=True)
+    analyse_video_hpe(folder_root, "analysis", model_path_hpe, device, batch_size=batch_size, keep=True, max_workers=16, face_confidence=0.5, padding=True)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
