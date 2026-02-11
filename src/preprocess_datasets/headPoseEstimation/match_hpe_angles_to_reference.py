@@ -52,9 +52,8 @@ def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_fli
         was_flipped_array = np.zeros(len(data), dtype=bool)
 
         if allow_flip:
-            # flip yaw (index 0)
             flipped_ref = ref_vec.copy()
-            flipped_ref[0] = -flipped_ref[0]
+            flipped_ref[1] = -flipped_ref[1]  # flip yaw (index 1)
 
             flipped_distances = np.linalg.norm(data_vecs - flipped_ref, axis=1)
 
@@ -100,11 +99,12 @@ def correct_angle_pair(x, y):
     but
     (-25, 25) and (25, -25) remain unchanged.
     """
+    return -y, -x
     # Check if signs are the same
-    if (x >= 0 and y >= 0) or (x < 0 and y < 0):
-        return -x, -y
-    else:
-        return x, y
+    #if (x >= 0 and y >= 0) or (x < 0 and y < 0):
+    #    return -x, -y
+    #else:
+    #    return x, y
 
 
 def remove_embedding_outliers_lof(data, n_neighbors=20, contamination=0.05):

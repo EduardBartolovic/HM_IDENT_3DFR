@@ -93,10 +93,7 @@ def run_batch_alignment(
 
         for future in tqdm(as_completed(future_to_folder), total=len(data_folders), desc="Aligning Folders"):
             folder = future_to_folder[future]
-            try:
-                future.result()
-            except Exception as exc:
-                print(f"Folder {folder.name} generated an exception: {exc}")
+            future.result()
 
 
 if __name__ == "__main__":

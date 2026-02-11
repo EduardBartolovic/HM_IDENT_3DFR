@@ -74,15 +74,14 @@ def process_txt_file_to_video_voxceleb(args):
             video_name, frame_index = info[7].split('#')
             frame_index = int(frame_index)
 
-            # last column = flipped flag (True/False or 1/0)
             val = info[12]
             was_flipped = str(val).lower() in ["true"]
 
-            flip_tag = "_f" if was_flipped else ""
+            flip_tag = "f" if was_flipped else ""
 
             dst_filename = (
                 f'{hash_name[:15]}#{info[0]}_{info[1]}'
-                f'#{info[3].split(".")[0]}_{info[4].split(".")[0]}'
+                f'#{clean_zero(info[3].split(".")[0])}_{clean_zero(info[4].split(".")[0])}'
                 f'{flip_tag}.jpg'
             )
             dst_path = os.path.join(destination, dst_filename)
@@ -119,6 +118,10 @@ def process_txt_file_to_video_voxceleb(args):
         cap.release()
 
     return success_count, errors
+
+
+def clean_zero(x):
+    return str(int(float(x))) if float(x) == 0 else str(int(float(x)))
 
 
 def generate_nersemble_dataset_from_video(folder_root, dataset_output_folder, keep=True):
