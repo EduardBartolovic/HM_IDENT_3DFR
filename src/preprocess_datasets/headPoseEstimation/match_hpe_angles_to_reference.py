@@ -99,6 +99,7 @@ def correct_angle_pair(x, y):
     but
     (-25, 25) and (25, -25) remain unchanged.
     """
+    # TODO: Check if this makes sense for pitch.
     return -y, -x
     # Check if signs are the same
     #if (x >= 0 and y >= 0) or (x < 0 and y < 0):
