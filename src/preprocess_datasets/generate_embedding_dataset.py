@@ -95,21 +95,31 @@ def main(cfg):
         class_idx_np = np.array(class_idx)
         scan_id_np = np.array(scan_id)
 
-        def parse_perspective(p):
-            return [int(x) for x in p.split('_')]
+        def parse_perspective_array(arr):
+            arr = np.asarray(arr, dtype=str)
 
-        ref_perspectives_np = np.array(ref_perspectives).transpose(1, 0)
-        true_perspectives_np = np.array(true_perspectives).transpose(1, 0)
+            # detect flip (endswith 'f')
+            flip_mask = np.char.endswith(arr, 'f')
 
-        ref_perspectives_np = np.array(
-            [[parse_perspective(p) for p in row] for row in ref_perspectives_np],
-            dtype=np.int16
-        )
+            # remove trailing 'f'
+            cleaned = np.where(flip_mask, np.char.rstrip(arr, 'f'), arr)
 
-        true_perspectives_np = np.array(
-            [[parse_perspective(p) for p in row] for row in true_perspectives_np],
-            dtype=np.int16
-        )
+            # split into two numbers
+            split = np.char.split(cleaned, '_')
+
+            # convert to int array
+            nums = np.array(split.tolist(), dtype=np.int16)
+
+            # apply flip to second value
+            nums[..., 1] *= np.where(flip_mask, -1, 1)
+
+            return nums
+
+        ref_perspectives_np = np.asarray(ref_perspectives).T
+        true_perspectives_np = np.asarray(true_perspectives).T
+
+        ref_perspectives_np = parse_perspective_array(ref_perspectives_np)
+        true_perspectives_np = parse_perspective_array(true_perspectives_np)
 
         for i in range(len(scan_id)):
             sample_name = f"{scan_id[i]}.npz"
@@ -128,26 +138,69 @@ def main(cfg):
 
 
 if __name__ == '__main__':
+    basepath_model = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\"
+    #basepath_model = "/home/gustav/HM_IDENT_3DFR/pretrained/"
+
     cfg_yaml = {}
-    #cfg_yaml['BACKBONE_RESUME_PATH'] = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\glint_cosface_r18_fp16.pth"
-    cfg_yaml['BACKBONE_RESUME_PATH'] = "/home/gustav/HM_IDENT_3DFR/pretrained/facenet-casia-webface.pt" # facenet-vggface2.pt # AdaFace_ARoFace_R100_WebFace12M.pt" # HyperFace50K_ir50_adaface.ckpt" # glint_cosface_r100_fp16.pth" # " # glint_cosface_r18_fp16.pth" # edgeface_xs_gamma_06.pt" #glint_cosface_r100_fp16.pth" #AdaFace_ARoFace_R100_WebFace12M.pt"
-    cfg_yaml['BACKBONE_NAME'] = "IR_MV_Facenet_50" #"IR_MV_HYPER_50" #"TIMM_MV" # "IR_MV_V2_100" #  "IR_MV_HYPER_50" #
-    cfg_yaml['INPUT_SIZE'] = [160, 160] # [112, 112]
-    cfg_yaml['NUM_VIEWS'] = 261
-    #cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset14\\"
-    #cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset11/"
+    cfg_yaml['NUM_VIEWS'] = 5  # 261
+    #cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset15\\"
     cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset15/"
+    #out_root = "F:\\Face\\data\\dataset15_emb\\"
+    out_root = "/home/gustav/dataset15_emb/"
+    SELECTED_MODEL = "glint_r18"
 
+    train_set = "test_vox2test_crop5F-v15"  # "test_rgb_bff_crop261"
 
-    #cfg_yaml["TRAIN_SET"] = "rgb_bff_crop261"
-    #cfg_yaml['OUT'] = "F:\\Face\\data\\dataset13_emb\\" + cfg_yaml["TRAIN_SET"] + "_emb-irseglintr18"
+    # =========================
+    # Model registry
+    # =========================
+    MODEL_CONFIGS = {
+        "facenet_casia": {
+            "BACKBONE_RESUME_PATH": basepath_model+"facenet-casia-webface.pt",
+            "BACKBONE_NAME": "IR_MV_Facenet_50",
+            "INPUT_SIZE": [160, 160],
+        },
+        "facenet_vgg": {
+            "BACKBONE_RESUME_PATH": basepath_model+"facenet-vggface2.pt",
+            "BACKBONE_NAME": "IR_MV_Facenet_50",
+            "INPUT_SIZE": [160, 160],
+        },
+        "adaface_webface12m": {
+            "BACKBONE_RESUME_PATH": basepath_model+"AdaFace_ARoFace_R100_WebFace12M.pt",
+            "BACKBONE_NAME": "IR_MV_V2_100",
+            "INPUT_SIZE": [112, 112],
+        },
+        "hyperface50k": {
+            "BACKBONE_RESUME_PATH": basepath_model+"HyperFace50K_ir50_adaface.ckpt",
+            "BACKBONE_NAME": "IR_MV_HYPER_50",
+            "INPUT_SIZE": [112, 112],
+        },
+        "glint_r18": {
+            "BACKBONE_RESUME_PATH": basepath_model+"glint_cosface_r18_fp16.pth",
+            "BACKBONE_NAME": "IR_MV_V2_18",
+            "INPUT_SIZE": [112, 112],
+        },
+        "glint_r100": {
+            "BACKBONE_RESUME_PATH": basepath_model+"glint_cosface_r100_fp16.pth",
+            "BACKBONE_NAME": "IR_MV_V2_100",
+            "INPUT_SIZE": [112, 112],
+        },
+        "edgeface_xs": {
+            "BACKBONE_RESUME_PATH": basepath_model+"edgeface_xs_gamma_06.pt",
+            "BACKBONE_NAME": "TIMM_MV",
+            "INPUT_SIZE": [112, 112],
+        },
+    }
+    cfg_yaml.update(MODEL_CONFIGS[SELECTED_MODEL])
+
+    #cfg_yaml["TRAIN_SET"] = train_set
+    #cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}")
     #main(cfg_yaml)
 
-    #cfg_yaml["TRAIN_SET"] = "test_rgb_bff_crop261\\enrolled\\"
-    #cfg_yaml['OUT'] = "F:\\Face\\data\\dataset14_emb_NEW\\test_rgb_bff_crop261_emb-irseglintr18\\enrolled\\"
-    #main(cfg_yaml)
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
 
-    cfg_yaml["TRAIN_SET"] = "test_rgb_bff_crop261/query/"
-    #cfg_yaml['OUT'] = "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/query/"
-    cfg_yaml['OUT'] = "F:\\Face\\data\\dataset14_emb_NEW\\test_rgb_bff_crop261_emb-irseglintr18\\query\\"
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
     main(cfg_yaml)
