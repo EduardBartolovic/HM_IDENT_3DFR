@@ -9,12 +9,10 @@ import os
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-from src.preprocess_datasets.rendering.Facerender import generate_rotation_matrices_cross_x_y, \
-    generate_rotation_matrices
 from src.util.Plotter import analyze_embedding_distribution
 from src.util.Voting import accuracy_front_perspective, concat, score_fusion, face_verification_from_similarity
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
-from src.util.misc import colorstr, smart_round, bold, underscore
+from src.util.misc import smart_round
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -295,20 +293,17 @@ def generate_cross_experiments(
 
 def main_perspective_test():
     torch.multiprocessing.set_sharing_strategy('file_system')
-    render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35]
-    all_views = (
-            generate_rotation_matrices_cross_x_y()
-            + generate_rotation_matrices(render_angles)
-    )
+    #render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35]
+    #all_views = (generate_rotation_matrices_cross_x_y() + generate_rotation_matrices(render_angles))
 
-    yaw_pitch_pairs = [(x, y) for x, y, _ in all_views]
-    unique_views = sorted(set(yaw_pitch_pairs))
-    all_views_set = [f"{x}_{y}" for (x, y) in unique_views]
+    #yaw_pitch_pairs = [(x, y) for x, y, _ in all_views]
+    #unique_views = sorted(set(yaw_pitch_pairs))
+    #all_views_set = [f"{x}_{y}" for (x, y) in unique_views]
 
     allowed = [['0_0']]
-    random_list = generate_view_subsets_sampled(all_views_set)
+    #random_list = generate_view_subsets_sampled(all_views_set)
     #allowed.extend(random_list)
-    print(f"✅ Using {len(random_list)} random unique perspectives")
+    #print(f"✅ Using {len(random_list)} random unique perspectives")
 
     cross_experiments1 = generate_cross_experiments(
         max_angles=[10, 15, 25, 35],
@@ -337,7 +332,6 @@ def main_perspective_test():
     print(f"✅ Using {len(cross_experiments3)} cross unique perspectives")
     allowed.extend(cross_experiments3)
 
-    # TODO Add more extras: Diagnonal and cross and no neg pitch
     extras = [['0_0', '-25_0', '-10_0', '25_0', '10_0'],  # 1 Azimuth axis
               ['0_0', '0_-25', '0_-10', '0_10', '0_25'],  # 2 Alitude axis
               ['0_0', '-25_-25', '-10_-10', '10_10', '25_25'],  # 3 diagonal
@@ -652,7 +646,7 @@ def main_perspective_test():
 
     for selected_views in allowed:
         cfg_yaml = {"TEST_VIEWS": selected_views}
-        DATA_ROOT = "F:\\Face\\data\\dataset14_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"  # "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
+        DATA_ROOT = "F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"  # "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
         BATCH_SIZE = 16  # Batch size
         evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, disable_bar=True)
 
@@ -660,12 +654,12 @@ def main_perspective_test():
 
 
 def dataset_test():
-    TEST_SETS = ["F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop8_2_emb-irseglintr18\\",
-                 "F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop8_3_emb-irseglintr18\\",
-                 "F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop8_4_emb-irseglintr18\\",
-                 "F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop8_5_emb-irseglintr18\\",]
+    TEST_SETS = ["F:\\Face\\data\\dataset15_emb\\test_vox2test_crop5R-v15\\",
+                 "F:\\Face\\data\\dataset15_emb\\test_vox2test_crop5-v15\\",
+                 "F:\\Face\\data\\dataset15_emb\\test_vox2test_crop5F-v15\\",]
     for DATA_ROOT in TEST_SETS:
-        cfg_yaml = {"TEST_VIEWS": ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']}
+        #cfg_yaml = {"TEST_VIEWS": ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']}
+        cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
         BATCH_SIZE = 16  # Batch size
         evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, disable_bar=True)
 
@@ -674,7 +668,7 @@ if __name__ == '__main__':
     torch.multiprocessing.set_sharing_strategy('file_system')
     SEED = 42
     torch.manual_seed(SEED)
-    #main_perspective_test()
+    # main_perspective_test()
     dataset_test()
 
 
