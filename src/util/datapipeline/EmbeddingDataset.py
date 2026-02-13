@@ -42,7 +42,8 @@ class EmbeddingDataset(Dataset):
 
                 # --- FILTER VIEW FILTERING ---
                 if self.views is not None:
-                    mask = np.array([tuple(p) in self.view_tuples for p in true_p_np])
+                    mask = np.array([tuple(p) in self.view_tuples for p in ref_p_np])
+                    assert mask.any(), "No samples match the selected views. Check your selected views!"
                     emb_np = emb_np[mask]
                     true_p_np = true_p_np[mask]
                     ref_p_np = ref_p_np[mask]
