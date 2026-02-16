@@ -79,7 +79,7 @@ def main(cfg):
     # print(colorstr('blue', f"{BACKBONE_NAME} Backbone Generated"))
     # print("=" * 60)
 
-    load_checkpoint(BACKBONE.backbone_reg, None, BACKBONE_RESUME_ROOT, "", rgbd='rgbd' in TRAIN_SET)
+    load_checkpoint(BACKBONE.backbone_reg, None, BACKBONE_RESUME_ROOT, "")
     print("=" * 60)
 
     BACKBONE.eval()

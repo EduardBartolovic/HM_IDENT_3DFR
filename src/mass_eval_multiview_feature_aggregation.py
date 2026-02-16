@@ -110,8 +110,8 @@ def main(cfg):
                      'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID)}
         HEAD = HEAD_DICT[HEAD_NAME]().to(DEVICE)
 
-        load_checkpoint(BACKBONE.backbone_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
-        load_checkpoint(BACKBONE.backbone_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
+        load_checkpoint(BACKBONE.backbone_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT)
+        load_checkpoint(BACKBONE.backbone_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT)
 
         # ======= Validation =======
         eval_loop(BACKBONE, DATA_ROOT, 0, BATCH_SIZE, NUM_VIEWS, use_face_corr, True, cfg_copy['TEST_SET'], INPUT_SIZE, INPUT_SIZE)

@@ -26,7 +26,7 @@ def load_rgbd_backbone_checkpoint(model, checkpoint_path):
     return model
 
 
-def load_checkpoint(model, head, backbone_resume_path, head_resume_path, rgbd=False):
+def load_checkpoint(model, head, backbone_resume_path, head_resume_path):
 
     # EARLY RETURN: Skip completely if ONNX model
     if backbone_resume_path.endswith(".onnx"):
@@ -37,44 +37,35 @@ def load_checkpoint(model, head, backbone_resume_path, head_resume_path, rgbd=Fa
         print(colorstr('blue', f"Loading Backbone Checkpoint {backbone_resume_path}"))
         if ".onnx" in backbone_resume_path:
             raise Exception
-        if rgbd:
-            load_rgbd_backbone_checkpoint(model, backbone_resume_path)
-        else:
-            model.load_state_dict(torch.load(backbone_resume_path))
-
+        model.load_state_dict(torch.load(backbone_resume_path))
         print(colorstr('blue', f"Loading Head Checkpoint {head_resume_path}"))
         head.load_state_dict(torch.load(head_resume_path))
 
     elif os.path.isfile(backbone_resume_path):
         print(colorstr('blue', f"Loading ONLY Backbone Checkpoint {backbone_resume_path}"))
-        if rgbd:
-            if ".onnx" in backbone_resume_path:
-                raise Exception
-            load_rgbd_backbone_checkpoint(model, backbone_resume_path)
+        if ".ckpt" in backbone_resume_path:
+            ckpt = torch.load(backbone_resume_path, map_location="cpu", weights_only=True)
+            state_dict = ckpt["state_dict"]
+
+            new_state_dict = {
+                k.replace("model.", "", 1): v
+                for k, v in state_dict.items()
+            }
+
+            new_state_dict = {
+                k: v
+                for k, v in new_state_dict.items()
+                if not k.startswith("head.")
+            }
+
+            model.load_state_dict(new_state_dict)
         else:
-            if ".ckpt" in backbone_resume_path:
-                ckpt = torch.load(backbone_resume_path, map_location="cpu", weights_only=True)
-                state_dict = ckpt["state_dict"]
-
-                new_state_dict = {
-                    k.replace("model.", "", 1): v
-                    for k, v in state_dict.items()
-                }
-
-                new_state_dict = {
-                    k: v
-                    for k, v in new_state_dict.items()
-                    if not k.startswith("head.")
-                }
-
-                model.load_state_dict(new_state_dict)
-            else:
-                state_dict = torch.load(backbone_resume_path, weights_only=True)
-                try:
-                    model.load_state_dict(state_dict)
-                except RuntimeError:
-                    state_dict = adapt_state_dict_for_backbone(state_dict)
-                    model.load_state_dict(state_dict)
+            state_dict = torch.load(backbone_resume_path, weights_only=True)
+            try:
+                model.load_state_dict(state_dict)
+            except RuntimeError:
+                state_dict = adapt_state_dict_for_backbone(state_dict)
+                model.load_state_dict(state_dict)
     else:
         if len(backbone_resume_path) > 5 or len(head_resume_path) > 5:
             print(colorstr('red', f"You put in a path but there is no checkpoint found at {backbone_resume_path} or {head_resume_path}. Please Have a Check or Continue to Train from Scratch"))
