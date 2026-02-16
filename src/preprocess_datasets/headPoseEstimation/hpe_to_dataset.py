@@ -205,6 +205,7 @@ def generate_ytf_dataset_from_video(folder_root, dataset_output_folder, keep=Tru
 
 
 def process_txt_file_to_video_ytf(args):
+    # TODO: Update and merge with voxceleb
     file_path, destination, hash_name, keep, image_folder_path = args
     data = read_file(file_path)
     errors = 0

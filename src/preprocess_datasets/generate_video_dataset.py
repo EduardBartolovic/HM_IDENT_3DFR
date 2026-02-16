@@ -4,7 +4,7 @@ import time
 
 from tqdm import tqdm
 
-from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import process_txt_file_to_video_voxceleb
+from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import process_txt_file_to_video_voxceleb_nersemble
 
 
 def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, keep=True):
@@ -40,7 +40,7 @@ def generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, kee
             total_files += 1
 
     for job in tqdm(jobs, desc="Generate Dataset"):
-        success_count, errors = process_txt_file_to_video_voxceleb(job)
+        success_count, errors = process_txt_file_to_video_voxceleb_nersemble(job)
         total_success += success_count
         total_errors += errors
 
