@@ -39,9 +39,6 @@ if __name__ == '__main__':
     print("##################################")
     print("##### FIND MATCHES ###############")
     print("##################################")
-    print("##################################")
-    print("##### FIND MATCHES ###############")
-    print("##################################")
     # ref_angles = [-25, -10, 0, 10, 25]
     # permutations = np.array([(x, y, 0) for x, y in itertools.product(ref_angles, repeat=2)])
     # if random_choice:
@@ -60,8 +57,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##### GEN DATASET ################")
     print("##################################")
-    #generate_nersemble_dataset_from_video(folder_root, dataset_output_folder, keep=False)
-    generate_voxceleb_dataset_from_video(folder_root, dataset_output_folder, keep=False)
+    generate_nersemble_dataset_from_video(folder_root, dataset_output_folder, keep=False)
 
     print("##################################")
     print("##### Crop Frames ################")

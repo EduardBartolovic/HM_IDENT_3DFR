@@ -156,7 +156,8 @@ def generate_nersemble_dataset_from_video(folder_root, dataset_output_folder, ke
             total_files += 1
 
     for job in tqdm(jobs, desc="Generate Dataset"):
-        success_count, errors = process_txt_file_to_video_nersemble(job)
+        #success_count, errors = process_txt_file_to_video_nersemble(job) # TODO: CHECK
+        success_count, errors = process_txt_file_to_video_voxceleb(job)
         total_success += success_count
         total_errors += errors
 
