@@ -9,7 +9,7 @@ from src.preprocess_datasets.cropping.croppingv3.face_detection import FaceAlign
 from src.preprocess_datasets.misc.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_voxceleb_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
-from src.preprocess_datasets.preprocess_video import analyse_video_hpe
+#from src.preprocess_datasets.preprocess_video import analyse_video_hpe
 from src.preprocess_datasets.rendering import PrepareDataset
 
 
@@ -33,13 +33,14 @@ def preprocessing():
     batch_size = 256  # 256 for 24GB  # 48 for 8 GB VRAM
     poses = 5  # Number of poses
     random_choice = False
-    allow_flip = True
+    allow_flip = False
+    discard_threshold = 15
     device = torch.device("cuda")
 
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    analyse_video_hpe(folder_root, "analysis", model_path_hpe, device, batch_size=batch_size, keep=True, max_workers=16, face_confidence=0.5, padding=True)
+    #analyse_video_hpe(folder_root, "analysis", model_path_hpe, device, batch_size=batch_size, keep=True, max_workers=16, face_confidence=0.5, padding=True)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
@@ -57,7 +58,7 @@ def preprocessing():
     ])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=allow_flip, random_choice=random_choice)
+    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=allow_flip, random_choice=random_choice, avg_dist_threshold=discard_threshold)
 
     print("##################################")
     print("##### GEN DATASET ################")
@@ -84,7 +85,7 @@ def preprocessing():
     #face_crop_and_alignment(dataset_output_folder, dataset_output_folder_crop, face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(224, 224), det_threshold=0.05)
 
     #perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
-    #PrepareDataset.filter_views(dataset_output_folder_crop, dataset_output_folder_filtered, perspective_filter, target_views=poses)
+    PrepareDataset.filter_views(dataset_output_folder_crop, dataset_output_folder_filtered, perspective_filter, target_views=poses)
 
     print("##################################")
     print("###### Create Test Dataset #######")

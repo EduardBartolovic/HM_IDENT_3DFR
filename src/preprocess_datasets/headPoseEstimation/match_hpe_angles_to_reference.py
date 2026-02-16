@@ -139,11 +139,11 @@ def save_matches(output_file, infos):
             writer.writerow(ref_angles + hpe_angles + [error] + [filename] + list(bbox) + [flipped])
 
 
-def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angles=False, remove_outliers=True, threshold_std=4.0, ignore_roll=True, allow_flip=True, random_choice=False):
+def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angles=False, remove_outliers=True, threshold_std=4.0, ignore_roll=True, allow_flip=True, random_choice=False, avg_dist_threshold=None):
 
     start_time = time.time()
     all_errors = []
-    total_removed = 0
+    discarded_samples = 0
     counter = 0
 
     for root, _, files in tqdm(os.walk(input_folder), desc="Find Matches"):
@@ -152,6 +152,7 @@ def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angl
                 if pkl_file.endswith(pkl_name):
                     counter += 1
                     file_path = os.path.join(root, pkl_name)
+                    output_file = os.path.join(root, "matched_angles.txt")
 
                     data = parse_analysis_file(file_path, correct_angles)
 
@@ -164,9 +165,21 @@ def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angl
                         continue
 
                     infos = match_hpe_angles_to_references(data, references, ignore_roll=ignore_roll, allow_flip=allow_flip, random_choice=random_choice)
-                    all_errors.extend([row[2] for row in infos])
 
-                    output_file = os.path.join(root, "matched_angles.txt")
+                    # extract euclidean errors
+                    sample_errors = [row[2] for row in infos]
+                    avg_sample_error = np.mean(sample_errors)
+
+                    # discard entire sample if above threshold
+                    if avg_dist_threshold is not None and avg_sample_error > avg_dist_threshold:
+                        discarded_samples += 1
+                        if os.path.isfile(output_file):
+                            os.remove(output_file)
+                        continue
+
+                    # keep sample
+                    counter += 1
+                    all_errors.extend(sample_errors)
                     save_matches(output_file, infos)
 
     elapsed_time = time.time() - start_time
@@ -174,11 +187,11 @@ def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angl
         raise RuntimeError("No analysis txts found")
 
     avg_error = np.mean(all_errors)
-    print(f"Processed {counter} files in {round(elapsed_time, 2)}s")
-    print(f"Average angle error: {avg_error:.4f}")
+    total_frames = len(all_errors)
+    overall_percentage = (discarded_samples / total_frames) * 100 if total_frames > 0 else 0.0
 
-    total_frames = total_removed + sum(len(data) for _, _, _, _ in infos)
-    overall_percentage = (total_removed / total_frames) * 100 if total_frames > 0 else 0.0
-    print(f"Total outliers removed: {total_removed} from {total_frames} ({overall_percentage:.2f}%)")
-
+    print(f"Processed {counter+discarded_samples} files in {round(elapsed_time, 2)}s")
+    if avg_dist_threshold:
+        print(f"Total discarded samples: {discarded_samples} from {total_frames} ({overall_percentage:.2f}%) with threshold above {avg_dist_threshold}")
+    print(f"Average angle error: {avg_error:.4f} in {counter} valid files")
 

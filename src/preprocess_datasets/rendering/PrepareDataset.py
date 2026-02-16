@@ -609,7 +609,7 @@ def sanity_check(dir_path):
 def filter_views(dataset_folder, output_folder, filter_keywords, target_views=8):
     """
     Filters images in dataset_folder based on keywords, and only copies scans where the
-    required keywords are fully available. A scan is identified by the first 40 characters
+    required keywords are fully available. A scan is identified by the first 15 characters
     of the filename.
 
     Args:
