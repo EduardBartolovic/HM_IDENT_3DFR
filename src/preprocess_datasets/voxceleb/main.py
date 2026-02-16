@@ -85,7 +85,7 @@ def preprocessing():
     #face_crop_and_alignment(dataset_output_folder, dataset_output_folder_crop, face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(224, 224), det_threshold=0.05)
 
     #perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
-    PrepareDataset.filter_views(dataset_output_folder_crop, dataset_output_folder_filtered, perspective_filter, target_views=poses)
+    #PrepareDataset.filter_views(dataset_output_folder_crop, dataset_output_folder_filtered, perspective_filter, target_views=poses)
 
     print("##################################")
     print("###### Create Test Dataset #######")

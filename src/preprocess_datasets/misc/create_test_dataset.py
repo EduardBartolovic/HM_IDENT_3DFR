@@ -39,11 +39,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
     if filter_strings is None:
         filter_strings = []
 
-    if ignore_face_corr:
-        file_ext = (".jpg", ".png", ".jpeg")
-    else:
-        poses = poses*2
-        file_ext = (".jpg", "corr.npz", ".png", ".jpeg")
+    file_ext = (".jpg", ".png", ".jpeg")
     start_time = time.time()
     counter = 0
     os.makedirs(output_folder, exist_ok=True)
