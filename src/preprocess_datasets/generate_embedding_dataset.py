@@ -30,6 +30,7 @@ def main(cfg):
 
     INPUT_SIZE = cfg['INPUT_SIZE']
     NUM_VIEWS = cfg['NUM_VIEWS']  # Number of views
+    SHUFFLE_VIEWS = cfg['shuffle_views']
     RGB_MEAN = [0.5, 0.5, 0.5]   # for normalize inputs
     RGB_STD = [0.5, 0.5, 0.5]   # for normalize inputs
     use_face_corr = False
@@ -51,7 +52,7 @@ def main(cfg):
         transforms.Normalize(mean=RGB_MEAN, std=RGB_STD),
     ])
 
-    dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=NUM_VIEWS, transform=train_transform, use_face_corr=False, shuffle_views=False)
+    dataset_train = MultiviewDataset(os.path.join(DATA_ROOT, TRAIN_SET), num_views=NUM_VIEWS, transform=train_transform, use_face_corr=False, shuffle_views=SHUFFLE_VIEWS)
 
     train_loader = torch.utils.data.DataLoader(
         dataset_train, batch_size=BATCH_SIZE, pin_memory=PIN_MEMORY,
@@ -143,6 +144,7 @@ if __name__ == '__main__':
 
     cfg_yaml = {}
     cfg_yaml['NUM_VIEWS'] = 5  # 261
+    cfg_yaml['SHUFFLE_VIEWS'] = False  # 261
     #cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset15\\"
     cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset15/"
     #out_root = "F:\\Face\\data\\dataset15_emb\\"
