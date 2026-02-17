@@ -1,29 +1,7 @@
 import os
-
 import torch
 
 from src.util.misc import colorstr
-
-
-def load_rgbd_backbone_checkpoint(model, checkpoint_path):
-    checkpoint = torch.load(checkpoint_path)
-    # Splitting the checkpoint for RGB and Depth Inputs
-    rgb_checkpoint = {}
-    depth_checkpoint = {}
-
-    for k, v in checkpoint.items():
-        if 'rgb' in k:
-            new_key = k.replace('rgb_', '')
-            rgb_checkpoint['rgb_' + new_key] = v
-            depth_checkpoint['depth_' + new_key] = v
-        else:
-            rgb_checkpoint['rgb_' + k] = v
-            depth_checkpoint['depth_' + k] = v
-
-    model.rgb_body.load_state_dict(rgb_checkpoint, strict=False)
-    model.depth_body.load_state_dict(depth_checkpoint, strict=False)
-
-    return model
 
 
 def load_checkpoint(model, head, backbone_resume_path, head_resume_path):

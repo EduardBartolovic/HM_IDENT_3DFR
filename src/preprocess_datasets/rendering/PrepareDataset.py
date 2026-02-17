@@ -14,7 +14,7 @@ from torchvision import datasets
 import torch
 from torchvision.transforms import transforms
 
-from src.preprocess_datasets.detect_face import cut_face
+from src.preprocess_datasets.misc.detect_face import cut_face
 from src.preprocess_datasets.headPoseEstimation.models.scrfd import SCRFD
 
 

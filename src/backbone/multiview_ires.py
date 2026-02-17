@@ -5,7 +5,6 @@ import torch.nn as nn
 from src.backbone.facenet import ir_facenet_50
 from src.backbone.iresnet_insight import iresnet50, iresnet34, iresnet18, iresnet100
 from src.backbone.model_irse import ir_50
-from src.util.align_featuremaps import align_featuremaps
 
 
 class MultiviewIResnet(nn.Module):
@@ -50,10 +49,6 @@ class MultiviewIResnet(nn.Module):
         [i.eval() for i in self.aggregators]
 
     def aggregate(self, stage_index, all_view_stage, perspectives, face_corr, use_face_corr, embs=None):
-        if use_face_corr and stage_index in {0, 1, 2}:
-            zero_position = np.where(np.array(perspectives)[:, 0] == '0_0')[0][0]
-            all_view_stage = align_featuremaps(all_view_stage, face_corr, zero_position)
-
         if embs:
             all_view_embs = torch.stack(embs, dim=0)  # [view, batch, d]
             all_view_embs = all_view_embs.permute(1, 0, 2)  # [batch, view, d]

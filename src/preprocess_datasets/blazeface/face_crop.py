@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from src.preprocess_datasets.detect_face import expand_bbox
+from src.preprocess_datasets.misc.detect_face import expand_bbox
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches

@@ -9,7 +9,7 @@ import torch
 from tqdm import tqdm
 
 from src.preprocess_datasets.blazeface.blazeface import BlazeFace
-from src.preprocess_datasets.detect_face import expand_bbox
+from src.preprocess_datasets.misc.detect_face import expand_bbox
 from src.preprocess_datasets.headPoseEstimation.headpose_estimation import get_model, process_hpe_batch, \
     get_images_from_dir
 import pickle
