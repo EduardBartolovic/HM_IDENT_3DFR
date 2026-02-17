@@ -30,7 +30,7 @@ def main(cfg):
 
     INPUT_SIZE = cfg['INPUT_SIZE']
     NUM_VIEWS = cfg['NUM_VIEWS']  # Number of views
-    SHUFFLE_VIEWS = cfg['shuffle_views']
+    SHUFFLE_VIEWS = cfg['SHUFFLE_VIEWS']
     RGB_MEAN = [0.5, 0.5, 0.5]   # for normalize inputs
     RGB_STD = [0.5, 0.5, 0.5]   # for normalize inputs
     use_face_corr = False
