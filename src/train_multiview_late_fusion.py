@@ -135,7 +135,7 @@ def main(cfg):
         print("Number of Training Classes: {}".format(num_class))
 
         # ======= Aggregator =======
-        AGG_DICT = {'MLPFusion': lambda: make_mlp_fusion(),
+        AGG_DICT = {'MLPFusion': lambda: make_mlp_fusion(NUM_VIEWS),
                     'TransformerFusion': lambda: make_transformer_fusion(),
                     'SoftmaxFusion': lambda: make_softmax_fusion(),
                     'CosineDistanceAggregator': lambda: make_cosinedistance_fusion(NUM_VIEWS),
@@ -173,9 +173,6 @@ def main(cfg):
                      'Am_softmax': lambda: Am_softmax(in_features=EMBEDDING_SIZE, out_features=num_class, device_id=GPU_ID)}
         HEAD = HEAD_DICT[HEAD_NAME]().to(DEVICE)
 
-        #if TORCH_COMPILE_MODE:
-        #    HEAD = torch.compile(HEAD, mode=TORCH_COMPILE_MODE)
-
         model_stats_head = summary(HEAD, input_size=[(BATCH_SIZE, EMBEDDING_SIZE), (BATCH_SIZE,)], dtypes=[torch.float, torch.long], verbose=0)
         print(colorstr('magenta', str(model_stats_head)))
         print(colorstr('blue', f"{HEAD_NAME} Head Generated"))
@@ -209,7 +206,7 @@ def main(cfg):
         print(colorstr('magenta', OPTIMIZER))
         print("=" * 60)
 
-        load_checkpoint(BACKBONE.backbone_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
+        load_checkpoint(BACKBONE.backbone_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT)
         print("=" * 60)
 
         # ======= Freezing Parameter Settings =======
@@ -278,7 +275,7 @@ def main(cfg):
                     aggregator.return_reconstruction = False
                     outputs = HEAD(embeddings_fused, labels)
                     loss_arc = LOSS(outputs, labels)
-                    embeddings_concat = torch.concatenate(embeddings_reg, dim=1)#torch.stack(embeddings_reg, dim=1)
+                    embeddings_concat = torch.concatenate(embeddings_reg, dim=1)
                     loss_rec = F.mse_loss(embeddings_rec, embeddings_concat)
                     loss = loss_arc + lambda_rec * loss_rec
 

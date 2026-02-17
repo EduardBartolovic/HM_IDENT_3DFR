@@ -1,13 +1,10 @@
 import os
-import cv2
-import random
 import numpy as np
 from scipy import io
-from PIL import Image, ImageFilter
+from PIL import Image
 
 import torch
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
+from torch.utils.data import Dataset
 
 from src.preprocess_datasets.headPoseEstimation.utils.general import get_rotation_matrix
 

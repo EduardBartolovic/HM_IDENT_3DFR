@@ -221,8 +221,8 @@ def main(cfg):
         print(colorstr('magenta', OPTIMIZER))
         print("=" * 60)
 
-        load_checkpoint(BACKBONE.backbone_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
-        load_checkpoint(BACKBONE.backbone_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT, rgbd='rgbd' in TRAIN_SET)
+        load_checkpoint(BACKBONE.backbone_reg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT)
+        load_checkpoint(BACKBONE.backbone_agg, HEAD, BACKBONE_RESUME_ROOT, HEAD_RESUME_ROOT)
         print("=" * 60)
 
         #if TORCH_COMPILE_MODE:
