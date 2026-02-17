@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 class EmbeddingDataset(Dataset):
 
-    def __init__(self, root_dir, views: list[str] | None = None, disable_tqdm=True):
+    def __init__(self, root_dir, views: list[str] | None = None, shuffle_views=False, disable_tqdm=True):
         self.root_dir = root_dir
 
         self.views = views
@@ -47,6 +47,10 @@ class EmbeddingDataset(Dataset):
                     emb_np = emb_np[mask]
                     true_p_np = true_p_np[mask]
                     ref_p_np = ref_p_np[mask]
+
+                if shuffle_views:
+                    perm = np.random.permutation(len(emb_np))
+                    emb_np = emb_np[perm]
 
                 true_p = torch.from_numpy(true_p_np).to(torch.int16)
                 ref_p = torch.from_numpy(ref_p_np).to(torch.int16)
