@@ -8,21 +8,6 @@ import shutil
 from tqdm import tqdm
 
 
-def unique_views_score(file_paths):
-    """
-    Counts the number of unique images based on file content.
-    """
-    def hash_file(path):
-        hasher = hashlib.sha256()
-        with open(path, 'rb') as f:
-            while chunk := f.read(8192):
-                hasher.update(chunk)
-        return hasher.hexdigest()
-
-    unique_hashes = {hash_file(f) for f in file_paths}
-    return len(unique_hashes)
-
-
 def create_train_test_split(input_folder, output_folder, filter_strings=None, poses=25, ignore_face_corr=True):
     """
     Splits images into enrolled and query sets, always using the first group in each class for training
