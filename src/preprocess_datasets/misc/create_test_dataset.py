@@ -48,6 +48,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
     os.makedirs(train_folder, exist_ok=True)
     os.makedirs(test_folder, exist_ok=True)
     ignored = 0
+    skipped_samples = 0
 
     for class_name in tqdm(os.listdir(input_folder), desc="Copy files"):
         class_path = os.path.join(input_folder, class_name)
@@ -75,7 +76,8 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
         sorted_groups = sorted(groups.items())
 
         if len(sorted_groups) < 2:
-            print("Not enough groups", sorted_groups[:2])
+            print(f"Skipping enrolled/query split because only single sample: ", sorted_groups[:2])
+            skipped_samples += 1
             continue
 
         scored_groups = [(hash_prefix, file_paths, unique_views_score(file_paths)) for hash_prefix, file_paths in sorted_groups]
@@ -95,4 +97,4 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
                 counter += 1
 
     elapsed_time = time.time() - start_time
-    print(f"Train-test split created in {output_folder}. {ignored} ignored groups in {counter} files in", round(elapsed_time/60, 2), "minutes")
+    print(f"Train-test split created in {output_folder}. {ignored} ignored groups and {skipped_samples} skipped_samples in {counter} files in", round(elapsed_time/60, 2), "minutes")
