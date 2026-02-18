@@ -90,7 +90,7 @@ def preprocessing():
     print("##################################")
     print("###### Create Test Dataset #######")
     print("##################################")
-    create_train_test_split(dataset_output_folder_filtered, output_test_dataset, poses=poses, ignore_face_corr=True)
+    create_train_test_split(dataset_output_folder_filtered, output_test_dataset, poses=poses)
 
 
 if __name__ == '__main__':

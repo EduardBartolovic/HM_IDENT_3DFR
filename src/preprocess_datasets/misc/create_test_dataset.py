@@ -30,7 +30,6 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
     in their name are included.
 
     Args:
-        ignore_face_corr:
         input_folder (str): Path to the folder containing the class subfolders with images.
         output_folder (str): Path to the output folder where train and test folders will be created.
         filter_strings (list): List of strings; only files containing one of these strings in their name are included.
@@ -69,8 +68,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
 
         # Sanity check: Ensure all groups have the same number of perspectives
         if len(set(len(v) for v in groups.values())) > 1:
-            raise ValueError(
-                f"Inconsistent number of perspectives in class {class_name}: {[len(v) for v in groups.values()]}")
+            raise ValueError(f"Inconsistent number of perspectives in class {class_name}: {[len(v) for v in groups.values()]}")
 
         # Sort groups to ensure deterministic order
         sorted_groups = sorted(groups.items())
@@ -83,7 +81,7 @@ def create_train_test_split(input_folder, output_folder, filter_strings=None, po
         scored_groups = [(hash_prefix, file_paths, unique_views_score(file_paths)) for hash_prefix, file_paths in sorted_groups]
         scored_groups.sort(key=lambda x: x[2], reverse=True)
 
-        # Use the best group for train and the rest for testing
+        # Use the best group for enrolled and the rest for query
         for idx, (hash_prefix, file_paths, _) in enumerate(scored_groups):
             if len(file_paths) != poses:
                 assert f"views {len(file_paths)} dont match required {poses} poses"
