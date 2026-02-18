@@ -36,6 +36,8 @@ def preprocessing():
     allow_flip = False
     discard_threshold = 15
     device = torch.device("cuda")
+    model_path_cropping = Path("/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/cropping/croppingv3/mobile0.25.onnx")
+
 
     print("##################################")
     print("##### Analyse Video ##############")
@@ -68,21 +70,17 @@ def preprocessing():
     print("##################################")
     print("##### Crop Frames ################")
     print("##################################")
-    MODEL_FILE = Path('mobile0.25.onnx')
     DEVICE = "cpu"
-
     folder_paths = [p for p in Path(dataset_output_folder).iterdir() if p.is_dir()]
-
     run_batch_alignment(
         data_folders=folder_paths,
-        model_path=str(MODEL_FILE),
+        model_path=str(model_path_cropping),
         align_method=FaceAligner.AlignmentMethod.AURA_FACE_ALIGNER,
         batch_size=32,
         output_dir=Path(dataset_output_folder_crop),
         num_processes=4,
         device=DEVICE
     )
-    #face_crop_and_alignment(dataset_output_folder, dataset_output_folder_crop, face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(224, 224), det_threshold=0.05)
 
     #perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
     #PrepareDataset.filter_views(dataset_output_folder_crop, dataset_output_folder_filtered, perspective_filter, target_views=poses)
