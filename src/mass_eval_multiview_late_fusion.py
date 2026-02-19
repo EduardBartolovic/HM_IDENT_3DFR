@@ -650,15 +650,24 @@ def main_perspective_test():
 
 
 def dataset_test():
-    root = "F:\\Face\\data\\dataset15_emb\\"
-    TEST_SETS = [root+"test_vox2test_crop5R-v15_emb-glint_r18\\",
-                 root+"test_vox2test_crop5-v15_emb-glint_r18\\",
-                 root+"test_vox2test_crop5F-v15_emb-glint_r18\\",]
+    root = "/home/gustav/dataset15_emb/glint18/"  # "F:\\Face\\data\\dataset15_emb\\"
+    TEST_SETS = [root+"test_nersemble_crop5R-v15_emb-glint_r18",
+                 root+"test_nersemble_crop5-v15_emb-glint_r18",
+                 root+"test_nersemble_crop5F-v15_emb-glint_r18",]
+
+    print("Shuffle False")
     for DATA_ROOT in TEST_SETS:
-        #cfg_yaml = {"TEST_VIEWS": ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']}
+        # cfg_yaml = {"TEST_VIEWS": ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']}
         cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
-        BATCH_SIZE = 16  # Batch size
+        BATCH_SIZE = 16
         evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
+
+    print("Shuffle True")
+    for DATA_ROOT in TEST_SETS:
+        # cfg_yaml = {"TEST_VIEWS": ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']}
+        cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
+        BATCH_SIZE = 16
+        evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=True, disable_bar=True)
 
 
 def single_dataset_test():
