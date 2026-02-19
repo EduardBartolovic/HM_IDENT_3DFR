@@ -424,8 +424,8 @@ def analyze_embedding_distribution(similarity_matrix, query_labels, enrolled_lab
         "impostor_std": np.std(impostor_scores),
         "best_impostor_mean": best_impostor_mean,
         "best_impostor_std": np.std(best_impostor_scores),
-        "gbig": genuine_best_imposter_gap,
-        "gaig": genuine_average_imposter_gap
+        "gbig": genuine_best_imposter_gap*100,
+        "gaig": genuine_average_imposter_gap*100
     }
 
 
