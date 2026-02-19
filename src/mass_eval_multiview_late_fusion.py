@@ -143,18 +143,18 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
 def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics):
     rank_1_front = smart_round(all_metrics["metrics_front"].get('Rank-1 Rate', 'N/A'))
     mrr_front = smart_round(all_metrics["metrics_front"].get('MRR', 'N/A'))
-    gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A'), rounding_prec=8)*100
-    auc_front = smart_round(all_metrics["verification_results_front"].get('auc', 'N/A'), rounding_prec=8)*100
+    gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A'), rounding_prec=8)
+    auc_front = smart_round(all_metrics["verification_results_front"].get('auc', 'N/A'), rounding_prec=8)
 
     rank_1_concat = smart_round(all_metrics["metrics_concat"].get('Rank-1 Rate', 'N/A'))
     mrr_concat = smart_round(all_metrics["metrics_concat"].get('MRR', 'N/A'))
-    gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A'), rounding_prec=8)*100
-    auc_concat = smart_round(all_metrics["verification_results_concat"].get('auc', 'N/A'), rounding_prec=8)*100
+    gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A'), rounding_prec=8)
+    auc_concat = smart_round(all_metrics["verification_results_concat"].get('auc', 'N/A'), rounding_prec=8)
 
     rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
     mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
-    gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A'), rounding_prec=8)*100
-    auc_concat_mean = smart_round(all_metrics["verification_results_concat_mean"].get('auc', 'N/A'), rounding_prec=8)*100
+    gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A'), rounding_prec=8)
+    auc_concat_mean = smart_round(all_metrics["verification_results_concat_mean"].get('auc', 'N/A'), rounding_prec=8)
 
     rank_1_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-1 Rate', 'N/A'))
     mrr_concat_median = smart_round(all_metrics["metrics_concat_median"].get('MRR', 'N/A'))
