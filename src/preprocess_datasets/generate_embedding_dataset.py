@@ -197,6 +197,21 @@ if __name__ == '__main__':
             "BACKBONE_NAME": "IR_MV_V2_100",
             "INPUT_SIZE": [112, 112],
         },
+        "ms1mv3_r18": {
+            "BACKBONE_RESUME_PATH": basepath_model + "ms1mv3_arcface_r18_fp16.pth",
+            "BACKBONE_NAME": "IR_MV_V2_18",
+            "INPUT_SIZE": [112, 112],
+        },
+        "ms1mv3_r50": {
+            "BACKBONE_RESUME_PATH": basepath_model + "ms1mv3_arcface_r50_fp16.pth",
+            "BACKBONE_NAME": "IR_MV_V2_50",
+            "INPUT_SIZE": [112, 112],
+        },
+        "ms1mv3_r100": {
+            "BACKBONE_RESUME_PATH": basepath_model + "ms1mv3_arcface_r100_fp16.pth",
+            "BACKBONE_NAME": "IR_MV_V2_100",
+            "INPUT_SIZE": [112, 112],
+        },
         "edgeface_xs": {
             "BACKBONE_RESUME_PATH": basepath_model+"edgeface_xs_gamma_06.pt",
             "BACKBONE_NAME": "TIMM_MV",
@@ -231,6 +246,34 @@ if __name__ == '__main__':
 
     ###############
     cfg_yaml.update(MODEL_CONFIGS["glint_r100"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["ms1mv3_r18_r18"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["ms1mv3_r18_r50"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["ms1mv3_r18_r100"])
     cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
     cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
     main(cfg_yaml)
