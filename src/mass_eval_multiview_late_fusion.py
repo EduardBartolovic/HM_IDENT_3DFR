@@ -183,7 +183,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
 
 def evaluate_and_log_mv(data_root, test_views, batch_size, shuffle_views: bool, disable_bar: bool = True):
     print(f"Perform 1:N Evaluation on {data_root} with {test_views}")
-    all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_emb_1_n(data_root, batch_size, test_views, disable_bar, shuffle_views)
+    all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_emb_1_n(data_root, batch_size, test_views, shuffle_views, disable_bar)
     neutral_dataset = "Dataset: " + str(test_views)
     print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     return all_metrics
