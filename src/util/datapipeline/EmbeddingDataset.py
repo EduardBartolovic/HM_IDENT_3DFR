@@ -1,15 +1,15 @@
+from typing import Optional
 import os
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 from collections import defaultdict
-
 from tqdm import tqdm
 
 
 class EmbeddingDataset(Dataset):
 
-    def __init__(self, root_dir, views: list[str] | None = None, shuffle_views=False, disable_tqdm=True):
+    def __init__(self, root_dir, views: Optional[list[str]] = None, shuffle_views=False, disable_tqdm=True):
         self.root_dir = root_dir
 
         self.views = views
@@ -34,9 +34,9 @@ class EmbeddingDataset(Dataset):
                     continue
 
                 path = os.path.join(cls_path, fname)
-                data = np.load(path, allow_pickle=True)
+                data = np.load(path, allow_pickle=False)
 
-                emb_np = data["embedding_reg"].astype(np.float32)
+                emb_np = data["embedding_reg"]
                 true_p_np = data["true_perspective"]  # shape: (num_views, 2)
                 ref_p_np = data["ref_perspective"]  # shape: (num_views, 2)
 
