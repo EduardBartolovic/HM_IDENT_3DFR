@@ -25,37 +25,43 @@ def get_embeddings_mv(enrolled_loader, query_loader, disable_bar=False):
     enrolled_labels = []
     enrolled_scan_ids = []
     enrolled_true_perspectives = []
-    for embeddings, labels, scan_id, true_perspectives, _, path in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
+    enrolled_ref_perspectives = []
+    for embeddings, labels, scan_id, true_perspectives, ref_perspectives in tqdm(iter(enrolled_loader), disable=disable_bar, desc="Generate Enrolled Embeddings"):
         enrolled_embeddings_reg.append(embeddings.permute(1, 0, 2))
         enrolled_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         enrolled_scan_ids.extend(deepcopy(scan_id))
         enrolled_true_perspectives.append(np.asarray(deepcopy(true_perspectives)))
+        enrolled_ref_perspectives.append(np.asarray(deepcopy(ref_perspectives)))
 
     enrolled_embeddings_reg = np.concatenate(enrolled_embeddings_reg, axis=1)
     enrolled_labels = np.array([t.item() for t in enrolled_labels])
     enrolled_scan_ids = np.array(enrolled_scan_ids)
     enrolled_true_perspectives = np.concatenate(enrolled_true_perspectives, axis=0)
+    enrolled_ref_perspectives = np.concatenate(enrolled_ref_perspectives, axis=0)
 
     query_embeddings_reg = []
     query_labels = []
     query_scan_ids = []
     query_true_perspectives = []
-    for embeddings, labels, scan_id, true_perspectives, _, path in tqdm(iter(query_loader), disable=disable_bar,  desc="Generate Query Embeddings"):
+    query_ref_perspectives = []
+    for embeddings, labels, scan_id, true_perspectives, ref_perspectives in tqdm(iter(query_loader), disable=disable_bar,  desc="Generate Query Embeddings"):
         query_embeddings_reg.append(embeddings.permute(1, 0, 2))
         query_labels.extend(deepcopy(labels))  # https://discuss.pytorch.org/t/runtimeerror-received-0-items-of-ancdata/4999/5
         query_scan_ids.extend(deepcopy(scan_id))
         query_true_perspectives.append(np.asarray(deepcopy(true_perspectives)))
+        query_ref_perspectives.append(np.asarray(deepcopy(ref_perspectives)))
 
     query_embeddings_reg = np.concatenate(query_embeddings_reg, axis=1)
     query_labels = np.array([t.item() for t in query_labels])
     query_scan_ids = np.array(query_scan_ids)
     query_true_perspectives = np.concatenate(query_true_perspectives, axis=0)
+    query_ref_perspectives = np.concatenate(query_ref_perspectives, axis=0)
 
     Results = namedtuple("Results",
-                         ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives",
-                          "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives"])
-    return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_true_perspectives,
-                   query_embeddings_reg, query_labels, query_scan_ids, query_true_perspectives)
+                         ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives", "enrolled_ref_perspectives",
+                          "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives", "query_ref_perspectives"])
+    return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_true_perspectives, enrolled_ref_perspectives,
+                   query_embeddings_reg, query_labels, query_scan_ids, query_true_perspectives, query_ref_perspectives)
 
 
 def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, disable_bar: bool = True):
@@ -101,6 +107,14 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
     all_metrics["metrics_concat"] = metrics_concat
     all_metrics["verification_results_concat"] = face_verification_from_similarity(sim_concat, query_labels, enrolled_labels)
     del sim_concat, top_idx, y_true_concat, y_pred_concat
+
+    # TODO --------- Masked Concat ---------
+    # TODO metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat(embedding_library, disable_bar)  <------------ Neue Funtion oder diese Erweitern
+    # TODO all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
+    # TODO all_metrics["metrics_concat_masked"] = metrics_concat
+    # TODO all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
+    # TODO del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
+    # TODO --------------------------------------------------------
 
     # --------- Concat Mean ---------
     metrics_concat_mean, sim_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
@@ -647,11 +661,20 @@ def dataset_test():
         evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
 
 
+def single_dataset_test():
+    cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
+    BATCH_SIZE = 16  # Batch size
+    root = "F:\\Face\\data\\dataset15_emb\\"
+    DATA_ROOT = root+"test_vox2test_crop5F-v15_emb-glint_r18\\"
+    evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
+
+
 if __name__ == '__main__':
     torch.multiprocessing.set_sharing_strategy('file_system')
     SEED = 42
     torch.manual_seed(SEED)
     # main_perspective_test()
-    dataset_test()
+    # dataset_test()
+    single_dataset_test()
 
 

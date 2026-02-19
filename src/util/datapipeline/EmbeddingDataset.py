@@ -60,7 +60,7 @@ class EmbeddingDataset(Dataset):
                 scan_id = str(data["scan_id"])
 
                 self.samples.append(
-                    (emb, label, scan_id, true_p, ref_p, path)
+                    (emb, label, scan_id, true_p, ref_p)
                 )
 
     def __len__(self):
