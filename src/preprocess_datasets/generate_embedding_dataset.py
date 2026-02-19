@@ -93,8 +93,8 @@ def main(cfg):
         for emb in embeddings_reg:
             embeddings_reg_list.append(emb.detach().cpu().numpy())
         emb_reg_np = np.array(embeddings_reg_list).transpose(1, 0, 2)
-        class_idx_np = np.array(class_idx)
-        scan_id_np = np.array(scan_id)
+        class_idx_np = np.asarray(class_idx)
+        scan_id_np = np.asarray(scan_id)
 
         def parse_perspective_array(arr):
             arr = np.asarray(arr, dtype=str)
@@ -139,8 +139,8 @@ def main(cfg):
 
 
 if __name__ == '__main__':
-    basepath_model = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\"
-    # basepath_model = "/home/gustav/HM_IDENT_3DFR/pretrained/"
+    # basepath_model = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\"
+    basepath_model = "/home/gustav/HM_IDENT_3DFR/pretrained/"
 
     cfg_yaml = {}
     cfg_yaml['NUM_VIEWS'] = 5  # 261
@@ -254,7 +254,7 @@ if __name__ == '__main__':
     main(cfg_yaml)
 
     ###############
-    cfg_yaml.update(MODEL_CONFIGS["ms1mv3_r18_r18"])
+    cfg_yaml.update(MODEL_CONFIGS["ms1mv3_r18"])
     cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
     cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
     main(cfg_yaml)
@@ -263,7 +263,7 @@ if __name__ == '__main__':
     main(cfg_yaml)
 
     ###############
-    cfg_yaml.update(MODEL_CONFIGS["ms1mv3_r18_r50"])
+    cfg_yaml.update(MODEL_CONFIGS["ms1mv3_r50"])
     cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
     cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
     main(cfg_yaml)
@@ -273,7 +273,7 @@ if __name__ == '__main__':
     main(cfg_yaml)
 
     ###############
-    cfg_yaml.update(MODEL_CONFIGS["ms1mv3_r18_r100"])
+    cfg_yaml.update(MODEL_CONFIGS["ms1mv3_r100"])
     cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
     cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
     main(cfg_yaml)
