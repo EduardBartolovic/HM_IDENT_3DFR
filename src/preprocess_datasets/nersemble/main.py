@@ -49,7 +49,7 @@ if __name__ == '__main__':
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
-    #analyse_video_hpe(folder_root, "analysis", model_path_hpe, device, keep=True, frame_skip=frame_skip, downscale=True, face_confidence=0.5)
+    #analyse_video_hpe(folder_root, "analysis", model_path_hpe, device, keep=True, downscale=True, face_confidence=0.5)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         [0, 10, 0],
         [0, 25, 0]
     ])
-    print("number of permutations:", len(permutations))
+    print("Number of views:", len(permutations))
     print(permutations)
     find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=allow_flip, random_choice=random_choice, avg_dist_threshold=discard_threshold)
 
@@ -95,4 +95,4 @@ if __name__ == '__main__':
     print("##################################")
     print("##### GEN TEST DATASET ###########")
     print("##################################")
-    create_train_test_split(dataset_output_folder_filtered, output_test_dataset, poses=5, ignore_face_corr=True)
+    create_train_test_split(dataset_output_folder_filtered, output_test_dataset, poses=5)

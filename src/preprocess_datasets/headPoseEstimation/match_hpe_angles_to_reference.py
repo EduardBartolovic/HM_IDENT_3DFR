@@ -186,12 +186,10 @@ def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angl
     if not all_errors:
         raise RuntimeError("No analysis txts found")
 
-    avg_error = np.mean(all_errors)
-    total_frames = len(all_errors)
-    overall_percentage = (discarded_samples / total_frames) * 100 if total_frames > 0 else 0.0
-
     print(f"Processed {counter+discarded_samples} files in {round(elapsed_time, 2)}s")
     if avg_dist_threshold:
-        print(f"Total discarded samples: {discarded_samples} from {total_frames} ({overall_percentage:.2f}%) with threshold above {avg_dist_threshold}")
+        overall_percentage = (discarded_samples / (counter + discarded_samples)) * 100
+        print(f"Total discarded samples: {discarded_samples} from {counter} ({overall_percentage:.2f}%) with threshold above {avg_dist_threshold}")
+    avg_error = np.mean(all_errors)
     print(f"Average angle error: {avg_error:.4f} in {counter} valid files")
 
