@@ -140,14 +140,14 @@ def main(cfg):
 
 if __name__ == '__main__':
     basepath_model = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\"
-    #basepath_model = "/home/gustav/HM_IDENT_3DFR/pretrained/"
+    # basepath_model = "/home/gustav/HM_IDENT_3DFR/pretrained/"
 
     cfg_yaml = {}
     cfg_yaml['NUM_VIEWS'] = 5  # 261
     cfg_yaml['SHUFFLE_VIEWS'] = False  # 261
-    #cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset15\\"
+    # cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset15\\"
     cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset15/"
-    #out_root = "F:\\Face\\data\\dataset15_emb\\"
+    # out_root = "F:\\Face\\data\\dataset15_emb\\"
     out_root = "/home/gustav/dataset15_emb/"
     SELECTED_MODEL = "glint_r18"
 
@@ -172,6 +172,11 @@ if __name__ == '__main__':
             "BACKBONE_NAME": "IR_MV_V2_100",
             "INPUT_SIZE": [112, 112],
         },
+        "adaface_ms1mv3": {
+            "BACKBONE_RESUME_PATH": basepath_model + "AdaFace_ARoFace_R100_MS1MV3.pt",
+            "BACKBONE_NAME": "IR_MV_V2_100",
+            "INPUT_SIZE": [112, 112],
+        },
         "hyperface50k": {
             "BACKBONE_RESUME_PATH": basepath_model+"HyperFace50K_ir50_adaface.ckpt",
             "BACKBONE_NAME": "IR_MV_HYPER_50",
@@ -180,6 +185,11 @@ if __name__ == '__main__':
         "glint_r18": {
             "BACKBONE_RESUME_PATH": basepath_model+"glint_cosface_r18_fp16.pth",
             "BACKBONE_NAME": "IR_MV_V2_18",
+            "INPUT_SIZE": [112, 112],
+        },
+        "glint_r50": {
+            "BACKBONE_RESUME_PATH": basepath_model + "glint_cosface_r50_fp16.pth",
+            "BACKBONE_NAME": "IR_MV_V2_50",
             "INPUT_SIZE": [112, 112],
         },
         "glint_r100": {
@@ -199,6 +209,8 @@ if __name__ == '__main__':
     #cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}")
     #main(cfg_yaml)
 
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["glint_r18"])
     cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
     cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
     main(cfg_yaml)
@@ -206,3 +218,77 @@ if __name__ == '__main__':
     cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
     cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
     main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["glint_r50"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["glint_r100"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["edgeface_xs"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["adaface_webface12m"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["adaface_ms1mv3"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["facenet_vgg"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["facenet_casia"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
+    ###############
+    cfg_yaml.update(MODEL_CONFIGS["hyperface50k"])
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+    main(cfg_yaml)
+    cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+    cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+    main(cfg_yaml)
+
