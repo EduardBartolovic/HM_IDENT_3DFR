@@ -1,9 +1,7 @@
-import torch
 from pathlib import Path
 
 from src.preprocess_datasets.cropping.croppingv3.cropping_and_alignment import run_batch_alignment
 from src.preprocess_datasets.cropping.croppingv3.face_detection import FaceAligner
-from src.preprocess_datasets.cropping.process_dataset_retinaface import face_crop_and_alignment
 from src.preprocess_datasets.rendering import PrepareDataset
 from src.preprocess_datasets.rendering.Extract2DFaces import Extract2DFaces
 from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
@@ -11,7 +9,7 @@ from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 def main():
 
-    bellus = True
+    bellus = False
     facescape = False
     faceverse = False
 
@@ -22,9 +20,9 @@ def main():
     prep_data = False
     colorferet = False
 
-    bff = False
+    bff = True
 
-    root = 'F:\\Face\\data\\dataset14\\'
+    root = 'F:\\Face\\data\\dataset15\\'
     render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35] #[-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
 
     # -------- Bellus --------
@@ -155,13 +153,13 @@ def main():
         # Image Rendering facewarehouse
         directory_path = Path('H:\\Maurer\\FaceWarehouse\\data')
         output_dir = Path('F:\\Face\\data\\tmp\\3D_facewarehouse\\')
-        obj_reader = ObjFileRenderer(directory_path, output_dir)
+        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
         obj_reader.render_obj_files("facewarehouse")
 
         # Prepare Dataset Depth facewarehouse:
         input_path = Path('F:\\Face\\data\\tmp\\3D_facescape')
         output_dir = Path('F:\\Face\\data\\datasets\\depth_facescape')
-        PrepareDataset.prepare_dataset_depth(input_path, output_dir, )
+        PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB facewarehouse:
         input_path = Path('F:\\Face\\data\\tmp\\3D_facescape\\')
@@ -212,40 +210,35 @@ def main():
         output_dir = Path(root + 'test_rgb_bff')
         #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
-        MODEL_FILE = Path('mobile0.25.onnx')
-        DATASET_ROOT = Path(r'F:/Face/data/dataset14/test_rgb_bff/')
-        OUTPUT_DIR = Path(r'F:/Face/data/dataset14/BOUNDING_BOX_SCALING')
-
-        # Select Device Here ("cpu" or "cuda")
-        DEVICE = "cpu"
-
+        MODEL_FILE = Path(r'F:\Face\HM_IDENT_3DFR\src\preprocess_datasets\cropping\croppingv3\mobile0.25.onnx')
+        DATASET_ROOT = Path(root+r'test_rgb_bff\enrolled')
+        OUTPUT_DIR = Path(root+r'test_rgb_bff_crop261\enrolled')
         folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
-
         run_batch_alignment(
             data_folders=folder_paths,
             model_path=str(MODEL_FILE),
             align_method=FaceAligner.AlignmentMethod.AURA_FROM_BOUNDING_BOX_SCALING,
             batch_size=32,
             output_dir=OUTPUT_DIR,
-            num_processes=1,
-            device=DEVICE
+            num_processes=6,
+            device="cpu"
         )
-
-
-
-        face_crop_and_alignment(root + 'test_rgb_bff/enrolled', root + 'test_rgb_bff_crop/enrolled', face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(272, 272))
-        face_crop_and_alignment(root + 'test_rgb_bff/query', root + 'test_rgb_bff_crop/query', face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(272, 272))
-
-        #perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
-        #PrepareDataset.filter_views(root + 'test_rgb_bff_crop/enrolled', root + 'test_rgb_bff_crop8/enrolled', perspective_filter, target_views=8)
-        #PrepareDataset.filter_views(root + 'test_rgb_bff_crop/query', root + 'test_rgb_bff_crop8/query', perspective_filter, target_views=8)
-
-        #perspective_filter = ['0_0', '0_5', '0_10', '0_15', '0_20', '0_25', '0_30', '0_35', '0_40', '0_45',
-        #                      '0_-5', '0_-10', '0_-15', '0_-20', '0_-25', '0_-30', '0_-35', '0_-40', '0_-45',
-        #                      '5_0', '10_0', '15_0', '20_0', '25_0', '30_0', '35_0',
-        #                      '-5_0', '-10_0', '-15_0', '-20_0', '-25_0', '-30_0', '-35_0',]
-        #PrepareDataset.filter_views(root + 'test_rgb_bff/enrolled', root + 'test_rgb_bff_cross/enrolled', perspective_filter, target_views=33)
-        #PrepareDataset.filter_views(root + 'test_rgb_bff/query', root + 'test_rgb_bff_cross/query', perspective_filter, target_views=33)
+        DATASET_ROOT = Path(root + r'test_rgb_bff\query')
+        OUTPUT_DIR = Path(root + r'test_rgb_bff_crop261\query')
+        folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+        run_batch_alignment(
+            data_folders=folder_paths,
+            model_path=str(MODEL_FILE),
+            align_method=FaceAligner.AlignmentMethod.AURA_FROM_BOUNDING_BOX_SCALING,
+            batch_size=32,
+            output_dir=OUTPUT_DIR,
+            num_processes=6,
+            device="cpu"
+        )
+        # perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
+        perspective_filter = ['0_0', '0_25', '25_0', '0_10', '10_0']
+        PrepareDataset.filter_views(root + 'test_rgb_bff_crop261/enrolled', root + 'test_rgb_bff_crop5/enrolled', perspective_filter, target_views=5)
+        PrepareDataset.filter_views(root + 'test_rgb_bff_crop261/query', root + 'test_rgb_bff_crop5/query', perspective_filter, target_views=5)
 
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)

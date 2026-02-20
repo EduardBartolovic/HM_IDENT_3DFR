@@ -38,7 +38,6 @@ def preprocessing():
     device = torch.device("cuda")
     model_path_cropping = Path("/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/cropping/croppingv3/mobile0.25.onnx")
 
-
     print("##################################")
     print("##### Analyse Video ##############")
     print("##################################")
