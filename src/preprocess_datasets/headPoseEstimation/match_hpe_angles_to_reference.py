@@ -52,17 +52,20 @@ def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_fli
         was_flipped_array = np.zeros(len(data), dtype=bool)
 
         if allow_flip:
-            flipped_ref = ref_vec.copy()
-            flipped_ref[1] = -flipped_ref[1]  # flip yaw (index 1)
+            # only consider flipping where non-flipped distance > 5
+            flip_candidates = distances > 5
 
-            flipped_distances = np.linalg.norm(data_vecs - flipped_ref, axis=1)
+            if np.any(flip_candidates):
+                flipped_ref = ref_vec.copy()
+                flipped_ref[1] = -flipped_ref[1]  # flip yaw (index 1)
 
-            # check where flipped is better
-            better_is_flipped = flipped_distances < distances
-            was_flipped_array = better_is_flipped.copy()
+                flipped_distances = np.linalg.norm(data_vecs - flipped_ref, axis=1)
 
-            # use better distance
-            distances = np.where(better_is_flipped, flipped_distances, distances)
+                # only compare flipped distance for valid candidates
+                better_is_flipped = (flipped_distances < distances) & flip_candidates
+                was_flipped_array = better_is_flipped.copy()
+
+                distances = np.where(better_is_flipped, flipped_distances, distances)
 
         if random_choice:
             available_indices = [i for i in range(len(data)) if i not in used_indices]
