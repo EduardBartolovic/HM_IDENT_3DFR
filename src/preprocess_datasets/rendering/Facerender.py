@@ -237,6 +237,13 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None, noise=
     else:
         rotation_matrices = generate_rotation_matrices_cross_x_y_with_simulated_error(noise)
 
+    folder = os.path.join(
+        output_image_dir,
+        headscan['user'],
+        headscan['date'],
+        headscan['scan_id'] + '_' + headscan['scan_name']
+    )
+
     render_jobs = []
     for rotation_m in rotation_matrices:
         if noise > 0:
@@ -245,13 +252,6 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None, noise=
                 R[1] = -R[1]
                 R[2] = -R[2]
                 rotation_m = (rotation_m[0], rotation_m[1], rotation_m[2], rotation_m[3], R)
-
-            folder = os.path.join(
-                output_image_dir,
-                headscan['user'],
-                headscan['date'],
-                headscan['scan_id'] + '_' + headscan['scan_name']
-            )
 
             fn = f"{rotation_m[0]}_{rotation_m[1]}#{rotation_m[2]:.2f}_{rotation_m[3]:.2f}"
             rotation_m = (rotation_m[2], rotation_m[3], rotation_m[4])
@@ -264,18 +264,19 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None, noise=
                 R[2] = -R[2]
                 rotation_m = (rotation_m[0], rotation_m[1], R)
 
-            folder = os.path.join(
-                output_image_dir,
-                headscan['user'],
-                headscan['date'],
-                headscan['scan_id'] + '_' + headscan['scan_name']
-            )
-
             fn = f"{rotation_m[0]}_{rotation_m[1]}#{rotation_m[0]}_{rotation_m[1]}"
             img_path = os.path.join(folder, fn + "_image.jpg")
             depth_path = os.path.join(folder, fn + "_depth.jpg")
 
-        if not os.path.exists(img_path):  # and os.path.exists(depth_path)):
+        # Check if file exists
+        prefix = fn.split("#")[0]
+        already_exists = False
+        if os.path.exists(folder):
+            for f in os.listdir(folder):
+                if f.startswith(prefix) and f.endswith("_image.jpg"):
+                    already_exists = True
+                    break
+        if not already_exists:
             render_jobs.append((rotation_m[0], rotation_m[1], rotation_m[2], folder, img_path, depth_path))
 
     if len(render_jobs) == 0:
