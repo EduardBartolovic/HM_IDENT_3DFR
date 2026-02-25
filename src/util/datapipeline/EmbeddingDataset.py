@@ -52,8 +52,10 @@ class EmbeddingDataset(Dataset):
                     perm = np.random.permutation(len(emb_np))
                     emb_np = emb_np[perm]
 
-                true_p = torch.from_numpy(true_p_np).to(torch.int16)
-                ref_p = torch.from_numpy(ref_p_np).to(torch.int16)
+                # shape: [number_poses, 2] becaus a pose has yaw and pitch
+                true_p = torch.from_numpy(true_p_np).to(torch.float16)
+                # shape: [number_poses, 2] becaus a pose has yaw and pitch
+                ref_p = torch.from_numpy(ref_p_np).to(torch.float16)
                 emb = torch.from_numpy(emb_np)
 
                 label = int(data["label"])

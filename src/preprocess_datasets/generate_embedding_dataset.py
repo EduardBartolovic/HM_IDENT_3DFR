@@ -2,12 +2,8 @@ import numpy as np
 import torch
 import torchvision.transforms as transforms
 
-from src.aggregator.MeanAggregator import make_mean_aggregator
-from src.backbone.multiview_ires import ir_mv_v2_50, ir_mv_v2_34, ir_mv_v2_18, ir_mv_v2_100, ir_mv_50, ir_mv_facenet
 from src.backbone.multiview_ires_lf import ir_mv_facenet_50_lf, ir_mv_50_lf, ir_mv_v2_18_lf, ir_mv_v2_34_lf, \
     ir_mv_v2_50_lf, ir_mv_v2_100_lf, ir_mv_hyper_50_lf
-from src.backbone.multiview_onnx import onnx_mv
-from src.backbone.multiview_timmfr import timm_mv
 from src.backbone.multiview_timmfr_lf import timm_mv_lf
 from src.fuser.fuser import make_mlp_fusion, make_softmax_fusion
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
@@ -108,8 +104,8 @@ def main(cfg):
             # split into two numbers
             split = np.char.split(cleaned, '_')
 
-            # convert to int array
-            nums = np.array(split.tolist(), dtype=np.int16)
+            # convert to float array
+            nums = np.array(split.tolist(), dtype=np.float16)
 
             # apply flip to second value
             nums[..., 1] *= np.where(flip_mask, -1, 1)
