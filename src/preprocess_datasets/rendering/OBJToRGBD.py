@@ -13,12 +13,13 @@ def _render_worker(args):
 
 class ObjFileRenderer:
 
-    def __init__(self, root_directory, output_dir, render_angles, noise=0):
+    def __init__(self, root_directory, output_dir, render_angles, noise=0, num_workers=8):
         self.root_directory = root_directory
         self.output_image_path = output_dir
         self.flipped = None
         self.render_angles = render_angles
         self.noise = noise
+        self.num_workers = num_workers
 
     def render_obj_files(self, config=""):
         if config == "Bellus":
@@ -46,7 +47,7 @@ class ObjFileRenderer:
             (self.output_image_path, i, self.flipped, self.render_angles, self.noise) for i in headscans
         ]
 
-        with Pool(6) as pool:
+        with Pool(self.num_workers) as pool:
             list(tqdm(pool.imap_unordered(_render_worker, tasks), total=len(tasks), desc="Render Face"))
 
     def collect_obj_files_bellus(self):
