@@ -166,23 +166,21 @@ def generate_rotation_matrices_cross_x_y_with_simulated_error(
     rotations = []
 
     # Vertical line: vary pitch, yaw = 0
-    for pitch in range(-35, 36, 1):
-        noisy_pitch, noisy_yaw = simulate_head_pose_euclidean_mae(
-            pitch, 0, target_euclidean_mae
-        )
-
-        R = rotation_matrix_x(noisy_pitch) @ rotation_matrix_y(noisy_yaw)
-
-        rotations.append((
-            pitch,           # ground-truth pitch
-            0,               # ground-truth yaw
-            noisy_pitch,     # noisy pitch
-            noisy_yaw,       # noisy yaw
-            R
-        ))
+    #for pitch in range(-35, 36, 1):
+    #    noisy_pitch, noisy_yaw = simulate_head_pose_euclidean_mae(
+    #        pitch, 0, target_euclidean_mae
+    #    )
+    #    R = rotation_matrix_x(noisy_pitch) @ rotation_matrix_y(noisy_yaw)
+    #    rotations.append((
+    #        pitch,           # ground-truth pitch
+    #        0,               # ground-truth yaw
+    #        noisy_pitch,     # noisy pitch
+    #        noisy_yaw,       # noisy yaw
+    #        R
+    #    ))
 
     # Horizontal line: vary yaw, pitch = 0
-    for yaw in range(-45, 46, 1):
+    for yaw in range(-45, 46, 5):
         noisy_pitch, noisy_yaw = simulate_head_pose_euclidean_mae(
             0, yaw, target_euclidean_mae
         )
@@ -229,25 +227,24 @@ def generate_rotation_matrices_full_x_y():
     return rotations
 
 
-def render(output_image_dir, headscan, flipped=False, render_angles=None):
+def render(output_image_dir, headscan, flipped=False, render_angles=None, noise=0):
     if render_angles is None:
         render_angles = [-10, 0, 10]
 
     file_abspath = headscan['obj_file_path']
-    #rotation_matrices = generate_rotation_matrices_cross_x_y() + generate_rotation_matrices(render_angles)
-    noisy = True
-    rotation_matrices = generate_rotation_matrices_cross_x_y_with_simulated_error(4)
+    if noise == 0:
+        rotation_matrices = generate_rotation_matrices_cross_x_y() + generate_rotation_matrices(render_angles)
+    else:
+        rotation_matrices = generate_rotation_matrices_cross_x_y_with_simulated_error(noise)
 
     render_jobs = []
     for rotation_m in rotation_matrices:
-        if noisy:
+        if noise > 0:
             if flipped:
-                R = rotation_m[2].copy()
+                R = rotation_m[4].copy()
                 R[1] = -R[1]
                 R[2] = -R[2]
-                R[3] = -R[3]
-                R[4] = -R[4]
-                rotation_m = (rotation_m[1], rotation_m[2], rotation_m[3], rotation_m[4], R)
+                rotation_m = (rotation_m[0], rotation_m[1], rotation_m[2], rotation_m[3], R)
 
             folder = os.path.join(
                 output_image_dir,
@@ -256,7 +253,7 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None):
                 headscan['scan_id'] + '_' + headscan['scan_name']
             )
 
-            fn = f"{rotation_m[0]}_{rotation_m[1]}_{rotation_m[2]:.2f}_{rotation_m[3]:.2f}"
+            fn = f"{rotation_m[0]}_{rotation_m[1]}#{rotation_m[2]:.2f}_{rotation_m[3]:.2f}"
             rotation_m = (rotation_m[2], rotation_m[3], rotation_m[4])
             img_path = os.path.join(folder, fn + "_image.jpg")
             depth_path = os.path.join(folder, fn + "_depth.jpg")
@@ -274,11 +271,11 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None):
                 headscan['scan_id'] + '_' + headscan['scan_name']
             )
 
-            fn = f"{rotation_m[0]}_{rotation_m[1]}"
+            fn = f"{rotation_m[0]}_{rotation_m[1]}#{rotation_m[0]}_{rotation_m[1]}"
             img_path = os.path.join(folder, fn + "_image.jpg")
             depth_path = os.path.join(folder, fn + "_depth.jpg")
 
-        if not os.path.exists(img_path): # and os.path.exists(depth_path)):
+        if not os.path.exists(img_path):  # and os.path.exists(depth_path)):
             render_jobs.append((rotation_m[0], rotation_m[1], rotation_m[2], folder, img_path, depth_path))
 
     if len(render_jobs) == 0:
@@ -314,7 +311,7 @@ def render(output_image_dir, headscan, flipped=False, render_angles=None):
     original_extrinsic = param.extrinsic.copy()
 
     # Run through all render jobs
-    for Xdeg, Ydeg, R_target, folder, img_path, depth_path in tqdm(render_jobs, desc="Render"):
+    for Xdeg, Ydeg, R_target, folder, img_path, depth_path in tqdm(render_jobs, desc="Render", disable=True):
 
         # Convert 3×3 to 4×4
         R4 = np.eye(4)

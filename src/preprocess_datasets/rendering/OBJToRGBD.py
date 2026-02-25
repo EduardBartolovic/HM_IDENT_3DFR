@@ -1,19 +1,24 @@
+from multiprocessing import Pool
 import time
-
 import os
 from tqdm import tqdm
 from pathlib import Path
-
 from src.preprocess_datasets.rendering.Facerender import render
+
+
+def _render_worker(args):
+    output_image_path, headscan, flipped, render_angles, noise = args
+    render(output_image_path, headscan, flipped, render_angles, noise)
 
 
 class ObjFileRenderer:
 
-    def __init__(self, root_directory, output_dir, render_angles):
+    def __init__(self, root_directory, output_dir, render_angles, noise=0):
         self.root_directory = root_directory
         self.output_image_path = output_dir
         self.flipped = None
         self.render_angles = render_angles
+        self.noise = noise
 
     def render_obj_files(self, config=""):
         if config == "Bellus":
@@ -37,11 +42,12 @@ class ObjFileRenderer:
         else:
             raise AttributeError('No Dataset selected')
 
-        for i in tqdm(headscans, position=0, desc="Render Face"):
-            self.render_obj_to_image(i)
+        tasks = [
+            (self.output_image_path, i, self.flipped, self.render_angles, self.noise) for i in headscans
+        ]
 
-    def render_obj_to_image(self, headscan):
-        render(self.output_image_path, headscan, self.flipped, self.render_angles)
+        with Pool(6) as pool:
+            list(tqdm(pool.imap_unordered(_render_worker, tasks), total=len(tasks), desc="Render Face"))
 
     def collect_obj_files_bellus(self):
         headscans_paths = []
@@ -75,7 +81,6 @@ class ObjFileRenderer:
                     headscans_paths.append(headscans)
 
         print('Collected:', len(headscans_paths), 'headscans')
-        time.sleep(1)
         return headscans_paths
 
     def collect_obj_files_facescape(self):
