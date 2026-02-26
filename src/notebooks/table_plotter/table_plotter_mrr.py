@@ -41,17 +41,22 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
             skipnext = False
             continue
         line = line.strip()
-        if "5F" in line or "5R" in line:
-            skipnext = True
-            continue
+        #if "5F" in line or "5R" in line:
+        #    skipnext = True
+        #    continue
 
         if line.startswith("Perform 1:N Evaluation on"):
             backbone_match = re.search(r"/([^/]+)$", line.split(" with")[0])
             if backbone_match:
                 backbone_raw = (backbone_match.group(1).replace("_", "-")
                                 .replace("test-rgb-bff-crop5-emb-", "")
+                                .replace("test-rgb-bff-crop5E01-emb-", "")
+                                .replace("test-rgb-bff-crop5E02-emb-", "")
+                                .replace("test-rgb-bff-crop5E03-emb-", "")
+                                .replace("test-rgb-bff-crop5E04-emb-", "")
                                 .replace("test-nersemble-crop5-v15-emb-", "")
                                 .replace("test-vox2train-crop5-v15-emb-", "")
+                                .replace("test-vox2train-crop5F-v15-emb-", "")
                                 .replace("test-vox2train-crop5d15-v15-emb-", "")
                                 .replace("test-vox2train-crop5d10-v15-emb-", "")
                                 .replace("test-vox2train-crop5d05-v15-emb-", "")
@@ -172,10 +177,16 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
 
 
 #generate_mrr_table("test_BFF.txt", mode="gain", name="3D-BFF")
+#generate_mrr_table("test_bffE01.txt", mode="absolute", name="3D-BFFE01")
+#generate_mrr_table("test_bffE02.txt", mode="absolute", name="3D-BFFE02")
+#generate_mrr_table("test_bffE03.txt", mode="absolute", name="3D-BFFE03")
+#generate_mrr_table("test_bffE03.txt", mode="absolute", name="3D-BFFE04")
+
 #generate_mrr_table("test_nersemble.txt", mode="gain", name="Nersemble")
 #generate_mrr_table("test_vox2train.txt", mode="absolute", name="VoxCeleb2", prec=2)
 #generate_mrr_table("test_vox2train_d15.txt", mode="absolute", name="VoxCeleb2d15", prec=2)
 #generate_mrr_table("test_vox2train_d10.txt", mode="absolute", name="VoxCeleb2d10", prec=2)
 #generate_mrr_table("test_vox2train_d05.txt", mode="absolute", name="VoxCeleb2d05", prec=2)
-generate_mrr_table("test_vox2train_d03.txt", mode="absolute", name="VoxCeleb2d05", prec=2)
+#generate_mrr_table("test_vox2train_d03.txt", mode="absolute", name="VoxCeleb2d05", prec=2)
+generate_mrr_table("test_vox2trainF.txt", mode="absolute", name="VoxCeleb2", prec=2)
 
