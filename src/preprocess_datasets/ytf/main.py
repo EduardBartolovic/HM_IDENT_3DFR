@@ -10,15 +10,12 @@ from src.preprocess_datasets.preprocess_video import analyse_images_hpe
 
 
 def preprocessing():
-    root = "F:\\Face\\data\\dataset15\\"
-    folder_root = "H:\\Maurer\\YouTubeFaces\\YouTubeFaces\\" + "frame_images_DB"
-    folder_root_crop = root+"ytf_crop"
+    root = "/home/gustav/YouTubeFaces/"
+    folder_root = root + "aligned_images_DB"
     dataset_output_folder = root+"aligned_images_DB_out"
-    folder_root_crop = root+"ytf_crop"
-    output_test_dataset = root+"test_ytf_crop8"
-    model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
-    model_path_cropping = Path("F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\cropping/croppingv3/mobile0.25.onnx")
-    #model_path_cropping = Path("/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/cropping/croppingv3/mobile0.25.onnx")
+    folder_root_crop = root+"test_ytf_crop5"
+    model_path_hpe = "/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
+    model_path_cropping = Path("/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/cropping/croppingv3/mobile0.25.onnx")
     batch_size = 48  # 256 for 24GB  # 48 for 8 GB VRAM
     random_choice = False
     device = torch.device("cuda")
