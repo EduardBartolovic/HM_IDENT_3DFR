@@ -363,7 +363,7 @@ def print_results_verification(neutral_dataset, dataset_enrolled, all_metrics):
             f"{neutral_dataset} E{len(dataset_enrolled)}: " +
             f"{'Front-AUC/Acc'}: {auc_front} / {acc_front} | "
             f"{'Concat-AUC/Acc'}: {auc_concat} / {acc_concat} | "
-            f"{'Concat_Mean-AUC/Acc'}: {auc_concat_mean} / {acc_concat_mean} | "
+            f"{'AveragePooling-AUC/Acc'}: {auc_concat_mean} / {acc_concat_mean} | "
             f"{'Score_prod-AUC'}: {auc_score_prod} | "
             f"{'Score_mean-AUC'}: {auc_score_mean} | "
             f"{'Score_max-AUC'}: {auc_score_max} / {acc_score_max} | "
@@ -837,7 +837,7 @@ def main_perspective_test():
 
 
 def dataset_test():
-    root = "/home/gustav/dataset15_emb/glint18/"  # "F:\\Face\\data\\dataset15_emb\\"
+    root = "/home/gustav/dataset15_emb/"  # "F:\\Face\\data\\dataset15_emb\\"
     TEST_SETS = [root+"test_rgb_bff_crop5E08_emb-glint_r18",
                  root+"test_rgb_bff_crop5E08_emb-glint_r50",
                  root+"test_rgb_bff_crop5E08_emb-glint_r100",

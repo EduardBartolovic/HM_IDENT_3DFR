@@ -176,11 +176,15 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
     print("\\end{table}")
 
 
-#generate_mrr_table("test_BFF.txt", mode="gain", name="3D-BFF")
-#generate_mrr_table("test_bffE01.txt", mode="absolute", name="3D-BFFE01")
-#generate_mrr_table("test_bffE02.txt", mode="absolute", name="3D-BFFE02")
-#generate_mrr_table("test_bffE03.txt", mode="absolute", name="3D-BFFE03")
-#generate_mrr_table("test_bffE03.txt", mode="absolute", name="3D-BFFE04")
+#generate_mrr_table("test_bff.txt", mode="gain", name="3D-BFF")
+#generate_mrr_table("test_bff.txt", mode="absolute", name="3D-BFF", prec=2)
+#generate_mrr_table("test_bffE01.txt", mode="absolute", name="3D-BFFE01", prec=2)
+#generate_mrr_table("test_bffE02.txt", mode="absolute", name="3D-BFFE02", prec=2)
+#generate_mrr_table("test_bffE03.txt", mode="absolute", name="3D-BFFE03", prec=2)
+#generate_mrr_table("test_bffE04.txt", mode="absolute", name="3D-BFFE04", prec=2)
+#generate_mrr_table("test_bffE08.txt", mode="absolute", name="3D-BFFE08", prec=2)
+generate_mrr_table("test_bffE16.txt", mode="absolute", name="3D-BFFE16", prec=2)
+#generate_mrr_table("test_bffE32.txt", mode="absolute", name="3D-BFFE32", prec=2)
 
 #generate_mrr_table("test_nersemble.txt", mode="gain", name="Nersemble")
 #generate_mrr_table("test_vox2train.txt", mode="absolute", name="VoxCeleb2", prec=2)
@@ -188,5 +192,5 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
 #generate_mrr_table("test_vox2train_d10.txt", mode="absolute", name="VoxCeleb2d10", prec=2)
 #generate_mrr_table("test_vox2train_d05.txt", mode="absolute", name="VoxCeleb2d05", prec=2)
 #generate_mrr_table("test_vox2train_d03.txt", mode="absolute", name="VoxCeleb2d05", prec=2)
-generate_mrr_table("test_vox2trainF.txt", mode="absolute", name="VoxCeleb2", prec=2)
+#generate_mrr_table("test_vox2trainF.txt", mode="absolute", name="VoxCeleb2", prec=2)
 
