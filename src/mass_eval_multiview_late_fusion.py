@@ -6,15 +6,15 @@ import random
 import numpy as np
 import torch
 import os
-from dotenv import load_dotenv
+from numpy.linalg import norm
 from tqdm import tqdm
 
+from src.preprocess_datasets.rendering.Facerender import generate_rotation_matrices_cross_x_y, generate_rotation_matrices
 from src.util.Plotter import analyze_embedding_distribution
-from src.util.Voting import accuracy_front_perspective, concat, score_fusion, face_verification_from_similarity
+from src.util.Voting import accuracy_front_perspective, concat, score_fusion, face_verification_from_similarity, \
+    concat_mask, fuse_pairwise_scores, analyze_result_verification
 from src.util.datapipeline.EmbeddingDataset import EmbeddingDataset
 from src.util.misc import smart_round
-
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 
 def get_embeddings_mv(enrolled_loader, query_loader, disable_bar=False):
@@ -38,6 +38,10 @@ def get_embeddings_mv(enrolled_loader, query_loader, disable_bar=False):
     enrolled_scan_ids = np.array(enrolled_scan_ids)
     enrolled_true_perspectives = np.concatenate(enrolled_true_perspectives, axis=0)
     enrolled_ref_perspectives = np.concatenate(enrolled_ref_perspectives, axis=0)
+
+    if query_loader is None:
+        Results = namedtuple("Results", ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_true_perspectives", "enrolled_ref_perspectives"])
+        return Results(enrolled_embeddings_reg, enrolled_labels, enrolled_scan_ids, enrolled_true_perspectives, enrolled_ref_perspectives)
 
     query_embeddings_reg = []
     query_labels = []
@@ -71,10 +75,20 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
     dataset_enrolled_path = os.path.join(test_path, 'enrolled')
     dataset_query_path = os.path.join(test_path, 'query')
 
+    # TODO: MASKED CONCAT
+    # TODO make sure that it is no problem if query embedding has for some ids no instance!
+    #euclidean_distance_thresh = 5
     dataset_enrolled = EmbeddingDataset(dataset_enrolled_path, views, shuffle_views=shuffle_views)
+    #print("Enrolled Size before: "+ str(len(dataset_enrolled)))
+    #removed_ids = dataset_enrolled.remove_samples(euclidean_distance_thresh=euclidean_distance_thresh)
+    #print("Enrolled Size after: "+ str(len(dataset_enrolled)))
     enrolled_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
 
     dataset_query = EmbeddingDataset(dataset_query_path, views, shuffle_views=shuffle_views)
+    #print("Query Size before: "+ str(len(dataset_query)))
+    #removed_ids_query = dataset_query.remove_samples(euclidean_distance_thresh=euclidean_distance_thresh)
+    #dataset_query.remove_by_ids(removed_ids)
+    #print("Query Size after: "+ str(len(dataset_query)))
     query_loader = torch.utils.data.DataLoader(dataset_query, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
 
     if len(dataset_enrolled.classes) != len(dataset_enrolled):
@@ -108,13 +122,12 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
     all_metrics["verification_results_concat"] = face_verification_from_similarity(sim_concat, query_labels, enrolled_labels)
     del sim_concat, top_idx, y_true_concat, y_pred_concat
 
-    # TODO --------- Masked Concat ---------
-    # TODO metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat(embedding_library, disable_bar)  <------------ Neue Funtion oder diese Erweitern
-    # TODO all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    # TODO all_metrics["metrics_concat_masked"] = metrics_concat
-    # TODO all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    # TODO del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
-    # TODO --------------------------------------------------------
+    # --------- Masked Concat --------- TODO
+    #metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=20, mask_by_enrolled=True, mask_by_query=True)
+    #all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
+    #all_metrics["metrics_concat_masked"] = metrics_concat_masked
+    #all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
+    #del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
 
     # --------- Concat Mean ---------
     metrics_concat_mean, sim_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
@@ -126,8 +139,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
     del sim_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
 
     # --------- Concat Median ---------
-    metrics_concat_median, similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median = concat(
-        embedding_library, disable_bar, reduce_with="median")
+    metrics_concat_median, similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median = concat(embedding_library, disable_bar, reduce_with="median")
     # plot_cmc(similarity_matrix_concat_median, enrolled_labels, query_labels, dataset_name, "concat_median")
     # plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_median, dataset_name, "concat_median")
     # all_metrics["emb_dist_concat_median"] = analyze_embedding_distribution(similarity_matrix_concat_median, query_labels, enrolled_labels, "", "concat_median", plot=False)
@@ -165,6 +177,11 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A'), rounding_prec=8)
     auc_concat = smart_round(all_metrics["verification_results_concat"].get('auc', 'N/A'), rounding_prec=8)
 
+    #rank_1_concat_masked = smart_round(all_metrics["metrics_concat_masked"].get('Rank-1 Rate', 'N/A'))
+    #mrr_concat_masked = smart_round(all_metrics["metrics_concat_masked"].get('MRR', 'N/A'))
+    #gbig_concat_masked = smart_round(all_metrics["emb_dist_concat_masked"].get('gbig', 'N/A'), rounding_prec=8)
+    #auc_concat_masked = smart_round(all_metrics["verification_results_concat_masked"].get('auc', 'N/A'), rounding_prec=8)
+
     rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
     mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
     gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A'), rounding_prec=8)
@@ -185,6 +202,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     string = (f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: " +
               f"{'Front RR1'}: {rank_1_front} {'MRR'}: {mrr_front} {'GBIG'}: {gbig_front} {'AUC'}: {auc_front} | "  # {bold('GAIG')}: {underscore(gaig_front)} | "
               f"{'Concat RR1'}: {rank_1_concat} {'MRR'}: {mrr_concat} {'GBIG'}: {gbig_concat} {'AUC'}: {auc_concat} | "  # {bold('GAIG')}: {underscore(gaig_concat)} | "
+              #f"{'Concat_Masked RR1'}: {rank_1_concat_masked} {'MRR'}: {mrr_concat_masked} {'GBIG'}: {gbig_concat_masked} {'AUC'}: {auc_concat_masked} | "
               f"{'Concat_Mean RR1'}: {rank_1_concat_mean} {'MRR'}: {mrr_concat_mean} {'GBIG'}: {gbig_concat_mean} {'AUC'}: {auc_concat_mean} | "
               f"{'Concat_Median RR1'}: {rank_1_concat_median} {'MRR'}: {mrr_concat_median} | "
               f"{'Score_prod MRR'}: {mrr_score_prod} | "
@@ -200,6 +218,166 @@ def evaluate_and_log_mv(data_root, test_views, batch_size, shuffle_views: bool, 
     all_metrics, embedding_library, dataset_enrolled, dataset_query = evaluate_mv_emb_1_n(data_root, batch_size, test_views, shuffle_views, disable_bar)
     neutral_dataset = "Dataset: " + str(test_views)
     print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
+    return all_metrics
+
+
+def evaluate_mv_1_1(dataset_enrolled_path, views, batch_size, disable_bar: bool, shuffle_views=False, norm_vector="view"):
+    """
+    Evaluate 1:1 Model Performance on given test dataset
+    """
+    dataset_name = os.path.basename(dataset_enrolled_path)
+
+    def normalize_viewwise(x):
+        # x shape: (views, dim)
+        return x / (np.linalg.norm(x, axis=1, keepdims=True) + 1e-8)
+
+    pair_list = []
+    folds = []
+    unique_sample_paths = set()
+    with open(os.path.join(dataset_enrolled_path, "split.txt"), "r") as f:
+        next(f)  # skip header
+        for line in f:
+            split, pair, name1, name2, is_same, is_same_corrected = line.strip().split(",")
+            pair_list.append((name1, name2, int(is_same_corrected)))
+            folds.append(int(split))
+            unique_sample_paths.add(name1)
+            unique_sample_paths.add(name2)
+
+    dataset_enrolled = EmbeddingDataset(dataset_enrolled_path, views, shuffle_views=shuffle_views)
+    enrolled_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
+    time.sleep(0.1)
+
+    embedding_library = get_embeddings_mv(enrolled_loader, None, disable_bar)
+
+    embeddings_reg = embedding_library.enrolled_embeddings
+    embeddings_reg_mean = embedding_library.enrolled_embeddings.mean(axis=0)
+    name_to_class_dict = dataset_enrolled.class_to_idx
+    #mask = np.array(["0_0" in perspective for perspective in embedding_library.enrolled_ref_perspectives])
+    mask = np.all(embedding_library.enrolled_ref_perspectives == (0, 0), axis=(0, 2))
+
+    embedding_lookup = {(c, s): i for i, (c, s) in enumerate(zip(embedding_library.enrolled_labels, embedding_library.enrolled_scan_ids))}
+
+    # Evaluate pairs
+    similarities_front = []
+    similarities_concat = []
+    similarities_concat_mean = []
+    fusion_methods = ["product", "max", "mean"]
+    similarities_fusion = {m: [] for m in fusion_methods}
+    labels = []
+    for name1, name2, is_same in tqdm(pair_list, desc="Evaluating pairs", disable=disable_bar):
+        class1, sample1 = name1.split("/")
+        class2, sample2 = name2.split("/")
+
+        sample1 = (sample1 + 'X' * 15)[:15]
+        sample2 = (sample2 + 'X' * 15)[:15]
+        class1 = class1.lstrip()
+        class2 = class2.lstrip()
+
+        try:
+            class_idx1 = name_to_class_dict[class1]
+            class_idx2 = name_to_class_dict[class2]
+        except Exception:
+            raise Exception("NOT IN DATASET: ", class1, "or", class2)
+
+        i1 = embedding_lookup.get((class_idx1, sample1))
+        i2 = embedding_lookup.get((class_idx2, sample2))
+        if i1 is None or i2 is None:
+            print(f"Warning: Could not find embeddings for pair {name1}, {name2}")
+
+        emb1_reg, emb2_reg = embeddings_reg[:, i1, :], embeddings_reg[:, i2, :]
+        emb1_reg_mean, emb2_reg_mean = embeddings_reg_mean[i1, :], embeddings_reg_mean[i2, :]
+
+        # ----- Apply normalization mode -----
+        if norm_vector == "view":
+            emb1_reg = normalize_viewwise(emb1_reg)
+            emb2_reg = normalize_viewwise(emb2_reg)
+
+        labels.append(is_same)
+
+        # Front
+        emb1_front = emb1_reg[mask][0]
+        emb2_front = emb2_reg[mask][0]
+        sim = np.dot(emb1_front, emb2_front) / (norm(emb1_front) * norm(emb2_front))
+        similarities_front.append(sim)
+
+        # Concat
+        emb1_flat = emb1_reg.reshape(-1)
+        emb2_flat = emb2_reg.reshape(-1)
+        sim = np.dot(emb1_flat, emb2_flat) / (norm(emb1_flat) * norm(emb2_flat))
+        similarities_concat.append(sim)
+
+        # Concat mean
+        sim = np.dot(emb1_reg_mean, emb2_reg_mean) / (norm(emb1_reg_mean) * norm(emb2_reg_mean))
+        similarities_concat_mean.append(sim)
+
+        # Fusion Methods
+        for m in fusion_methods:
+            sim_fused = fuse_pairwise_scores(emb1_reg, emb2_reg, method=m)
+            similarities_fusion[m].append(sim_fused)
+
+    # ---------- Verification Accuracy Analysis ----------
+    all_metrics = {}
+
+    sim_dict = {
+        "_front": similarities_front,
+        "_concat": similarities_concat,
+        "_concat_mean": similarities_concat_mean,
+    }
+
+    for k, v in sim_dict.items():
+        all_metrics[f"metrics{k}"] = analyze_result_verification(labels, v, dataset_name, k, folds=folds)
+
+    for m in fusion_methods:
+        all_metrics[f"metrics_score_{m}"] = analyze_result_verification(labels, similarities_fusion[m], dataset_name,f"_{m}", folds=folds)
+
+    # ---------- Score Distribution Analysis ----------
+    #for ext, sims in sim_dict.items():
+    #    all_metrics[f"emb_dist_score_{ext}"] = analyze_verification_distribution(sims, labels, dataset_name, ext, plot=True)
+
+    return all_metrics, embedding_library, dataset_enrolled
+
+
+def print_results_verification(neutral_dataset, dataset_enrolled, all_metrics):
+
+    def fmt_metric(metrics, key):
+        """Format mean +- std string if available, otherwise fallback."""
+        mean = metrics.get(key, 'N/A')
+        std = metrics.get(f"{key}_std", None)
+        if mean == 'N/A':
+            return 'N/A'
+        if std is not None:
+            return f"{smart_round(mean)}±{smart_round(std)}"
+        return smart_round(mean)
+
+    auc_front = smart_round(all_metrics["metrics_front"].get("AUC", 'N/A'))
+    acc_front = fmt_metric(all_metrics["metrics_front"], "Accuracy")
+    auc_concat = smart_round(all_metrics["metrics_concat"].get("AUC", 'N/A'))
+    acc_concat = fmt_metric(all_metrics["metrics_concat"], "Accuracy")
+    auc_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get("AUC", 'N/A'))
+    acc_concat_mean = fmt_metric(all_metrics["metrics_concat_mean"], "Accuracy")
+    auc_score_max = smart_round(all_metrics["metrics_score_max"].get('AUC', 'N/A'))
+    acc_score_max = fmt_metric(all_metrics["metrics_score_max"], "Accuracy")
+    auc_score_prod = smart_round(all_metrics["metrics_score_product"].get('AUC', 'N/A'))
+    auc_score_mean = smart_round(all_metrics["metrics_score_mean"].get('AUC', 'N/A'))
+    string = (
+            f"{neutral_dataset} E{len(dataset_enrolled)}: " +
+            f"{'Front-AUC/Acc'}: {auc_front} / {acc_front} | "
+            f"{'Concat-AUC/Acc'}: {auc_concat} / {acc_concat} | "
+            f"{'Concat_Mean-AUC/Acc'}: {auc_concat_mean} / {acc_concat_mean} | "
+            f"{'Score_prod-AUC'}: {auc_score_prod} | "
+            f"{'Score_mean-AUC'}: {auc_score_mean} | "
+            f"{'Score_max-AUC'}: {auc_score_max} / {acc_score_max} | "
+    )
+    print(string)
+
+
+def evaluate_and_log_mv_verification(data_root, test_views, batch_size, shuffle_views: bool, disable_bar: bool = True):
+
+    print(f"Perform 1:1 Evaluation on {data_root} and folds: {10}")
+    all_metrics, embedding_library, dataset_enrolled = evaluate_mv_1_1(os.path.join(data_root, data_root), test_views, batch_size, disable_bar=disable_bar, shuffle_views=shuffle_views)
+    neutral_dataset = "Dataset: " + str(test_views)
+    print_results_verification(neutral_dataset, dataset_enrolled, all_metrics)
+
     return all_metrics
 
 
@@ -289,17 +467,26 @@ def generate_cross_experiments(
 
 def main_perspective_test():
     torch.multiprocessing.set_sharing_strategy('file_system')
-    #render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35]
-    #all_views = (generate_rotation_matrices_cross_x_y() + generate_rotation_matrices(render_angles))
+    render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35]
+    all_views = (generate_rotation_matrices_cross_x_y() + generate_rotation_matrices(render_angles))
 
-    #yaw_pitch_pairs = [(x, y) for x, y, _ in all_views]
-    #unique_views = sorted(set(yaw_pitch_pairs))
-    #all_views_set = [f"{x}_{y}" for (x, y) in unique_views]
+    yaw_pitch_pairs = [(x, y) for x, y, _ in all_views]
+    unique_views = sorted(set(yaw_pitch_pairs))
+    all_views_set = [f"{x}_{y}" for (x, y) in unique_views]
+
+    allowed = [[['0_0']]]
+    random_list = generate_view_subsets_sampled(all_views_set)
+    allowed.extend(random_list)
+    print(f"✅ Using {len(random_list)} random unique perspectives")
+
+    for num_view_list in allowed:
+        for selected_views in num_view_list:
+            cfg_yaml = {"TEST_VIEWS": selected_views}
+            DATA_ROOT = "F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"  # "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
+            BATCH_SIZE = 16  # Batch size
+            evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, disable_bar=True)
 
     allowed = [['0_0']]
-    #random_list = generate_view_subsets_sampled(all_views_set)
-    #allowed.extend(random_list)
-    #print(f"✅ Using {len(random_list)} random unique perspectives")
 
     cross_experiments1 = generate_cross_experiments(
         max_angles=[10, 15, 25, 35],
@@ -644,16 +831,24 @@ def main_perspective_test():
         cfg_yaml = {"TEST_VIEWS": selected_views}
         DATA_ROOT = "F:\\Face\\data\\dataset15_emb\\test_rgb_bff_crop261_emb-irseglintr18\\"  # "/home/gustav/dataset14_emb/test_rgb_bff_crop261_emb-irseglintr18/"  # the parent root where the datasets are stored
         BATCH_SIZE = 16  # Batch size
-        evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, disable_bar=True)
+        evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, disable_bar=True, shuffle_views=False)
 
     print("DONE")
 
 
 def dataset_test():
     root = "/home/gustav/dataset15_emb/glint18/"  # "F:\\Face\\data\\dataset15_emb\\"
-    TEST_SETS = [root+"test_nersemble_crop5R-v15_emb-glint_r18",
-                 root+"test_nersemble_crop5-v15_emb-glint_r18",
-                 root+"test_nersemble_crop5F-v15_emb-glint_r18",]
+    TEST_SETS = [root+"test_rgb_bff_crop5E08_emb-glint_r18",
+                 root+"test_rgb_bff_crop5E08_emb-glint_r50",
+                 root+"test_rgb_bff_crop5E08_emb-glint_r100",
+                 root+"test_rgb_bff_crop5E08_emb-ms1mv3_r18",
+                 root+"test_rgb_bff_crop5E08_emb-ms1mv3_r50",
+                 root+"test_rgb_bff_crop5E08_emb-ms1mv3_r100",
+                 root+"test_rgb_bff_crop5E08_emb-adaface_ms1mv3",
+                 root+"test_rgb_bff_crop5E08_emb-adaface_webface12m",
+                 root+"test_rgb_bff_crop5E08_emb-edgeface_xs",
+                 root+"test_rgb_bff_crop5E08_emb-hyperface50k",]
+
 
     print("Shuffle False")
     for DATA_ROOT in TEST_SETS:
@@ -661,21 +856,19 @@ def dataset_test():
         cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
         BATCH_SIZE = 16
         evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
-
-    print("Shuffle True")
-    for DATA_ROOT in TEST_SETS:
-        # cfg_yaml = {"TEST_VIEWS": ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']}
-        cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
-        BATCH_SIZE = 16
-        evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=True, disable_bar=True)
+        #evaluate_and_log_mv_verification(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
 
 
 def single_dataset_test():
     cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
     BATCH_SIZE = 16  # Batch size
     root = "F:\\Face\\data\\dataset15_emb\\"
-    DATA_ROOT = root+"test_vox2test_crop5F-v15_emb-glint_r18\\"
-    evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
+    #DATA_ROOT = root+"test_nersemble_crop5-v15_emb-ms1mv3_r100" # "test_vox2test_crop5-v15_emb-glint_r18"##
+    #evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
+    #DATA_ROOT = root+"test_nersemble_crop5-v15_emb-ms1mv3_r18"
+    #evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
+    DATA_ROOT = root + "test_ytf_crop5_emb-ms1mv3_r100"
+    evaluate_and_log_mv_verification(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
 
 
 if __name__ == '__main__':
