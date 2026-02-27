@@ -120,14 +120,15 @@ def main(cfg):
 
         for i in range(len(scan_id)):
             sample_name = f"{scan_id[i]}.npz"
-            save_dir = os.path.join(cfg['OUT'], str(class_idx_np[i]))
+            class_name = train_loader.dataset.classes[class_idx_np[i]]
+            save_dir = os.path.join(cfg['OUT'], class_name)
             sample_path = os.path.join(save_dir, sample_name)
 
             os.makedirs(save_dir, exist_ok=True)
             np.savez(
                 sample_path,
                 embedding_reg=emb_reg_np[i],
-                label=class_idx_np[i],
+                label=class_name,
                 scan_id=scan_id_np[i],
                 ref_perspective=ref_perspectives_np[i],
                 true_perspective=true_perspectives_np[i],
