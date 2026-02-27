@@ -4,32 +4,26 @@ import numpy as np
 import torch
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_ytf_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
-from src.preprocess_datasets.preprocess_video import analyse_video_ytf
+from src.preprocess_datasets.preprocess_video import analyse_video_ytf, analyse_images_hpe
 from src.preprocess_datasets.cropping.process_dataset_retinaface import face_crop_and_alignment_deepfolder
 from src.preprocess_datasets.rendering import PrepareDataset
 
 
 def preprocessing():
-    root = "F:\\Face\\data\\dataset11\\"
-    folder_root = root + "aligned_images_DB"
-    folder_root_crop = root+"aligned_images_DB_crop"
+    root = "F:\\Face\\data\\dataset15\\"
+    folder_root = "H:\\Maurer\\YouTubeFaces\\YouTubeFaces\\" + "frame_images_DB"
+    folder_root_crop = root+"ytf_crop"
     dataset_output_folder = root+"aligned_images_DB_out"
     output_test_dataset = root+"test_ytf_crop8"
     model_path_hpe = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\headPoseEstimation\\weights\\resnet50.pt"
-    face_detect_model_root = "F:\\Face\\HM_IDENT_3DFR\\src\\preprocess_datasets\\blazeface"
     batch_size = 48  # 256 for 24GB  # 48 for 8 GB VRAM
     random_choice = False
     device = torch.device("cuda")
 
     print("##################################")
-    print("##### Crop Frames ################")
+    print("##### Analyse Images ##############")
     print("##################################")
-    face_crop_and_alignment_deepfolder(folder_root, folder_root_crop, face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu')
-
-    print("##################################")
-    print("##### Analyse Video ##############")
-    print("##################################")
-    analyse_video_ytf(folder_root_crop, "analysis", model_path_hpe, face_detect_model_root, device, batch_size=batch_size, keep=True, max_workers=16, face_confidence=0.6)
+    analyse_images_hpe(folder_root, "analysis", model_path_hpe, device, batch_size=batch_size, keep=True, max_workers=16, face_confidence=0.5, padding=True)
 
     print("##################################")
     print("##### FIND MATCHES ###############")
@@ -39,13 +33,20 @@ def preprocessing():
     print("number of permutations:", len(permutations))
     print(permutations)
     find_matches(folder_root_crop, permutations, pkl_name="analysis.pkl", allow_flip=False, random_choice=random_choice)
-    # evaluate_gaze_coverage(folder_root)
 
     print("##################################")
     print("##### GEN DATASET ################")
     print("##################################")
     generate_ytf_dataset_from_video(folder_root_crop, dataset_output_folder, keep=True)
 
+
+    print("##################################")
+    print("##### Crop Frames ################")
+    print("##################################")
+    face_crop_and_alignment_deepfolder(folder_root, folder_root_crop, face_factor=0.8,
+                                       device='cuda' if torch.cuda.is_available() else 'cpu')
+
+    #perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
     perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
     PrepareDataset.filter_views(dataset_output_folder, output_test_dataset, perspective_filter, target_views=8)
 
