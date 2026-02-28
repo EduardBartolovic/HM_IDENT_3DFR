@@ -361,8 +361,16 @@ def calculate_masked_embedding_similarity(query_embeddings, enrolled_embeddings,
                     active_views = q_mask & enrolled_mask[j]  # (num_views,) bool
 
                     if not active_views.any():
-                        similarity_matrix[i, j] = 0.0
-                        continue
+                        # fallback to front pose
+                        front_idx = 0  # change if needed
+
+                        if query_mask[i, front_idx] and enrolled_mask[j, front_idx]:
+                            active_views = np.zeros_like(q_mask)
+                            active_views[front_idx] = True
+                        else:
+                            # if even front is masked → force use it anyway
+                            active_views = np.zeros_like(q_mask)
+                            active_views[front_idx] = True
 
                     # select active view embeddings and flatten
                     q_vec = query_normalized[i][active_views].ravel()       # (k*512,)
