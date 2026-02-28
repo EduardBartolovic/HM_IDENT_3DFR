@@ -208,6 +208,8 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
     return similarity_matrix
 
 
+
+
 def concat(embedding_library, disable_bar: bool, reduce_with="", norm_vector="view"):
 
     def normalize_viewwise(x):
@@ -252,6 +254,131 @@ def concat(embedding_library, disable_bar: bool, reduce_with="", norm_vector="vi
     result = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
     predicted_labels = enrolled_label[top_indices[:, 0]]
     return result, similarity_matrix, top_indices, predicted_labels, query_label
+
+
+def concat_mask(embedding_library, disable_bar: bool, euclidean_dist_thresh=5, mask_by_query=True, mask_by_enrolled=True):
+
+    enrolled_embedding = embedding_library.enrolled_embeddings   # (num_views, m, 512)
+    enrolled_label     = embedding_library.enrolled_labels
+    query_embedding    = embedding_library.query_embeddings      # (num_views, n, 512)
+    query_label        = embedding_library.query_labels
+
+    query_pose_angles    = embedding_library.query_perspectives          # (n, num_views, 2)
+    query_ref_angles     = embedding_library.query_ref_perspectives      # (n, num_views, 2)
+    enrolled_pose_angles = embedding_library.enrolled_perspectives       # (m, num_views, 2)
+    enrolled_ref_angles  = embedding_library.enrolled_ref_perspectives   # (m, num_views, 2)
+
+    # transpose to (n, num_views, 512) and (m, num_views, 512)
+    query_embedding    = query_embedding.transpose(1, 0, 2)
+    enrolled_embedding = enrolled_embedding.transpose(1, 0, 2)
+
+    query_mask, enrolled_mask = compute_view_masks(
+        query_pose_angles, query_ref_angles,
+        enrolled_pose_angles, enrolled_ref_angles,
+        euclidean_dist_thresh,
+        mask_by_query=mask_by_query,
+        mask_by_enrolled=mask_by_enrolled
+    )
+
+    similarity_matrix = calculate_masked_embedding_similarity(
+        query_embedding, enrolled_embedding,
+        query_mask, enrolled_mask,
+        disable_bar=disable_bar
+    )
+    top_indices, top_values = compute_ranking_matrices(similarity_matrix)
+    result = analyze_result(similarity_matrix, top_indices, enrolled_label, query_label, top_k_acc_k=5)
+    predicted_labels = enrolled_label[top_indices[:, 0]]
+    return result, similarity_matrix, top_indices, predicted_labels, query_label
+
+
+def compute_view_masks(query_pose_angles, query_ref_angles,
+                       enrolled_pose_angles, enrolled_ref_angles,
+                       euclidean_dist_thresh,
+                       mask_by_query=True, mask_by_enrolled=True):
+    """
+    query_pose_angles:    (n, num_views, 2)
+    query_ref_angles:     (n, num_views, 2)
+    enrolled_pose_angles: (m, num_views, 2)
+    enrolled_ref_angles:  (m, num_views, 2)
+
+    Returns:
+        query_mask:    (n, num_views) bool
+        enrolled_mask: (m, num_views) bool
+    """
+    if mask_by_query:
+        diff = query_pose_angles.astype(np.float32) - query_ref_angles.astype(np.float32)
+        query_mask = np.linalg.norm(diff, axis=-1) < euclidean_dist_thresh  # (n, num_views)
+    else:
+        n, num_views = query_pose_angles.shape[:2]
+        query_mask = np.ones((n, num_views), dtype=bool)
+
+    if mask_by_enrolled:
+        diff = enrolled_pose_angles.astype(np.float32) - enrolled_ref_angles.astype(np.float32)
+        enrolled_mask = np.linalg.norm(diff, axis=-1) < euclidean_dist_thresh  # (m, num_views)
+    else:
+        m, num_views = enrolled_pose_angles.shape[:2]
+        enrolled_mask = np.ones((m, num_views), dtype=bool)
+
+    return query_mask, enrolled_mask
+
+
+def calculate_masked_embedding_similarity(query_embeddings, enrolled_embeddings,
+                                          query_mask, enrolled_mask,
+                                          chunk_size=500, disable_bar=True):
+    """
+    query_embeddings:  (n, num_views, 512)
+    enrolled_embeddings: (m, num_views, 512)
+    query_mask:    (n, num_views) bool
+    enrolled_mask: (m, num_views) bool
+
+    For each (query i, enrolled j) pair:
+      - active views = query_mask[i] & enrolled_mask[j]  -> (num_views,)
+      - select the 512-dim embeddings for active views, concatenate -> (k*512,)
+      - L2-normalize and compute dot product
+
+    Returns similarity_matrix: (n, m)
+    """
+    n, num_views, emb_dim = query_embeddings.shape
+    m = enrolled_embeddings.shape[0]
+    similarity_matrix = np.zeros((n, m), dtype=np.float32)
+
+    # precompute L2 norms per view: (n, num_views), (m, num_views)
+    query_norms    = np.linalg.norm(query_embeddings,    axis=-1)  # (n, num_views)
+    enrolled_norms = np.linalg.norm(enrolled_embeddings, axis=-1)  # (m, num_views)
+
+    # normalize each view embedding upfront
+    query_normalized    = query_embeddings    / np.where(query_norms[..., None]    > 0, query_norms[..., None],    1.0)
+    enrolled_normalized = enrolled_embeddings / np.where(enrolled_norms[..., None] > 0, enrolled_norms[..., None], 1.0)
+
+    with tqdm(total=n, disable=disable_bar, desc="Calculating Masked Similarity") as pbar:
+        for start in range(0, n, chunk_size):
+            end = min(start + chunk_size, n)
+
+            for i in range(start, end):
+                q_mask = query_mask[i]  # (num_views,) bool
+
+                for j in range(m):
+                    active_views = q_mask & enrolled_mask[j]  # (num_views,) bool
+
+                    if not active_views.any():
+                        similarity_matrix[i, j] = 0.0
+                        continue
+
+                    # select active view embeddings and flatten
+                    q_vec = query_normalized[i][active_views].ravel()       # (k*512,)
+                    e_vec = enrolled_normalized[j][active_views].ravel()    # (k*512,)
+
+                    # L2-normalize the concatenated vectors
+                    q_norm = np.linalg.norm(q_vec)
+                    e_norm = np.linalg.norm(e_vec)
+                    if q_norm > 0: q_vec = q_vec / q_norm
+                    if e_norm > 0: e_vec = e_vec / e_norm
+
+                    similarity_matrix[i, j] = np.dot(q_vec, e_vec)
+
+            pbar.update(end - start)
+
+    return similarity_matrix
 
 
 def calculate_embedding_similarity_per_view(query_embeddings, enrolled_embeddings, disable_bar=True, batch_size=1024):
