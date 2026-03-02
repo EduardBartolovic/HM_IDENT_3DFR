@@ -3,11 +3,14 @@ from collections import defaultdict
 
 import os
 import shutil
+from pathlib import Path
+
 import torch
 from tqdm import tqdm
 
+from src.preprocess_datasets.cropping.croppingv3.cropping_and_alignment import run_batch_alignment
+from src.preprocess_datasets.cropping.croppingv3.face_detection import FaceAligner
 from src.preprocess_datasets.misc.create_test_dataset import create_train_test_split
-from src.preprocess_datasets.cropping.process_dataset_retinaface import face_crop_and_alignment
 
 
 def preprocess_multipie(
@@ -95,15 +98,26 @@ if __name__ == '__main__':
     output_folder_crop = "F:\\Face\\data\\dataset11\\multipie_crop3"
     output_test_dataset = "F:\\Face\\data\\dataset11\\test_multipie_crop3"
     poses = 3
+    model_path_cropping = Path("/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/cropping/croppingv3/mobile0.25.onnx")
 
     preprocess_multipie(input_dir, output_dir, valid_cams, cam_to_coords)
 
     print("##################################")
     print("##### Crop Frames ################")
     print("##################################")
-    face_crop_and_alignment(output_dir, output_folder_crop, face_factor=0.8, device='cuda' if torch.cuda.is_available() else 'cpu', resize_size=(112, 112), det_threshold=0.05)
+    DEVICE = "cpu"
+    folder_paths = [p for p in Path(output_dir).iterdir() if p.is_dir()]
+    run_batch_alignment(
+        data_folders=folder_paths,
+        model_path=str(model_path_cropping),
+        align_method=FaceAligner.AlignmentMethod.AURA_FACE_ALIGNER,
+        batch_size=32,
+        output_dir=Path(output_folder_crop),
+        num_processes=4,
+        device=DEVICE
+    )
 
     print("##################################")
     print("###### Create Test Dataset #######")
     print("##################################")
-    create_train_test_split(output_folder_crop, output_test_dataset, poses=poses, ignore_face_corr=True)
+    create_train_test_split(output_folder_crop, output_test_dataset, poses=poses)
