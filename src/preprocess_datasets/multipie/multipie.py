@@ -5,11 +5,10 @@ import os
 import shutil
 from pathlib import Path
 
-import torch
 from tqdm import tqdm
 
-from src.preprocess_datasets.cropping.croppingv3.cropping_and_alignment import run_batch_alignment
-from src.preprocess_datasets.cropping.croppingv3.face_detection import FaceAligner
+from src.preprocess_datasets.cropping.cropping_and_alignment import run_batch_alignment
+from src.preprocess_datasets.cropping.face_detection import FaceAligner
 from src.preprocess_datasets.misc.create_test_dataset import create_train_test_split
 
 

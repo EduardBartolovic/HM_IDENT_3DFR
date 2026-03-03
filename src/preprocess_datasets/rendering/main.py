@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from src.preprocess_datasets.cropping.croppingv3.cropping_and_alignment import run_batch_alignment
-from src.preprocess_datasets.cropping.croppingv3.face_detection import FaceAligner
+from src.preprocess_datasets.cropping.cropping_and_alignment import run_batch_alignment
+from src.preprocess_datasets.cropping.face_detection import FaceAligner
 from src.preprocess_datasets.rendering import PrepareDataset
 from src.preprocess_datasets.rendering.Extract2DFaces import Extract2DFaces
 from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
@@ -9,9 +9,9 @@ from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 def main():
 
-    bellus = False
-    facescape = False
-    faceverse = False
+    bellus = True
+    facescape = True
+    faceverse = True
 
     texas = False
     facewarehouse = False
@@ -24,6 +24,8 @@ def main():
 
     root = 'F:\\Face\\data\\dataset15\\'
     render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35] #[-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
+    noise = 16
+    workers = 8
 
     # -------- Bellus --------
     if bellus:
@@ -31,14 +33,14 @@ def main():
 
         # Image Rendering
         directory_path = Path(r'H:\\Maurer\\Bellus')
-        output_dir = Path(r"F:\Face\data\tmp5_simulatederror\3D_bellus")
-        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+        output_dir = Path(r"F:\Face\data\tmp5_simulated_error\3D_bellusE16")
+        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles, noise, num_workers=workers)
         obj_reader.render_obj_files("Bellus")
 
         # Photos for 2D
         #directory_path = Path('H:\\Maurer\\Bellus\\')
         #output_dir = Path('F:\\Face\\data\\tmp\\2D_Bellus\\')
-        ##obj_reader = Extract2DFaces(directory_path, output_dir)
+        #obj_reader = Extract2DFaces(directory_path, output_dir)
         #obj_reader.extract_photos()
 
         # Prepare Dataset Depth:
@@ -47,9 +49,9 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB:
-        input_path = Path('F:\\Face\\data\\tmp4_283\\3D_Bellus\\')
-        output_dir = Path(root+'test_rgb_bellus')
-        #PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        input_path = Path('F:\\Face\\data\\tmp5_simulated_error\\3D_BellusE16\\')
+        output_dir = Path(root+'test_rgb_bellusE16')
+        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth:
         #input_path = Path(root+'test_rgb_bellus')
@@ -68,8 +70,8 @@ def main():
 
         # Image Rendering
         directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
-        output_dir = Path('F:\\Face\\data\\tmp4_283\\3D_facescape\\')
-        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+        output_dir = Path('F:\\Face\\data\\tmp5_simulated_error\\3D_facescapeE16\\')
+        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles, noise, num_workers=workers)
         obj_reader.render_obj_files('facescape')
 
         # Prepare Dataset Depth:
@@ -78,8 +80,8 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir, mode='facescape')
 
         # Prepare Dataset RGB:
-        input_path = Path('F:\\Face\\data\\tmp4_283\\3D_facescape\\')
-        output_dir = Path(root+'test_rgb_facescape')
+        input_path = Path('F:\\Face\\data\\tmp5_simulated_error\\3D_facescapeE16\\')
+        output_dir = Path(root+'test_rgb_facescapeE16')
         PrepareDataset.prepare_dataset_rgb(input_path, output_dir, mode='facescape')
 
         # Prepare Dataset RGB + Depth:
@@ -92,8 +94,8 @@ def main():
         print("################# FACEVERSE #################")
         # Image Rendering faceverse
         directory_path = Path('H:\\Maurer\\FaceVerse\\')
-        output_dir = Path('F:\\Face\\data\\tmp4_283\\3D_faceverse\\')
-        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
+        output_dir = Path('F:\\Face\\data\\tmp5_simulated_error\\3D_faceverseE16\\')
+        obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles, noise, num_workers=workers)
         obj_reader.render_obj_files("FaceVerse")
 
         # Prepare Dataset Depth faceverse:
@@ -102,8 +104,8 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB faceverse:
-        input_path = Path('F:\\Face\\data\\tmp4_283\\3D_faceverse\\')
-        output_dir = Path(root+'test_rgb_faceverse')
+        input_path = Path('F:\\Face\\data\\tmp5_simulated_error\\3D_faceverseE16\\')
+        output_dir = Path(root+'test_rgb_faceverseE16')
         PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth faceverse:
@@ -112,8 +114,6 @@ def main():
         #output_dir = Path(root+'test_rgbd_faceverse')
         #PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
-
-    # Texas
     if texas:
         input_path = Path('H:\\Maurer\\Texas3DFRDatabase\\PreprocessedImages')
         output_dir_rgb = Path(root+'test_rgb_texas')
@@ -206,13 +206,13 @@ def main():
 
     if bff:
         print("################# BFF #################")
-        input_paths = [Path(root+'test_rgb_bellus'), Path(root+'test_rgb_facescape'), Path(root+'test_rgb_faceverse')]
-        output_dir = Path(root + 'test_rgb_bff')
-        #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
+        input_paths = [Path(root+'test_rgb_bellusE16'), Path(root+'test_rgb_facescapeE16'), Path(root+'test_rgb_faceverseE16')]
+        output_dir = Path(root + 'test_rgb_bffE16')
+        PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
         MODEL_FILE = Path(r'F:\Face\HM_IDENT_3DFR\src\preprocess_datasets\cropping\croppingv3\mobile0.25.onnx')
-        DATASET_ROOT = Path(root+r'test_rgb_bff\enrolled')
-        OUTPUT_DIR = Path(root+r'test_rgb_bff_crop261\enrolled')
+        DATASET_ROOT = Path(root+r'test_rgb_bffE16\enrolled')
+        OUTPUT_DIR = Path(root+r'test_rgb_bff_cropE16\enrolled')
         folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
         run_batch_alignment(
             data_folders=folder_paths,
@@ -223,8 +223,8 @@ def main():
             num_processes=6,
             device="cpu"
         )
-        DATASET_ROOT = Path(root + r'test_rgb_bff\query')
-        OUTPUT_DIR = Path(root + r'test_rgb_bff_crop261\query')
+        DATASET_ROOT = Path(root + r'test_rgb_bffE16\query')
+        OUTPUT_DIR = Path(root + r'test_rgb_bff_cropE16\query')
         folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
         run_batch_alignment(
             data_folders=folder_paths,
@@ -236,9 +236,9 @@ def main():
             device="cpu"
         )
         # perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
-        perspective_filter = ['0_0', '0_25', '25_0', '0_10', '10_0']
-        PrepareDataset.filter_views(root + 'test_rgb_bff_crop261/enrolled', root + 'test_rgb_bff_crop5/enrolled', perspective_filter, target_views=5)
-        PrepareDataset.filter_views(root + 'test_rgb_bff_crop261/query', root + 'test_rgb_bff_crop5/query', perspective_filter, target_views=5)
+        perspective_filter = ['0_0', '0_25', '0_-25', '0_10', '0_-10']
+        PrepareDataset.filter_views(root + 'test_rgb_bff_cropE16/enrolled', root + 'test_rgb_bff_crop5E16/enrolled', perspective_filter, target_views=5)
+        PrepareDataset.filter_views(root + 'test_rgb_bff_cropE16/query', root + 'test_rgb_bff_crop5E16/query', perspective_filter, target_views=5)
 
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)

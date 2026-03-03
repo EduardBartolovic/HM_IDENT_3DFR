@@ -1,16 +1,14 @@
-import itertools
 from pathlib import Path
 
 import numpy as np
 import torch
 
-from src.preprocess_datasets.cropping.croppingv3.cropping_and_alignment import run_batch_alignment
-from src.preprocess_datasets.cropping.croppingv3.face_detection import FaceAligner
+from src.preprocess_datasets.cropping.cropping_and_alignment import run_batch_alignment
+from src.preprocess_datasets.cropping.face_detection import FaceAligner
 from src.preprocess_datasets.misc.create_test_dataset import create_train_test_split
 from src.preprocess_datasets.headPoseEstimation.hpe_to_dataset import generate_nersemble_dataset_from_video
 from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference import find_matches
 #from src.preprocess_datasets.preprocess_video import analyse_video_hpe
-from src.preprocess_datasets.rendering import PrepareDataset
 
 if __name__ == '__main__':
 

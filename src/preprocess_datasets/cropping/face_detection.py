@@ -7,7 +7,7 @@ import os
 
 from typing import Tuple, List
 
-from src.preprocess_datasets.cropping.croppingv3.onnx_inference import InferenceType, ONNX_Inference_Windows
+from src.preprocess_datasets.cropping.onnx_inference import InferenceType, ONNX_Inference_Windows
 
 current_directory = os.getcwd()
 sys.path.append(current_directory)

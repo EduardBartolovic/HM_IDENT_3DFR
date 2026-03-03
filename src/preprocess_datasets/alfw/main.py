@@ -1,11 +1,14 @@
+from pathlib import Path
+
 import os
 
 import numpy as np
 import torch
-from face_crop_plus import Cropper
 from torchvision import transforms
 
 from src.backbone.iresnet_insight import iresnet18
+from src.preprocess_datasets.cropping.cropping_and_alignment import run_batch_alignment
+from src.preprocess_datasets.cropping.face_detection import FaceAligner
 from src.util.datapipeline.datasets import AFLW2000
 
 
@@ -13,29 +16,22 @@ def preprocessing():
     root = "C:\\Users\\Eduard\\Desktop\\Face\\dataset11\\"
     folder_root = root + "AFLW2000-3D"
     folder_root_crop = root+"AFLW2000-3D_crop"
+    model_path_cropping = Path("/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/cropping/croppingv3/mobile0.25.onnx")
 
     print("##################################")
     print("##### Crop Frames ################")
     print("##################################")
-    face_factor = 0.8
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    resize_size = (256, 256)
-    output_size = (256, 256)
-    det_threshold = 0.45
-
-    cropper = Cropper(
-        resize_size=resize_size,
-        output_size=output_size,
-        output_format="jpg",
-        face_factor=face_factor,
-        strategy="largest",
-        padding="Constant",
-        det_threshold=det_threshold,
-        device=device,
-        attr_groups=None,
-        mask_groups=None,
+    DEVICE = "cpu"
+    folder_paths = [p for p in Path(folder_root).iterdir() if p.is_dir()]
+    run_batch_alignment(
+        data_folders=folder_paths,
+        model_path=str(model_path_cropping),
+        align_method=FaceAligner.AlignmentMethod.AURA_FACE_ALIGNER,
+        batch_size=32,
+        output_dir=Path(folder_root_crop),
+        num_processes=4,
+        device=DEVICE
     )
-    #cropper.process_dir(input_dir=folder_root, output_dir=folder_root_crop, desc=None)
 
     # ======= Backbone =======
     BACKBONE_DICT = {#'IR_MV_Facenet': lambda: ir_mv_facenet(DEVICE, aggregators, EMBEDDING_SIZE),
@@ -65,14 +61,13 @@ def preprocessing():
         pin_memory=True
     )
     for images, r_label, cont_labels, names in aflw_loader:
-        images = images.to(device)
+        images = images.to(DEVICE)
         emb = BACKBONE(images)
         emb = emb.detach().cpu().numpy()  # → NumPy
         for e, name in zip(emb, names):
             base = os.path.splitext(name)[0]
             out_path = os.path.join(folder_root, base + ".npz")
             np.savez(out_path, embedding=e)
-
 
 
 if __name__ == '__main__':
