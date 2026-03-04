@@ -181,6 +181,11 @@ if __name__ == '__main__':
             "BACKBONE_NAME": "IR_MV_HYPER_50",
             "INPUT_SIZE": [112, 112],
         },
+        "hyperface10k": {
+            "BACKBONE_RESUME_PATH": basepath_model + "HyperFace10K_ir50_adaface.ckpt",
+            "BACKBONE_NAME": "IR_MV_HYPER_50",
+            "INPUT_SIZE": [112, 112],
+        },
         "glint_r18": {
             "BACKBONE_RESUME_PATH": basepath_model+"glint_cosface_r18_fp16.pth",
             "BACKBONE_NAME": "IR_MV_V2_18",
