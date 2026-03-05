@@ -1,6 +1,10 @@
+import numpy as np
 import tempfile
 import time
+from matplotlib import pyplot as plt
 from pathlib import Path
+import seaborn as sns
+from scipy.interpolate import LinearNDInterpolator
 
 import torch
 import torch.optim as optim
@@ -59,7 +63,7 @@ def validate(model, data_loader, device, with_pose):
     cos_baseline_meter = AverageMeter()
 
     with torch.no_grad():
-        for embeddings, labels, scan_ids, true_poses, _, path in data_loader:
+        for embeddings, labels, scan_ids, true_poses, _ in data_loader:
             B, V, D = embeddings.shape
 
             rand_idx = torch.randint(0, V, (B,), device=embeddings.device)
@@ -98,6 +102,202 @@ def validate(model, data_loader, device, with_pose):
         "cosine_baseline": cos_baseline_meter.avg,
         "cosine_gain": cos_model_meter.avg - cos_baseline_meter.avg
     }
+
+
+def validate_with_pose_heatmap(model, data_loader, device, with_pose, prefix="val"):
+    model.eval()
+
+    # ------------------------------------------------------------
+    # Collect all poses first (from first batch)
+    # ------------------------------------------------------------
+    sample_batch = next(iter(data_loader))
+    _, _, _, true_poses_ref, _ = sample_batch
+    poses_ref = true_poses_ref[0].cpu().numpy()  # (V, 2)
+
+    pitches = np.unique(poses_ref[:, 0])
+    yaws    = np.unique(poses_ref[:, 1])
+
+    H, W = len(pitches), len(yaws)
+
+    pitch_to_idx = {p: i for i, p in enumerate(pitches)}
+    yaw_to_idx   = {y: j for j, y in enumerate(yaws)}
+
+    # ------------------------------------------------------------
+    # Accumulators
+    # ------------------------------------------------------------
+    heat_model_sum = np.zeros((H, W), dtype=np.float32)
+    heat_base_sum  = np.zeros((H, W), dtype=np.float32)
+    heat_count     = np.zeros((H, W), dtype=np.int32)
+
+    # ------------------------------------------------------------
+    # Validation loop
+    # ------------------------------------------------------------
+    with torch.no_grad():
+        for embeddings, labels, scan_ids, true_poses, _ in data_loader:
+
+            B, V, D = embeddings.shape
+            embeddings = embeddings.to(device)
+            true_poses = true_poses.to(device)
+
+            # locate front view (0,0)
+            is_front = (true_poses == 0).all(dim=-1)
+            front_pose_index = is_front.long().argmax(dim=1)
+            front_emb = embeddings[torch.arange(B), front_pose_index]
+
+            # randomly pick one input view
+            rand_idx = torch.randint(0, V, (B,), device=device)
+            input_emb = embeddings[torch.arange(B), rand_idx]
+            input_pose = true_poses[torch.arange(B), rand_idx]
+
+            if with_pose:
+                pred_front = model(input_emb, input_pose)
+            else:
+                pred_front = model(input_emb)
+
+            cos_model = F.cosine_similarity(
+                F.normalize(pred_front, dim=-1),
+                F.normalize(front_emb, dim=-1),
+                dim=-1
+            )
+
+            cos_baseline = F.cosine_similarity(
+                F.normalize(input_emb, dim=-1),
+                F.normalize(front_emb, dim=-1),
+                dim=-1
+            )
+
+            # ----------------------------------------------------
+            # Accumulate per pose
+            # ----------------------------------------------------
+            for b in range(B):
+                pitch, yaw = input_pose[b].cpu().numpy()
+                i = pitch_to_idx[int(pitch)]
+                j = yaw_to_idx[int(yaw)]
+
+                heat_model_sum[i, j] += cos_model[b].item()
+                heat_base_sum[i, j]  += cos_baseline[b].item()
+                heat_count[i, j]     += 1
+
+    # ------------------------------------------------------------
+    # Average
+    # ------------------------------------------------------------
+    heat_model = heat_model_sum / np.maximum(heat_count, 1)
+    heat_base  = heat_base_sum  / np.maximum(heat_count, 1)
+    heat_gain  = heat_model - heat_base
+
+    # ------------------------------------------------------------
+    # Plot
+    # ------------------------------------------------------------
+    from scipy.interpolate import LinearNDInterpolator
+
+    def plot_heatmap(data, title, filename):
+
+        plt.rcParams.update({
+            "font.size": 16,
+            "axes.titlesize": 26,
+            "xtick.labelsize": 18,
+            "ytick.labelsize": 18,
+        })
+
+        # -------------------------------------------------------
+        # scale values
+        # -------------------------------------------------------
+        data = data * 100
+
+        # -------------------------------------------------------
+        # build pose grid
+        # -------------------------------------------------------
+        grid_pitch, grid_yaw = np.meshgrid(pitches, yaws, indexing="ij")
+        grid_points = np.stack([grid_pitch.ravel(), grid_yaw.ravel()], axis=1)
+
+        # -------------------------------------------------------
+        # extract valid samples
+        # -------------------------------------------------------
+        valid_mask = heat_count > 0
+
+        sample_points = []
+        sample_values = []
+
+        H, W = data.shape
+        for i in range(H):
+            for j in range(W):
+                if valid_mask[i, j]:
+                    sample_points.append((pitches[i], yaws[j]))
+                    sample_values.append(data[i, j])
+
+        sample_points = np.array(sample_points)
+        sample_values = np.array(sample_values)
+
+        # -------------------------------------------------------
+        # interpolate
+        # -------------------------------------------------------
+        interp = LinearNDInterpolator(sample_points, sample_values, fill_value=np.nan)
+
+        heat_interp = interp(grid_points).reshape(H, W)
+
+        # mask invalid areas (outside convex hull)
+        heat_plot = np.ma.masked_where(np.isnan(heat_interp), heat_interp)
+
+        cmap = plt.cm.viridis.copy()
+        cmap.set_bad(color="white")
+
+        vmax = np.nanmax(np.abs(heat_plot))
+        vmin = np.nanmin(heat_plot)
+
+        fig, ax = plt.subplots(figsize=(22, 20))
+
+        sns.heatmap(
+            heat_plot,
+            ax=ax,
+            xticklabels=yaws,
+            yticklabels=pitches,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            square=True,
+            cbar_kws={
+                "shrink": 0.8,
+                "label": "Cosine Similarity ×100"
+            }
+        )
+
+        for i in range(H):
+            for j in range(W):
+                if not valid_mask[i, j]:
+                    continue
+
+                val = data[i, j]
+                ax.text(
+                    j + 0.5,
+                    i + 0.5,
+                    f"{val:.0f}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    color="black"
+                )
+
+        ax.set_title(title)
+        ax.set_xlabel("Yaw")
+        ax.set_ylabel("Pitch")
+
+        # cleaner ticks
+        for i, label in enumerate(ax.get_xticklabels()):
+            if i % 5 != 0:
+                label.set_visible(False)
+
+        for i, label in enumerate(ax.get_yticklabels()):
+            if i % 5 != 0:
+                label.set_visible(False)
+
+        #fig.savefig(f"{prefix}_{filename}.svg", format="svg", dpi=200, bbox_inches="tight")
+        fig.savefig(f"{prefix}_{filename}.jpg", format="jpg", dpi=200, bbox_inches="tight")
+
+    plot_heatmap(heat_model, "Model Cosine vs Front", "model")
+    plot_heatmap(heat_base, "Baseline Cosine vs Front", f"baseline")
+    plot_heatmap(heat_gain, "Model Gain over Baseline", f"gain")
+
+    return heat_model, heat_base, heat_gain
 
 
 def main(cfg):
@@ -179,8 +379,8 @@ def main(cfg):
 
         # ======= Predictor =======
         predictor_dict = {'PoseFrontalizer': lambda: PoseFrontalizer(),
-                          'PoseFrontalizerWithPose': lambda : PoseFrontalizerWithPose(),
-                          'PoseFrontalizerWithPoseResidual': lambda : PoseFrontalizerWithPoseResidual()}
+                          'PoseFrontalizerWithPose': lambda: PoseFrontalizerWithPose(),
+                          'PoseFrontalizerWithPoseResidual': lambda: PoseFrontalizerWithPoseResidual()}
 
         predictor = predictor_dict[PREDICTOR_NAME]()
         predictor.to(DEVICE)
@@ -230,6 +430,7 @@ def main(cfg):
         # ======= Validation =======
         print("#" * 60)
         val_metrics = validate(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose")
+        validate_with_pose_heatmap(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose", prefix=str(0))
 
         mlflow.log_metric('val_cosine_prediction', val_metrics["cosine_model"], step=0)
         mlflow.log_metric('val_cosine_baseline', val_metrics["cosine_baseline"], step=0)
@@ -244,7 +445,6 @@ def main(cfg):
 
         print("#" * 60)
 
-
         # ======= train & early stopping parameters=======
         DISP_FREQ = len(train_loader) // 5  # frequency to display training loss & acc
         batch = 0  # batch index
@@ -258,7 +458,7 @@ def main(cfg):
             # ======= Train Loop ========
             losses = AverageMeter()
 
-            for step, (embeddings, labels, scan_ids, true_poses, _, path) in enumerate(tqdm(train_loader)):
+            for step, (embeddings, labels, scan_ids, true_poses, _) in enumerate(tqdm(train_loader)):
 
                 B, V, D = embeddings.shape
 
@@ -295,6 +495,7 @@ def main(cfg):
 
             # ===== Validation =====
             val_metrics = validate(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose")
+            validate_with_pose_heatmap(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose", prefix=str(epoch))
 
             mlflow.log_metric('val_cosine_prediction', val_metrics["cosine_model"], step=epoch + 1)
             mlflow.log_metric('val_cosine_baseline', val_metrics["cosine_baseline"], step=epoch + 1)
