@@ -55,10 +55,8 @@ class EmbeddingDataset(Dataset):
                     perm = np.random.permutation(len(emb_np))
                     emb_np = emb_np[perm]
 
-                # shape: [number_poses, 2] becaus a pose has yaw and pitch
-                true_p = torch.from_numpy(true_p_np).to(torch.float16)
-                # shape: [number_poses, 2] becaus a pose has yaw and pitch
-                ref_p = torch.from_numpy(ref_p_np).to(torch.float16)
+                true_p = torch.from_numpy(true_p_np).to(torch.float16)                # shape: [number_poses, 2]
+                ref_p = torch.from_numpy(ref_p_np).to(torch.float16)                # shape: [number_poses, 2]
                 emb = torch.from_numpy(emb_np)
                 scan_id = str(data["scan_id"])
 

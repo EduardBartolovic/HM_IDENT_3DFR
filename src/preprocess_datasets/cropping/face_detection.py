@@ -487,8 +487,8 @@ class FaceAligner:
 
             batch_results.extend(res_list)
 
-        time_batch = time.time() - start_batch
-        print(f"⏱️ Batched detection took: {time_batch:.4f}s")
+        # time_batch = time.time() - start_batch
+        # print(f"⏱️ Batched detection took: {time_batch:.4f}s")
         if not batch_results:
             print(f"[FaceAligner] No face detected in input images")
             return None
