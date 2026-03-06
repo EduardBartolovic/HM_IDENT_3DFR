@@ -100,40 +100,46 @@ def generate_rotation_matrices(angle_range):
 
 
 def generate_rotation_matrices_cross_x_y():
-    # Vertical line
+
+    def Rx(x):
+        x = np.radians(x)
+        return np.array([
+            [1, 0, 0],
+            [0, np.cos(x), -np.sin(x)],
+            [0, np.sin(x),  np.cos(x)]
+        ])
+
+    def Ry(y):
+        y = np.radians(y)
+        return np.array([
+            [np.cos(y), 0, np.sin(y)],
+            [0, 1, 0],
+            [-np.sin(y), 0, np.cos(y)]
+        ])
+
+    # Vertical line (y = 0)
     vertical = [
-        (
-            x,
-            0,
-            np.dot(
-                np.array([
-                    [1, 0, 0],
-                    [0, np.cos(np.radians(x)), -np.sin(np.radians(x))],
-                    [0, np.sin(np.radians(x)),  np.cos(np.radians(x))]
-                ]),
-                np.eye(3)  # y=0 => identity rotation around y
-            )
-        )
+        (x, 0, np.dot(Rx(x), np.eye(3)))
         for x in range(-35, 36, 1)
     ]
-    # horizontal line
+
+    # Horizontal line (x = 0)
     horizontal = [
-        (
-            0,
-            y,
-            np.dot(
-                np.eye(3),  # x=0 => identity rotation around x
-                np.array([
-                    [np.cos(np.radians(y)), 0, np.sin(np.radians(y))],
-                    [0, 1, 0],
-                    [-np.sin(np.radians(y)), 0, np.cos(np.radians(y))]
-                ])
-            )
-        )
-        for y in range(-45, 46, 1)
+        (0, y, np.dot(np.eye(3), Ry(y)))
+        for y in range(-55, 56, 1)
     ]
 
-    return vertical + horizontal
+    # Additional horizontal lines at x = +5 and x = -5
+    horizontal_plus5 = [
+        (5, y, np.dot(Rx(5), Ry(y)))
+        for y in range(-55, 56, 5)
+    ]
+    horizontal_minus5 = [
+        (-5, y, np.dot(Rx(-5), Ry(y)))
+        for y in range(-55, 56, 5)
+    ]
+
+    return vertical + horizontal + horizontal_plus5 + horizontal_minus5
 
 
 def rotation_matrix_x(pitch_deg):
