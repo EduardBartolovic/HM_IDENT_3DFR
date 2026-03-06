@@ -9,23 +9,24 @@ from src.preprocess_datasets.rendering.OBJToRGBD import ObjFileRenderer
 
 def main():
 
-    bellus = True
-    facescape = True
-    faceverse = True
+    bellus = False
+    facescape = False
+    faceverse = False
 
     texas = False
     facewarehouse = False
-    mononphm = False
+    mononphm = True
     ffhq = False
     prep_data = False
     colorferet = False
 
-    bff = True
+    bff = False
 
-    root = 'F:\\Face\\data\\dataset15\\'
+    root = 'F:\\Face\\data\\dataset16\\'
     render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35] #[-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
-    noise = 6
-    workers = 16
+    noise = 0
+    workers = 8
+    MODEL_FILE = Path(r'F:\Face\HM_IDENT_3DFR\src\preprocess_datasets\cropping\mobile0.25.onnx')
 
     # -------- Bellus --------
     if bellus:
@@ -33,7 +34,7 @@ def main():
 
         # Image Rendering
         directory_path = Path(r'H:\\Maurer\\Bellus')
-        output_dir = Path(r"F:\Face\data\tmp5_simulated_error\3D_bellusE06")
+        output_dir = Path(r"F:\Face\data\tmp6_305\3D_bellus")
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles, noise, num_workers=workers)
         obj_reader.render_obj_files("Bellus")
 
@@ -49,8 +50,8 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB:
-        input_path = Path('F:\\Face\\data\\tmp5_simulated_error\\3D_BellusE06\\')
-        output_dir = Path(root+'test_rgb_bellusE06')
+        input_path = Path('F:\\Face\\data\\tmp6_305\\3D_Bellus\\')
+        output_dir = Path(root+'test_rgb_bellus')
         PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth:
@@ -70,7 +71,7 @@ def main():
 
         # Image Rendering
         directory_path = Path('H:\\Maurer\\facescape\\trainset\\')
-        output_dir = Path('F:\\Face\\data\\tmp5_simulated_error\\3D_facescapeE06\\')
+        output_dir = Path('F:\\Face\\data\\tmp6_305\\3D_facescape\\')
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles, noise, num_workers=workers)
         obj_reader.render_obj_files('facescape')
 
@@ -80,8 +81,8 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir, mode='facescape')
 
         # Prepare Dataset RGB:
-        input_path = Path('F:\\Face\\data\\tmp5_simulated_error\\3D_facescapeE06\\')
-        output_dir = Path(root+'test_rgb_facescapeE06')
+        input_path = Path('F:\\Face\\data\\tmp6_305\\3D_facescape\\')
+        output_dir = Path(root+'test_rgb_facescape')
         PrepareDataset.prepare_dataset_rgb(input_path, output_dir, mode='facescape')
 
         # Prepare Dataset RGB + Depth:
@@ -94,7 +95,7 @@ def main():
         print("################# FACEVERSE #################")
         # Image Rendering faceverse
         directory_path = Path('H:\\Maurer\\FaceVerse\\')
-        output_dir = Path('F:\\Face\\data\\tmp5_simulated_error\\3D_faceverseE06\\')
+        output_dir = Path('F:\\Face\\data\\tmp6_305\\3D_faceverse\\')
         obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles, noise, num_workers=workers)
         obj_reader.render_obj_files("FaceVerse")
 
@@ -104,8 +105,8 @@ def main():
         #PrepareDataset.prepare_dataset_depth(input_path, output_dir)
 
         # Prepare Dataset RGB faceverse:
-        input_path = Path('F:\\Face\\data\\tmp5_simulated_error\\3D_faceverseE06\\')
-        output_dir = Path(root+'test_rgb_faceverseE06')
+        input_path = Path('F:\\Face\\data\\tmp6_305\\3D_faceverse\\')
+        output_dir = Path(root+'test_rgb_faceverse')
         PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
         # Prepare Dataset RGB + Depth faceverse:
@@ -124,29 +125,36 @@ def main():
 
     if mononphm:
 
-        # Image Rendering facescape
         directory_path = Path('H:\\Maurer\\FFHQ-MonoNPHM')
-        output_dir = Path('F:\\Face\\data\\tmp\\3D_FFHQMonoNPHM\\')
+        output_dir = Path('F:\\Face\\data\\tmp1_25\\3D_FFHQMonoNPHM\\')
         # obj_reader = ObjFileRenderer(directory_path, output_dir, render_angles)
         # obj_reader.render_obj_files("mononphm")
 
-        # Prepare Dataset Depth Facescape:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_FFHQMonoNPHM')
-        output_dir = Path(root+'test_depth_monoffhq')
+        # input_path = Path('F:\\Face\\data\\tmp\\3D_FFHQMonoNPHM')
+        # output_dir = Path(root+'test_depth_monoffhq')
         # PrepareDataset.prepare_dataset_depth(input_path, output_dir, )
 
-        # Prepare Dataset RGB Facescape:
-        input_path = Path('F:\\Face\\data\\tmp\\3D_FFHQMonoNPHM\\')
+        input_path = Path('F:\\Face\\data\\tmp1_25\\3D_FFHQMonoNPHM\\')
         output_dir = Path(root+'test_rgb_monoffhq')
-        # PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
+        PrepareDataset.prepare_dataset_rgb(input_path, output_dir)
 
-        # Prepare Dataset RGB + Depth Facescape:
         # input_path = Path(root+'test_rgb_monoffhq')
         # input_path2 = Path(root+'test_depth_monoffhq')
         # output_dir = Path(root+'test_rgbd_monoffhq')
         # PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
-        #face_crop_full_frame(root+'rgb_monoffhq70K8', root+'rgb_monoffhq70K_crop8', face_detect_model_root)
+        DATASET_ROOT = Path(root + r'test_rgb_monoffhq/enrolled')
+        OUTPUT_DIR = Path(root + r'rgb_monoffhq_crop')
+        folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
+        run_batch_alignment(
+            data_folders=folder_paths,
+            model_path=str(MODEL_FILE),
+            align_method=FaceAligner.AlignmentMethod.AURA_FROM_BOUNDING_BOX_SCALING,
+            batch_size=32,
+            output_dir=OUTPUT_DIR,
+            num_processes=6,
+            device="cpu"
+        )
 
     if facewarehouse:
 
@@ -210,7 +218,6 @@ def main():
         output_dir = Path(root + 'test_rgb_bffE06')
         PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
-        MODEL_FILE = Path(r'F:\Face\HM_IDENT_3DFR\src\preprocess_datasets\cropping\mobile0.25.onnx')
         DATASET_ROOT = Path(root+r'test_rgb_bffE06\enrolled')
         OUTPUT_DIR = Path(root+r'test_rgb_bff_cropE06\enrolled')
         folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
