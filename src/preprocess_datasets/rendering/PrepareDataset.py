@@ -114,24 +114,26 @@ def prepare_dataset_rgb(input_path, output_dir, mode='', num_files=None):
             if count != num_files:
                 warnings.warn(f"Scan set '{scan}' has {count} files, expected {num_files}.", UserWarning)
 
-    model_cache = []
-    set_cache = []
-
+    model_cache = set()
+    set_cache = set()
     for p in tqdm(file_paths, desc="Creating Dataset"):
         splited_path = Path(p).parts
         scan_set = splited_path[-2] + splited_path[-3]
         model = splited_path[-4]
         angles = splited_path[-1][:-10]
-        # TODO: Find Better solution
-        #  file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest()[:15] + "#" + angles + "#" + angles + '.jpg'
-        file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest()[:15] + "#" + angles + '.jpg'
+
+        if "#" in angles:
+            angle_part = angles
+        else:
+            angle_part = f"{angles}#{angles}"
+        file_name = hashlib.sha1((splited_path[-2] + splited_path[-3] + splited_path[-4]).encode()).hexdigest()[:15] + "#" + angle_part + '.jpg'
 
         if mode == '':
 
             if model not in model_cache or scan_set in set_cache:
                 target_dir = train_dir
-                model_cache.append(model)
-                set_cache.append(scan_set)
+                model_cache.add(model)
+                set_cache.add(scan_set)
             else:
                 target_dir = val_dir
 
@@ -139,8 +141,8 @@ def prepare_dataset_rgb(input_path, output_dir, mode='', num_files=None):
 
             if 'neutral' in scan_set:
                 target_dir = train_dir
-                model_cache.append(model)
-                set_cache.append(scan_set)
+                model_cache.add(model)
+                set_cache.add(scan_set)
             else:
                 target_dir = val_dir
 
