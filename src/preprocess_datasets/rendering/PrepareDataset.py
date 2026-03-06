@@ -152,15 +152,6 @@ def prepare_dataset_rgb(input_path, output_dir, mode='', num_files=None):
         shutil.copyfile(Path(p), os.path.join(target, file_name))
 
 
-def normalize_path(file_path):
-    base, ext = os.path.splitext(file_path)
-    if base.endswith('_depth'):
-        base = base[:-6]  # Remove the '_depth' part
-    if base.endswith('_image'):
-        base = base[:-6]  # Remove the '_depth' part
-    return base + ext
-
-
 def prepare_dataset_rgbd(input_path, input_path_depth, output_dir):
     print('input_dir:', input_path)
     print('input_path_depth:', input_path_depth)
