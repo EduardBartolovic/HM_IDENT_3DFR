@@ -41,13 +41,3 @@ def process_hpe_batch(cropped_faces, device, head_pose_model):
 
     return [[(deg[1]), (deg[0]), (deg[2])] for deg in eulers_deg]
 
-
-def get_images_from_dir(image_dir, files_names):
-    images = []
-    for image_file in files_names:
-        image_path = os.path.join(image_dir, image_file)
-        img = cv2.imread(image_path)
-        if img is not None:
-            images.append(img)
-
-    return images
