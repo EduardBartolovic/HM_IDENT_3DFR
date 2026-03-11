@@ -75,20 +75,10 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
     dataset_enrolled_path = os.path.join(test_path, 'enrolled')
     dataset_query_path = os.path.join(test_path, 'query')
 
-    # TODO: MASKED CONCAT
-    # TODO make sure that it is no problem if query embedding has for some ids no instance!
-    #euclidean_distance_thresh = 5
     dataset_enrolled = EmbeddingDataset(dataset_enrolled_path, views, shuffle_views=shuffle_views)
-    #print("Enrolled Size before: "+ str(len(dataset_enrolled)))
-    #removed_ids = dataset_enrolled.remove_samples(euclidean_distance_thresh=euclidean_distance_thresh)
-    #print("Enrolled Size after: "+ str(len(dataset_enrolled)))
     enrolled_loader = torch.utils.data.DataLoader(dataset_enrolled, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
 
     dataset_query = EmbeddingDataset(dataset_query_path, views, shuffle_views=shuffle_views)
-    #print("Query Size before: "+ str(len(dataset_query)))
-    #removed_ids_query = dataset_query.remove_samples(euclidean_distance_thresh=euclidean_distance_thresh)
-    #dataset_query.remove_by_ids(removed_ids)
-    #print("Query Size after: "+ str(len(dataset_query)))
     query_loader = torch.utils.data.DataLoader(dataset_query, batch_size=batch_size, shuffle=True, num_workers=8, drop_last=False)
 
     if len(dataset_enrolled.classes) != len(dataset_enrolled):
@@ -123,70 +113,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
     del sim_concat, top_idx, y_true_concat, y_pred_concat
 
     # --------- Masked Concat ---------
-    metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=20, mask_by_enrolled=True, mask_by_query=True)
-    all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    all_metrics["metrics_concat_masked"] = metrics_concat_masked
-    print(metrics_concat_masked)
-    all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
-
     metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=17, mask_by_enrolled=True, mask_by_query=True)
-    all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    all_metrics["metrics_concat_masked"] = metrics_concat_masked
-    print(metrics_concat_masked)
-    all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
-
-    metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=16, mask_by_enrolled=True, mask_by_query=True)
-    all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    all_metrics["metrics_concat_masked"] = metrics_concat_masked
-    print(metrics_concat_masked)
-    all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
-
-    metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=15, mask_by_enrolled=True, mask_by_query=True)
-    all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    all_metrics["metrics_concat_masked"] = metrics_concat_masked
-    print(metrics_concat_masked)
-    all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
-
-    metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=14, mask_by_enrolled=True, mask_by_query=True)
-    all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    all_metrics["metrics_concat_masked"] = metrics_concat_masked
-    print(metrics_concat_masked)
-    all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
-
-    metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=13, mask_by_enrolled=True, mask_by_query=True)
-    all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    all_metrics["metrics_concat_masked"] = metrics_concat_masked
-    print(metrics_concat_masked)
-    all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
-
-    metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=10, mask_by_enrolled=True, mask_by_query=True)
-    all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    all_metrics["metrics_concat_masked"] = metrics_concat_masked
-    print(metrics_concat_masked)
-    all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
-
-    metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=8, mask_by_enrolled=True, mask_by_query=True)
-    all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    all_metrics["metrics_concat_masked"] = metrics_concat_masked
-    print(metrics_concat_masked)
-    all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
-
-    metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=5, mask_by_enrolled=True, mask_by_query=True)
-    all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    all_metrics["metrics_concat_masked"] = metrics_concat_masked
-    print(metrics_concat_masked)
-    all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
-
-    metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=3, mask_by_enrolled=True, mask_by_query=True)
     all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
     all_metrics["metrics_concat_masked"] = metrics_concat_masked
     print(metrics_concat_masked)
@@ -223,7 +150,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
     for m in fusion_methods:
         metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m, similarity_matrix=sim_score, distance_matrix=None)
         all_metrics[f"metrics_score_{m}"] = metrics
-        # all_metrics[f"emb_dist_score_{m}"] = analyze_embedding_distribution(fused, query_labels, enrolled_labels, dataset_name, f"score_{m}", plot=True)
+        all_metrics[f"emb_dist_score_{m}"] = analyze_embedding_distribution(fused, query_labels, enrolled_labels, "", f"score_{m}", plot=False)
 
     # plot_all_cmc_from_txt(dataset_name)
 
@@ -259,10 +186,10 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
 
     mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
+    gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A'), rounding_prec=8)
 
     mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
 
-    # mrr_score_pdw = smart_round(all_metrics["metrics_score_pdw"].get('MRR', 'N/A'))
     string = (f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: " +
               f"{'Front RR1'}: {rank_1_front} {'MRR'}: {mrr_front} {'GBIG'}: {gbig_front} {'AUC'}: {auc_front} | "  # {bold('GAIG')}: {underscore(gaig_front)} | "
               f"{'Concat RR1'}: {rank_1_concat} {'MRR'}: {mrr_concat} {'GBIG'}: {gbig_concat} {'AUC'}: {auc_concat} | "  # {bold('GAIG')}: {underscore(gaig_concat)} | "
@@ -270,7 +197,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
               f"{'Concat_Mean RR1'}: {rank_1_concat_mean} {'MRR'}: {mrr_concat_mean} {'GBIG'}: {gbig_concat_mean} {'AUC'}: {auc_concat_mean} | "
               f"{'Concat_Median RR1'}: {rank_1_concat_median} {'MRR'}: {mrr_concat_median} | "
               f"{'Score_prod MRR'}: {mrr_score_prod} | "
-              f"{'Score_mean MRR'}: {mrr_score_mean} | "
+              f"{'Score_mean MRR'}: {mrr_score_mean} {'GBIG'}: {gbig_score_mean} | "
               f"{'Score_max MRR'}: {mrr_score_max} | "
               f"{'Score_maj MRR'}: {mrr_score_majority} | "
               )
@@ -924,7 +851,7 @@ def single_dataset_test():
     cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
     BATCH_SIZE = 16  # Batch size
     root = "F:\\Face\\data\\dataset15_emb\\"
-    DATA_ROOT = root+"test_nersemble_crop5-v15_emb-ms1mv3_r100" # "test_vox2test_crop5-v15_emb-glint_r18"##
+    DATA_ROOT = root+"test_rgb_bff_crop261_emb-adaface_ms1mv3"  # "test_vox2test_crop5-v15_emb-glint_r18"##
     evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
     #DATA_ROOT = root+"test_nersemble_crop5-v15_emb-ms1mv3_r18"
     #evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)

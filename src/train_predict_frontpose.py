@@ -188,8 +188,6 @@ def validate_with_pose_heatmap(model, data_loader, device, with_pose, prefix="va
     # ------------------------------------------------------------
     # Plot
     # ------------------------------------------------------------
-    from scipy.interpolate import LinearNDInterpolator
-
     def plot_heatmap(data, title, filename):
 
         plt.rcParams.update({
@@ -281,7 +279,6 @@ def validate_with_pose_heatmap(model, data_loader, device, with_pose, prefix="va
         ax.set_xlabel("Yaw")
         ax.set_ylabel("Pitch")
 
-        # cleaner ticks
         for i, label in enumerate(ax.get_xticklabels()):
             if i % 5 != 0:
                 label.set_visible(False)

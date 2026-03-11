@@ -208,8 +208,6 @@ def calculate_embedding_similarity(query_embeddings, enrolled_embeddings, chunk_
     return similarity_matrix
 
 
-
-
 def concat(embedding_library, disable_bar: bool, reduce_with="", norm_vector="view"):
 
     def normalize_viewwise(x):
