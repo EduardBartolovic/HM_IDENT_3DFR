@@ -140,15 +140,15 @@ if __name__ == '__main__':
     basepath_model = "/home/gustav/HM_IDENT_3DFR/pretrained/"
 
     cfg_yaml = {}
-    cfg_yaml['NUM_VIEWS'] = 5  # 261
-    cfg_yaml['SHUFFLE_VIEWS'] = False  # 261
-    # cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset15\\"
-    cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset15/"
-    # out_root = "F:\\Face\\data\\dataset15_emb\\"
-    out_root = "/home/gustav/dataset15_emb/"
+    cfg_yaml['NUM_VIEWS'] = 305  # 5
+    cfg_yaml['SHUFFLE_VIEWS'] = False
+    # cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset16\\"
+    cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset16/"
+    # out_root = "F:\\Face\\data\\dataset16_emb\\"
+    out_root = "/home/gustav/dataset16_emb/"
     SELECTED_MODEL = "glint_r18"
 
-    train_set = "test_vox2test_crop5F-v15"  # "test_rgb_bff_crop261"
+    train_set = "test_vox2test_crop5F-v15"  # "test_rgb_bff_crop305"
 
     validation = False
 
@@ -314,6 +314,13 @@ if __name__ == '__main__':
         cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}")
         main(cfg_yaml)
 
+        ###############
+        SELECTED_MODEL = "hyperface10k"
+        cfg_yaml.update(MODEL_CONFIGS[SELECTED_MODEL])
+        cfg_yaml["TRAIN_SET"] = os.path.join(train_set)
+        cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}")
+        main(cfg_yaml)
+
     else:  ###############################################
         ###############
         SELECTED_MODEL = "glint_r18"
@@ -437,4 +444,16 @@ if __name__ == '__main__':
         cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
         cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
         main(cfg_yaml)
+
+        ###############
+        SELECTED_MODEL = "hyperface10k"
+        cfg_yaml.update(MODEL_CONFIGS[SELECTED_MODEL])
+        cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+        cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+        main(cfg_yaml)
+        cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+        cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+        main(cfg_yaml)
+
+
 
