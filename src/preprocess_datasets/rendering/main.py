@@ -13,14 +13,14 @@ def main():
     facescape = False
     faceverse = False
 
+    bff = False
+
     texas = False
     facewarehouse = False
     mononphm = True
     ffhq = False
     prep_data = False
     colorferet = False
-
-    bff = False
 
     root = 'F:\\Face\\data\\dataset16\\'
     render_angles = [-35, -25, -15, -10, -5, 0, 5, 10, 15, 25, 35] #[-25, -10, 0, 10, 25] #  [-10, 0, 10]  #  # [-10, -5, 0, 5, 10]
@@ -144,7 +144,7 @@ def main():
         # PrepareDataset.prepare_dataset_rgbd(input_path, input_path2, output_dir)
 
         DATASET_ROOT = Path(root + r'test_rgb_monoffhq/enrolled')
-        OUTPUT_DIR = Path(root + r'rgb_monoffhq_crop')
+        OUTPUT_DIR = Path(root + r'rgb_monoffhq_crop25')
         folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
         run_batch_alignment(
             data_folders=folder_paths,
@@ -214,12 +214,12 @@ def main():
 
     if bff:
         print("################# BFF #################")
-        input_paths = [Path(root+'test_rgb_bellusE06'), Path(root+'test_rgb_facescapeE06'), Path(root+'test_rgb_faceverseE06')]
-        output_dir = Path(root + 'test_rgb_bffE06')
-        PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
+        input_paths = [Path(root+'test_rgb_bellus'), Path(root+'test_rgb_facescape'), Path(root+'test_rgb_faceverse')]
+        output_dir = Path(root + 'test_rgb_bff')
+        #PrepareDataset.prepare_dataset_bff(input_paths, output_dir)
 
-        DATASET_ROOT = Path(root+r'test_rgb_bffE06\enrolled')
-        OUTPUT_DIR = Path(root+r'test_rgb_bff_cropE06\enrolled')
+        DATASET_ROOT = Path(root+r'test_rgb_bff\enrolled')
+        OUTPUT_DIR = Path(root+r'test_rgb_bff_crop305\enrolled')
         folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
         run_batch_alignment(
             data_folders=folder_paths,
@@ -230,8 +230,8 @@ def main():
             num_processes=6,
             device="cpu"
         )
-        DATASET_ROOT = Path(root + r'test_rgb_bffE06\query')
-        OUTPUT_DIR = Path(root + r'test_rgb_bff_cropE06\query')
+        DATASET_ROOT = Path(root + r'test_rgb_bff\query')
+        OUTPUT_DIR = Path(root + r'test_rgb_bff_crop305\query')
         folder_paths = [p for p in DATASET_ROOT.iterdir() if p.is_dir()]
         run_batch_alignment(
             data_folders=folder_paths,
@@ -242,10 +242,11 @@ def main():
             num_processes=6,
             device="cpu"
         )
+
         # perspective_filter = ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']
         perspective_filter = ['0_0', '0_25', '0_-25', '0_10', '0_-10']
-        PrepareDataset.filter_views(root + 'test_rgb_bff_cropE06/enrolled', root + 'test_rgb_bff_crop5E06/enrolled', perspective_filter, target_views=5)
-        PrepareDataset.filter_views(root + 'test_rgb_bff_cropE06/query', root + 'test_rgb_bff_crop5E06/query', perspective_filter, target_views=5)
+        PrepareDataset.filter_views(root + 'test_rgb_bff_crop305/enrolled', root + 'test_rgb_bff_crop5/enrolled', perspective_filter, target_views=5)
+        PrepareDataset.filter_views(root + 'test_rgb_bff_crop305/query', root + 'test_rgb_bff_crop5/query', perspective_filter, target_views=5)
 
     if prep_data:
         PrepareDataset.prepare_datasets_test(root)
