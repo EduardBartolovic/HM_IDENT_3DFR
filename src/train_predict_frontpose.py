@@ -343,14 +343,14 @@ def main(cfg):
         mlflow.log_param('config', cfg)
         print(f"{RUN_NAME}_{run_count + 1} ; run_id:", run.info.run_id)
         full_dataset = EmbeddingDataset(os.path.join(DATA_ROOT, TRAIN_SET), disable_tqdm=False)
-
         train_dataset, val_dataset = split_with_shared_labels(
             full_dataset,
             val_ratio=0.1,
             seed=SEED
         )
-
         print(f"Train samples: {len(train_dataset)} | Val samples: {len(val_dataset)}")
+        val_dataset2 = EmbeddingDataset(os.path.join(DATA_ROOT, "rgb_monoffhq_crop25_emb-glint_r18"), disable_tqdm=False)
+        print(f"Val2 samples: {len(val_dataset2)}")
 
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
@@ -362,9 +362,18 @@ def main(cfg):
             drop_last=DROP_LAST,
             shuffle=True
         )
-
         val_loader = torch.utils.data.DataLoader(
             val_dataset,
+            batch_size=BATCH_SIZE,
+            pin_memory=PIN_MEMORY,
+            num_workers=NUM_WORKERS,
+            prefetch_factor=4,
+            persistent_workers=True,
+            drop_last=False,
+            shuffle=False
+        )
+        val_loader2 = torch.utils.data.DataLoader(
+            val_dataset2,
             batch_size=BATCH_SIZE,
             pin_memory=PIN_MEMORY,
             num_workers=NUM_WORKERS,
@@ -427,7 +436,10 @@ def main(cfg):
         # ======= Validation =======
         print("#" * 60)
         val_metrics = validate(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose")
-        validate_with_pose_heatmap(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose", prefix=str(0))
+        validate_with_pose_heatmap(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose", prefix=str(0)+"bff")
+
+        val_metrics2 = validate(predictor, val_loader2, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose")
+        validate_with_pose_heatmap(predictor, val_loader2, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose", prefix=str(0)+"mono")
 
         mlflow.log_metric('val_cosine_prediction', val_metrics["cosine_model"], step=0)
         mlflow.log_metric('val_cosine_baseline', val_metrics["cosine_baseline"], step=0)
@@ -438,6 +450,9 @@ def main(cfg):
             f'Val Model Cosine Similarity: {val_metrics["cosine_model"]:.4f} | '
             f'Val Baseline Cosine Similarity: {val_metrics["cosine_baseline"]:.4f} | '
             f'Val Gain: {val_metrics["cosine_gain"]:+.4f}'
+            f'Val2 Model Cosine Similarity: {val_metrics2["cosine_model"]:.4f} | '
+            f'Val2 Baseline Cosine Similarity: {val_metrics2["cosine_baseline"]:.4f} | '
+            f'Val2 Gain: {val_metrics2["cosine_gain"]:+.4f}'
         ))
 
         print("#" * 60)
@@ -494,6 +509,9 @@ def main(cfg):
             val_metrics = validate(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose")
             validate_with_pose_heatmap(predictor, val_loader, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose", prefix=str(epoch))
 
+            val_metrics2 = validate(predictor, val_loader2, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose")
+            validate_with_pose_heatmap(predictor, val_loader2, DEVICE, PREDICTOR_NAME == "PoseFrontalizerWithPose", prefix=str(0) + "mono")
+
             mlflow.log_metric('val_cosine_prediction', val_metrics["cosine_model"], step=epoch + 1)
             mlflow.log_metric('val_cosine_baseline', val_metrics["cosine_baseline"], step=epoch + 1)
             mlflow.log_metric('val_cosine_gain', val_metrics["cosine_gain"], step=epoch + 1)
@@ -505,6 +523,9 @@ def main(cfg):
                 f'Val Model Cosine Similarity: {val_metrics["cosine_model"]:.4f} | '
                 f'Val Baseline Cosine Similarity: {val_metrics["cosine_baseline"]:.4f} | '
                 f'Val Gain: {val_metrics["cosine_gain"]:+.4f}'
+                f'Val2 Model Cosine Similarity: {val_metrics2["cosine_model"]:.4f} | '
+                f'Val2 Baseline Cosine Similarity: {val_metrics2["cosine_baseline"]:.4f} | '
+                f'Val2 Gain: {val_metrics2["cosine_gain"]:+.4f}'
             ))
             print("#" * 60)
 
