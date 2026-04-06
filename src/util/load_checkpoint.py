@@ -39,11 +39,18 @@ def load_checkpoint(model, head, backbone_resume_path, head_resume_path):
             model.load_state_dict(new_state_dict)
         else:
             state_dict = torch.load(backbone_resume_path, weights_only=True)
-            try:
-                model.load_state_dict(state_dict)
-            except RuntimeError:
-                state_dict = adapt_state_dict_for_backbone(state_dict)
-                model.load_state_dict(state_dict)
+
+            if "swinface" in backbone_resume_path:
+                model.backbone.load_state_dict(state_dict["state_dict_backbone"])
+                model.fam.load_state_dict(state_dict["state_dict_fam"])
+                model.tss.load_state_dict(state_dict["state_dict_tss"])
+                model.om.load_state_dict(state_dict["state_dict_om"])
+            else:
+                try:
+                    model.load_state_dict(state_dict)
+                except RuntimeError:
+                    state_dict = adapt_state_dict_for_backbone(state_dict)
+                    model.load_state_dict(state_dict)
     else:
         if len(backbone_resume_path) > 5 or len(head_resume_path) > 5:
             print(colorstr('red', f"You put in a path but there is no checkpoint found at {backbone_resume_path} or {head_resume_path}. Please Have a Check or Continue to Train from Scratch"))

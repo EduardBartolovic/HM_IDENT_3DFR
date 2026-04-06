@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 
 from src.backbone.multiview_ires_lf import ir_mv_facenet_50_lf, ir_mv_50_lf, ir_mv_v2_18_lf, ir_mv_v2_34_lf, \
     ir_mv_v2_50_lf, ir_mv_v2_100_lf, ir_mv_hyper_50_lf
+from src.backbone.multiview_swinface_lf import swinface_mv_lf
 from src.backbone.multiview_timmfr_lf import timm_mv_lf
 from src.fuser.fuser import make_mlp_fusion, make_softmax_fusion
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
@@ -21,9 +22,7 @@ def main(cfg):
     DATA_ROOT = cfg['DATA_ROOT_PATH']  # the parent root where the datasets are stored
     TRAIN_SET = cfg['TRAIN_SET']
     BACKBONE_RESUME_ROOT = os.path.join(os.getenv("BACKBONE_RESUME_ROOT"), cfg['BACKBONE_RESUME_PATH'])  # the root to resume training from a saved checkpoint
-
-    BACKBONE_NAME = cfg['BACKBONE_NAME']  # support: ['ResNet_50', 'ResNet_101', 'ResNet_152', 'IR_50', 'IR_101', 'IR_152', 'IR_SE_50', 'IR_SE_101', 'IR_SE_152']
-
+    BACKBONE_NAME = cfg['BACKBONE_NAME']  # Backbones
     INPUT_SIZE = cfg['INPUT_SIZE']
     NUM_VIEWS = cfg['NUM_VIEWS']  # Number of views
     SHUFFLE_VIEWS = cfg['SHUFFLE_VIEWS']
@@ -32,7 +31,6 @@ def main(cfg):
     use_face_corr = False
     EMBEDDING_SIZE = 512  # embedding dimension
     BATCH_SIZE = 8  # Batch size in training
-
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     PIN_MEMORY = True
     NUM_WORKERS = 8
@@ -67,7 +65,8 @@ def main(cfg):
                      'IR_MV_V2_50': lambda: ir_mv_v2_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                      'IR_MV_V2_100': lambda: ir_mv_v2_100_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                      'IR_MV_HYPER_50': lambda: ir_mv_hyper_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
-                     'TIMM_MV': lambda: timm_mv_lf(DEVICE, aggregator)}
+                     'TIMM_MV': lambda: timm_mv_lf(DEVICE, aggregator),
+                     'SWIN_FACE_MV': lambda: swinface_mv_lf(DEVICE, aggregator)}
 
     BACKBONE = BACKBONE_DICT[BACKBONE_NAME]()
     BACKBONE.backbone_reg.to(DEVICE)
@@ -148,7 +147,7 @@ if __name__ == '__main__':
     out_root = "/home/gustav/dataset16_emb/"
     SELECTED_MODEL = "glint_r18"
 
-    train_set = "test_vox2test_crop5F-v15"  # "test_rgb_bff_crop305"
+    train_set = "test_rgb_bff_crop305"
 
     validation = False
 
@@ -219,6 +218,11 @@ if __name__ == '__main__':
         "edgeface_xs": {
             "BACKBONE_RESUME_PATH": basepath_model+"edgeface_xs_gamma_06.pt",
             "BACKBONE_NAME": "TIMM_MV",
+            "INPUT_SIZE": [112, 112],
+        },
+        "swinface": {
+            "BACKBONE_RESUME_PATH": basepath_model + "swinface.pt",
+            "BACKBONE_NAME": "SWIN_FACE_MV",
             "INPUT_SIZE": [112, 112],
         },
     }
@@ -321,7 +325,20 @@ if __name__ == '__main__':
         cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}")
         main(cfg_yaml)
 
-    else:  ###############################################
+    else:
+
+        ###############
+        SELECTED_MODEL = "swinface"
+        cfg_yaml.update(MODEL_CONFIGS[SELECTED_MODEL])
+        cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+        cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+        main(cfg_yaml)
+
+        cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+        cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+        main(cfg_yaml)
+
+        exit()
         ###############
         SELECTED_MODEL = "glint_r18"
         cfg_yaml.update(MODEL_CONFIGS[SELECTED_MODEL])
