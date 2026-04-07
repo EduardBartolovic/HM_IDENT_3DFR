@@ -62,6 +62,13 @@ def adapt_state_dict_for_backbone(state_dict, prefix="backbone."):
     if "logits.weight" in state_dict:
         del state_dict["logits.weight"]
         del state_dict["logits.bias"]
+    if "net.pos_embed" in state_dict:
+        # For Vision Transformer from CVLFace
+        new_state_dict = {}
+        for k, v in state_dict.items():
+            new_k = k.replace("net.", "")
+            new_state_dict[new_k] = v
+        state_dict = new_state_dict
     else:
         # This is for Edgeface
         new_state_dict = {}

@@ -149,7 +149,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
     # del similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca
 
     # --------- Score fusion ---------
-    fusion_methods = ["max", "product", "majority", "mean", "median"]
+    fusion_methods = ["max", "product", "majority", "median"]
     sim_score = None
     for m in fusion_methods:
         metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m, similarity_matrix=sim_score, distance_matrix=None)
@@ -189,8 +189,8 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
 
     mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
 
-    mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
-    gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A'), rounding_prec=8)
+    # mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
+    # gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A'), rounding_prec=8)
 
     mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
 
@@ -201,7 +201,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
               f"{'Concat_Mean RR1'}: {rank_1_concat_mean} {'MRR'}: {mrr_concat_mean} {'GBIG'}: {gbig_concat_mean} {'AUC'}: {auc_concat_mean} | "
               f"{'Concat_Median RR1'}: {rank_1_concat_median} {'MRR'}: {mrr_concat_median} | "
               f"{'Score_prod MRR'}: {mrr_score_prod} | "
-              f"{'Score_mean MRR'}: {mrr_score_mean} {'GBIG'}: {gbig_score_mean} | "
+              # f"{'Score_mean MRR'}: {mrr_score_mean} {'GBIG'}: {gbig_score_mean} | "
               f"{'Score_max MRR'}: {mrr_score_max} | "
               f"{'Score_maj MRR'}: {mrr_score_majority} | "
               )
@@ -855,7 +855,8 @@ def single_dataset_test():
     cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
     BATCH_SIZE = 16  # Batch size
     root = "F:\\Face\\data\\dataset15_emb\\"
-    DATA_ROOT = root+"test_nersemble_crop5-v15_emb-swinface"  # "test_vox2test_crop5-v15_emb-glint_r18"##
+    DATA_ROOT = root+"test_rgb_bff_crop261_emb-swinface"  # "test_vox2test_crop5-v15_emb-glint_r18"##
+    DATA_ROOT = root+"test_vox2train_crop5-v15_emb-swinface"  # "test_vox2test_crop5-v15_emb-glint_r18"##
     evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
     #DATA_ROOT = root+"test_nersemble_crop5-v15_emb-ms1mv3_r18"
     #evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)

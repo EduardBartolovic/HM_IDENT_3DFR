@@ -6,6 +6,7 @@ from src.backbone.multiview_ires_lf import ir_mv_facenet_50_lf, ir_mv_50_lf, ir_
     ir_mv_v2_50_lf, ir_mv_v2_100_lf, ir_mv_hyper_50_lf
 from src.backbone.multiview_swinface_lf import swinface_mv_lf
 from src.backbone.multiview_timmfr_lf import timm_mv_lf
+from src.backbone.multiview_vit import vit_mv_lf
 from src.fuser.fuser import make_mlp_fusion, make_softmax_fusion
 from src.util.datapipeline.MultiviewDataset import MultiviewDataset
 from src.util.load_checkpoint import load_checkpoint
@@ -66,7 +67,8 @@ def main(cfg):
                      'IR_MV_V2_100': lambda: ir_mv_v2_100_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                      'IR_MV_HYPER_50': lambda: ir_mv_hyper_50_lf(DEVICE, aggregator, EMBEDDING_SIZE),
                      'TIMM_MV': lambda: timm_mv_lf(DEVICE, aggregator),
-                     'SWIN_FACE_MV': lambda: swinface_mv_lf(DEVICE, aggregator)}
+                     'SWIN_FACE_MV': lambda: swinface_mv_lf(DEVICE, aggregator),
+                     'VIT_MV': lambda: vit_mv_lf(DEVICE, aggregator)}
 
     BACKBONE = BACKBONE_DICT[BACKBONE_NAME]()
     BACKBONE.backbone_reg.to(DEVICE)
@@ -135,17 +137,17 @@ def main(cfg):
 
 
 if __name__ == '__main__':
-    # basepath_model = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\"
-    basepath_model = "/home/gustav/HM_IDENT_3DFR/pretrained/"
+    basepath_model = "F:\\Face\\HM_IDENT_3DFR\\pretrained\\"
+    #basepath_model = "/home/gustav/HM_IDENT_3DFR/pretrained/"
 
     cfg_yaml = {}
     cfg_yaml['NUM_VIEWS'] = 305  # 5
     cfg_yaml['SHUFFLE_VIEWS'] = False
-    # cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset16\\"
-    cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset16/"
-    # out_root = "F:\\Face\\data\\dataset16_emb\\"
-    out_root = "/home/gustav/dataset16_emb/"
-    SELECTED_MODEL = "glint_r18"
+    cfg_yaml['DATA_ROOT_PATH'] = "F:\\Face\\data\\dataset16\\"
+    #cfg_yaml['DATA_ROOT_PATH'] = "/home/gustav/dataset16/"
+    out_root = "F:\\Face\\data\\dataset16_emb\\"
+    #out_root = "/home/gustav/dataset16_emb/"
+    SELECTED_MODEL = "vit"  # "glint_r18"
 
     train_set = "test_rgb_bff_crop305"
 
@@ -223,6 +225,11 @@ if __name__ == '__main__':
         "swinface": {
             "BACKBONE_RESUME_PATH": basepath_model + "swinface.pt",
             "BACKBONE_NAME": "SWIN_FACE_MV",
+            "INPUT_SIZE": [112, 112],
+        },
+        "vit": {
+            "BACKBONE_RESUME_PATH": basepath_model + "adaface_vit_base_webface4m.pt",
+            "BACKBONE_NAME": "VIT_MV",
             "INPUT_SIZE": [112, 112],
         },
     }
@@ -326,6 +333,19 @@ if __name__ == '__main__':
         main(cfg_yaml)
 
     else:
+
+        ###############
+        SELECTED_MODEL = "vit"
+        cfg_yaml.update(MODEL_CONFIGS[SELECTED_MODEL])
+        cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "enrolled")
+        cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "enrolled")
+        main(cfg_yaml)
+
+        cfg_yaml["TRAIN_SET"] = os.path.join(train_set, "query")
+        cfg_yaml['OUT'] = os.path.join(out_root, f"{train_set}_emb-{SELECTED_MODEL}", "query")
+        main(cfg_yaml)
+
+        exit()
 
         ###############
         SELECTED_MODEL = "swinface"
