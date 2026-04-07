@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from typing import Optional, Callable
-from fvcore.nn import flop_count
-import numpy as np
 
 
 class Mlp(nn.Module):
