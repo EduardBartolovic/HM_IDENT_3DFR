@@ -61,6 +61,10 @@ def get_embeddings_mv(enrolled_loader, query_loader, disable_bar=False):
     query_true_perspectives = np.concatenate(query_true_perspectives, axis=0)
     query_ref_perspectives = np.concatenate(query_ref_perspectives, axis=0)
 
+    enrolled_classes = set(enrolled_labels.tolist())
+    query_classes = set(query_labels.tolist())
+    assert enrolled_classes == query_classes, f"Mismatch in classes: enrolled={sorted(enrolled_classes)}, query={sorted(query_classes)}"
+
     Results = namedtuple("Results",
                          ["enrolled_embeddings", "enrolled_labels", "enrolled_scan_ids", "enrolled_perspectives", "enrolled_ref_perspectives",
                           "query_embeddings", "query_labels", "query_scan_ids", "query_perspectives", "query_ref_perspectives"])
@@ -851,7 +855,7 @@ def single_dataset_test():
     cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
     BATCH_SIZE = 16  # Batch size
     root = "F:\\Face\\data\\dataset15_emb\\"
-    DATA_ROOT = root+"test_rgb_bff_crop261_emb-adaface_ms1mv3"  # "test_vox2test_crop5-v15_emb-glint_r18"##
+    DATA_ROOT = root+"test_nersemble_crop5-v15_emb-swinface"  # "test_vox2test_crop5-v15_emb-glint_r18"##
     evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
     #DATA_ROOT = root+"test_nersemble_crop5-v15_emb-ms1mv3_r18"
     #evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)

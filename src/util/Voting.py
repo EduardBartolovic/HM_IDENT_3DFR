@@ -34,8 +34,7 @@ def analyze_result(similarity_matrix, top_indices, reference_ids, ground_truth_i
     top_k_matches = reference_ids[top_indices[:, :top_k_acc_k]]
     top_k_accuracy = np.mean([ground_truth_ids[i] in top_k_matches[i] for i in range(num_inferences)])
 
-    true_match_scores = np.array(
-        [similarity_matrix[i, np.where(reference_ids == ground_truth_ids[i])[0][0]] for i in range(num_inferences)])
+    true_match_scores = np.array([similarity_matrix[i, np.where(reference_ids == ground_truth_ids[i])[0][0]] for i in range(num_inferences)])
     mean_true_match_similarity = np.mean(true_match_scores)
 
     false_match_scores = []
