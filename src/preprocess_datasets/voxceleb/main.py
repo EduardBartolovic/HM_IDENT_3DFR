@@ -30,7 +30,8 @@ def preprocessing():
     model_path_hpe = "/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
     batch_size = 256  # 256 for 24GB  # 48 for 8 GB VRAM
     poses = 5  # Number of poses
-    random_choice = False
+    random_sampling = False
+    uniform_sampling = False
     allow_flip = False
     discard_threshold = 15
     device = torch.device("cuda")
@@ -57,7 +58,7 @@ def preprocessing():
     ])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=allow_flip, random_sampling=random_choice, avg_dist_threshold=discard_threshold)
+    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=allow_flip, random_sampling=random_sampling, uniform_sampling=uniform_sampling, avg_dist_threshold=discard_threshold)
 
     print("##################################")
     print("##### GEN DATASET ################")
