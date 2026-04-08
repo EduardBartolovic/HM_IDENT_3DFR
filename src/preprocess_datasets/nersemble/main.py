@@ -12,27 +12,12 @@ from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference im
 
 if __name__ == '__main__':
 
-    #root = "/home/gustav/nersemble/"
-    #root = "E:\\Download\\"
-    #folder_root = root + "data_raw"
-    #dataset_output_folder = root + "nersemble_out5R-v15"
-    #dataset_output_folder_crop = root+"nersemble_crop5R-v15"
-    #dataset_output_folder_filtered = root+"nersemble_crop5R-v15"
-    #output_test_dataset = root + "test_nersemble_crop5R-v15"
-
-    #root = "/home/gustav/voxceleb2/test/"
-    #folder_root = root+"vox2test_raw"
-    #dataset_output_folder = root+"vox2test_out5F-v15"
-    #dataset_output_folder_crop = root+"vox2test_crop5F-v15"
-    #dataset_output_folder_filtered = root+"vox2test_crop5F-v15"
-    #output_test_dataset = root+"test_vox2test_crop5F-v15"
-
-    root = "/home/gustav/voxceleb2/train/"
-    folder_root = root+"vox2train_raw/"
-    dataset_output_folder = root+"vox2train_out5Fd15-v15"
-    dataset_output_folder_crop = root+"vox2train_crop5Fd15-v15"
-    dataset_output_folder_filtered = root+"vox2train_crop5Fd15-v15"
-    output_test_dataset = root+"test_vox2train_crop5Fd15-v15"
+    root = "/home/gustav/nersemble/"
+    folder_root = root+"data_raw/"
+    dataset_output_folder = root+"nersemble_out5-v15"
+    dataset_output_folder_crop = root+"nersemble_crop5-v15"
+    dataset_output_folder_filtered = root+"nersemble_crop5-v15"
+    output_test_dataset = root+"test_nersemble_crop5-v15"
 
     model_path_hpe = "/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
     batch_size = 256  # 256 for 24GB  # 48 for 8 GB VRAM

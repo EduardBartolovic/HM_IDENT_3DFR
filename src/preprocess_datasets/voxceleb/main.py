@@ -12,20 +12,13 @@ from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference im
 
 
 def preprocessing():
-    root = "/home/gustav/voxceleb2\\test\\"
-    root = "C:\\Users\\Eduard\\Downloads\\voxceleb2\\test\\"
-    folder_root = root+"vox2test_raw\\"
-    dataset_output_folder = root+"vox2test_out-v15"
-    dataset_output_folder_crop = root+"vox2test_crop-v15"
-    dataset_output_folder_filtered = root+"vox2test_crop8-v15"
-    output_test_dataset = root+"test_vox2test_crop8-v15"
 
-    #root = "/home/gustav/voxceleb2/train/"
-    #folder_root = root+"vox2train_raw/"
-    #dataset_output_folder = root+"vox2train_out-v11r"
-    #dataset_output_folder_crop = root+"vox2train_crop-v11r"
-    #dataset_output_folder_filtered = root+"vox2train_crop8-v11r"
-    #output_test_dataset = root+"test_vox2train_crop8-v11r"
+    root = "/home/gustav/voxceleb2/train/"
+    folder_root = root+"data_raw/"
+    dataset_output_folder = root+"vox2train_out5-v15"
+    dataset_output_folder_crop = root+"vox2train_crop5-v15"
+    dataset_output_folder_filtered = root+"vox2train_crop5-v15"
+    output_test_dataset = root+"test_vox2train_crop5-v15"
 
     model_path_hpe = "/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
     batch_size = 256  # 256 for 24GB  # 48 for 8 GB VRAM
