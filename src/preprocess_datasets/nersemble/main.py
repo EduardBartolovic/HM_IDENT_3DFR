@@ -64,7 +64,7 @@ if __name__ == '__main__':
     ])
     print("Number of views:", len(permutations))
     print(permutations)
-    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=allow_flip, random_choice=random_choice, avg_dist_threshold=discard_threshold)
+    find_matches(folder_root, permutations, pkl_name="analysis.pkl", correct_angles=True, allow_flip=allow_flip, random_sampling=random_choice, avg_dist_threshold=discard_threshold)
 
     print("##################################")
     print("##### GEN DATASET ################")

@@ -33,11 +33,23 @@ def parse_analysis_file(file_path, correct_angles=False):
     return np.array(parsed_lines, dtype=object)
 
 
-def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_flip=False, random_choice=False):
+def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_flip=False, random_sampling=False, uniform_sampling=False):
+
+    if random_sampling and uniform_sampling:
+        assert "random_sampling and uniform_sampling are both true"
+
     used_indices = set()
     matches = []
 
-    for reference in references:
+    n_data = len(data)
+    n_refs = len(references)
+    if uniform_sampling and n_data < n_refs:
+        uniform_indices = np.linspace(0, n_data - 1, n_refs)
+        uniform_indices = np.round(uniform_indices).astype(int)
+    else:
+        uniform_indices = None
+
+    for ref_idx, reference in enumerate(references):
 
         # consider roll or not
         if ignore_roll:
@@ -67,7 +79,9 @@ def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_fli
 
                 distances = np.where(better_is_flipped, flipped_distances, distances)
 
-        if random_choice:
+        if uniform_indices is not None:
+            chosen_index = uniform_indices[ref_idx]
+        elif random_sampling:
             available_indices = [i for i in range(len(data)) if i not in used_indices]
             if not available_indices:
                 chosen_index = random.choice(range(len(data)))
@@ -142,7 +156,12 @@ def save_matches(output_file, infos):
             writer.writerow(ref_angles + hpe_angles + [error] + [filename] + list(bbox) + [flipped])
 
 
-def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angles=False, remove_outliers=True, threshold_std=4.0, ignore_roll=True, allow_flip=True, random_choice=False, avg_dist_threshold=None):
+def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angles=False,
+                 ignore_roll=True,
+                 allow_flip=True,
+                 random_sampling=False,
+                 uniform_sampling=False,
+                 avg_dist_threshold=None):
 
     start_time = time.time()
     all_errors = []
@@ -159,15 +178,10 @@ def find_matches(input_folder, references, pkl_name="analysis.pkl", correct_angl
 
                     data = parse_analysis_file(file_path, correct_angles)
 
-                    #if remove_outliers:
-                    #    data, removed_count = remove_embedding_outliers_lof(data, n_neighbors=20, contamination=0.05)
-                    #    total_removed += removed_count
-                    #    #print(f"Removed {removed_count} frames ({removed_percentage:.2f}%) from {file_path}")
-
                     if len(data) == 0:
                         continue
 
-                    infos = match_hpe_angles_to_references(data, references, ignore_roll=ignore_roll, allow_flip=allow_flip, random_choice=random_choice)
+                    infos = match_hpe_angles_to_references(data, references, ignore_roll=ignore_roll, allow_flip=allow_flip, random_sampling=random_sampling, uniform_sampling=uniform_sampling)
 
                     # extract euclidean errors
                     sample_errors = [row[2] for row in infos]

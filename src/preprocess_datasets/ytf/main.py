@@ -15,7 +15,8 @@ def preprocessing():
     model_path_hpe = "/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/headPoseEstimation/weights/resnet50.pt"
     model_path_cropping = Path("/home/gustav/HM_IDENT_3DFR/src/preprocess_datasets/cropping/croppingv3/mobile0.25.onnx")
     batch_size = 48  # 256 for 24GB  # 48 for 8 GB VRAM
-    random_choice = False
+    random_sampling = False
+    uniform_sampling = False
     device = torch.device("cuda")
 
     print("##################################")
@@ -37,7 +38,7 @@ def preprocessing():
     ])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches(folder_root, permutations, pkl_name="analysis.pkl", allow_flip=False, random_choice=random_choice)
+    find_matches(folder_root, permutations, pkl_name="analysis.pkl", allow_flip=False, random_sampling=random_sampling)
 
     print("##################################")
     print("##### GEN DATASET ################")
