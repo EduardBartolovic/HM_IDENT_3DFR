@@ -154,6 +154,7 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
         metrics, sim_score, fused, top_idx, pred = score_fusion(embedding_library, disable_bar, method=m, similarity_matrix=sim_score, distance_matrix=None)
         all_metrics[f"metrics_score_{m}"] = metrics
         all_metrics[f"emb_dist_score_{m}"] = analyze_embedding_distribution(fused, query_labels, enrolled_labels, "", f"score_{m}", plot=False)
+        all_metrics[f"verification_results_score_{m}"] = face_verification_from_similarity(fused, query_labels, enrolled_labels)
 
     # plot_all_cmc_from_txt(dataset_name)
 
@@ -191,10 +192,12 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     mrr_score_max = smart_round(all_metrics["metrics_score_max"].get('MRR', 'N/A'))
     gbig_score_max = smart_round(all_metrics["emb_dist_score_max"].get('gbig', 'N/A'), rounding_prec=8)
     gaig_score_max = smart_round(all_metrics["emb_dist_score_max"].get('gaig', 'N/A'), rounding_prec=8)
+    auc_score_max = smart_round(all_metrics["verification_results_score_max"].get('auc', 'N/A'), rounding_prec=8)
 
     mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
-    gbig_score_prod = smart_round(all_metrics["emb_dist_score_prod"].get('gbig', 'N/A'), rounding_prec=8)
-    gaig_score_prod = smart_round(all_metrics["emb_dist_score_prod"].get('gaig', 'N/A'), rounding_prec=8)
+    gbig_score_prod = smart_round(all_metrics["emb_dist_score_product"].get('gbig', 'N/A'), rounding_prec=8)
+    gaig_score_prod = smart_round(all_metrics["emb_dist_score_product"].get('gaig', 'N/A'), rounding_prec=8)
+    auc_score_prod = smart_round(all_metrics["verification_results_score_prod"].get('auc', 'N/A'), rounding_prec=8)
 
     # mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
     # gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A'), rounding_prec=8)
@@ -202,6 +205,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
     gbig_score_majority = smart_round(all_metrics["emb_dist_score_majority"].get('gbig', 'N/A'), rounding_prec=8)
     gaig_score_majority = smart_round(all_metrics["emb_dist_score_majority"].get('gaig', 'N/A'), rounding_prec=8)
+    auc_score_majority = smart_round(all_metrics["verification_results_score_majority"].get('auc', 'N/A'), rounding_prec=8)
 
     string = (f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: " +
               f"{'Front RR1'}: {rank_1_front} {'MRR'}: {mrr_front} {'GBIG'}: {gbig_front} {'GAIG'}: {gaig_front} {'AUC'}: {auc_front} | "
@@ -209,10 +213,10 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
               # f"{'Concat_Masked RR1'}: {rank_1_concat_masked} {'MRR'}: {mrr_concat_masked} {'GBIG'}: {gbig_concat_masked} {'GAIG'}: {gaig_concat_masked} {'AUC'}: {auc_concat_masked} | "
               f"{'Concat_Mean RR1'}: {rank_1_concat_mean} {'MRR'}: {mrr_concat_mean} {'GBIG'}: {gbig_concat_mean} {'GAIG'}: {gaig_concat_mean} {'AUC'}: {auc_concat_mean} | "
               # f"{'Concat_Median RR1'}: {rank_1_concat_median} {'MRR'}: {mrr_concat_median} | "
-              f"{'Score_prod MRR'}: {mrr_score_prod} {'GBIG'}: {gbig_score_prod} {'GAIG'}: {gaig_score_prod} | "
+              f"{'Score_prod MRR'}: {mrr_score_prod} {'GBIG'}: {gbig_score_prod} {'GAIG'}: {gaig_score_prod} {'AUC'}: {auc_score_prod} | "
               # f"{'Score_mean MRR'}: {mrr_score_mean} {'GBIG'}: {gbig_score_mean} {'GAIG'}: {gaig_score_mean} | "
-              f"{'Score_max MRR'}: {mrr_score_max} {'GBIG'}: {gbig_score_max} {'GAIG'}: {gaig_score_max} | "
-              f"{'Score_maj MRR'}: {mrr_score_majority} {'GBIG'}: {gbig_score_majority} {'GAIG'}: {gaig_score_majority} | "
+              f"{'Score_max MRR'}: {mrr_score_max} {'GBIG'}: {gbig_score_max} {'GAIG'}: {gaig_score_max} {'AUC'}: {auc_score_max} | "
+              f"{'Score_maj MRR'}: {mrr_score_majority} {'GBIG'}: {gbig_score_majority} {'GAIG'}: {gaig_score_majority} {'AUC'}: {auc_score_majority} | "
               )
     print(string)
 
