@@ -197,7 +197,7 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
     gbig_score_prod = smart_round(all_metrics["emb_dist_score_product"].get('gbig', 'N/A'), rounding_prec=8)
     gaig_score_prod = smart_round(all_metrics["emb_dist_score_product"].get('gaig', 'N/A'), rounding_prec=8)
-    auc_score_prod = smart_round(all_metrics["verification_results_score_prod"].get('auc', 'N/A'), rounding_prec=8)
+    auc_score_prod = smart_round(all_metrics["verification_results_score_product"].get('auc', 'N/A'), rounding_prec=8)
 
     # mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
     # gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A'), rounding_prec=8)
