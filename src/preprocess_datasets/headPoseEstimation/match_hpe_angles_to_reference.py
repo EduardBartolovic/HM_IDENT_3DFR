@@ -33,68 +33,85 @@ def parse_analysis_file(file_path, correct_angles=False):
     return np.array(parsed_lines, dtype=object)
 
 
-def match_hpe_angles_to_references(data, references, ignore_roll=True, allow_flip=False, random_sampling=False, uniform_sampling=False):
+import numpy as np
+import random
+
+def match_hpe_angles_to_references(
+    data,
+    references,
+    ignore_roll=True,
+    allow_flip=False,
+    random_sampling=False,
+    uniform_sampling=False
+):
 
     if random_sampling and uniform_sampling:
-        assert "random_sampling and uniform_sampling are both true"
+        raise ValueError("random_sampling and uniform_sampling cannot both be True")
+
+    data = np.asarray(data)
+    references = np.asarray(references)
 
     used_indices = set()
     matches = []
 
     n_data = len(data)
     n_refs = len(references)
-    if uniform_sampling and n_data < n_refs:
-        uniform_indices = np.linspace(0, n_data - 1, n_refs)
-        uniform_indices = np.round(uniform_indices).astype(int)
+
+    if ignore_roll:
+        data_vecs = data[:, :2].astype(float)
+    else:
+        data_vecs = data[:, :3].astype(float)
+
+    #  uniform indices if needed
+    if uniform_sampling:
+        uniform_indices = np.round(
+            np.linspace(0, n_data - 1, n_refs)
+        ).astype(int)
     else:
         uniform_indices = None
 
     for ref_idx, reference in enumerate(references):
 
-        # consider roll or not
-        if ignore_roll:
-            ref_vec = np.array(reference[:2], dtype=float)
-            data_vecs = np.array(data[:, :2], dtype=float)
-        else:
-            ref_vec = np.array(reference[:3], dtype=float)
-            data_vecs = np.array(data[:, :3], dtype=float)
+        ref_vec = reference[:2] if ignore_roll else reference[:3]
+        ref_vec = ref_vec.astype(float)
 
-        # compute distances
+        # Compute distances
         distances = np.linalg.norm(data_vecs - ref_vec, axis=1)
-        was_flipped_array = np.zeros(len(data), dtype=bool)
 
         if allow_flip:
-            # only consider flipping where non-flipped distance > 5
-            flip_candidates = distances > 5
+            # Flip only yaw (index 1)
+            flipped_ref = ref_vec.copy()
+            flipped_ref[1] = -flipped_ref[1]
 
-            if np.any(flip_candidates):
-                flipped_ref = ref_vec.copy()
-                flipped_ref[1] = -flipped_ref[1]  # flip yaw (index 1)
+            flipped_distances = np.linalg.norm(data_vecs - flipped_ref, axis=1)
 
-                flipped_distances = np.linalg.norm(data_vecs - flipped_ref, axis=1)
+            # Only allow flip where original distance > 5
+            flip_mask = distances > 5
+            better_flip = (flipped_distances < distances) & flip_mask
 
-                # only compare flipped distance for valid candidates
-                better_is_flipped = (flipped_distances < distances) & flip_candidates
-                was_flipped_array = better_is_flipped.copy()
+            distances = np.where(better_flip, flipped_distances, distances)
+        else:
+            better_flip = None
 
-                distances = np.where(better_is_flipped, flipped_distances, distances)
-
+        # Selection logic
         if uniform_indices is not None:
             chosen_index = uniform_indices[ref_idx]
         elif random_sampling:
-            available_indices = [i for i in range(len(data)) if i not in used_indices]
-            if not available_indices:
-                chosen_index = random.choice(range(len(data)))
+            if len(used_indices) < n_data:
+                available = list(set(range(n_data)) - used_indices)
+                chosen_index = random.choice(available)
             else:
-                chosen_index = random.choice(available_indices)
+                chosen_index = random.randrange(n_data)
         else:
             chosen_index = int(np.argmin(distances))
 
         min_distance = distances[chosen_index]
-        was_flipped = bool(was_flipped_array[chosen_index]) if allow_flip else False
+        was_flipped = bool(better_flip[chosen_index]) if allow_flip else False
 
-        # add flip info to matches
-        matches.append((reference, data[chosen_index], min_distance, was_flipped))
+        matches.append(
+            (reference, data[chosen_index], min_distance, was_flipped)
+        )
+
         used_indices.add(chosen_index)
 
     return matches

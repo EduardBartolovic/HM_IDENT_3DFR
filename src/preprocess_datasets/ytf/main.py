@@ -38,7 +38,7 @@ def preprocessing():
     ])
     print("number of permutations:", len(permutations))
     print(permutations)
-    find_matches(folder_root, permutations, pkl_name="analysis.pkl", allow_flip=False, random_sampling=random_sampling)
+    find_matches(folder_root, permutations, pkl_name="analysis.pkl", allow_flip=False, random_sampling=random_sampling, uniform_sampling=uniform_sampling)
 
     print("##################################")
     print("##### GEN DATASET ################")

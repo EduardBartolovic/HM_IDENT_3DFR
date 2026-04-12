@@ -14,7 +14,7 @@ from src.preprocess_datasets.headPoseEstimation.match_hpe_angles_to_reference im
 def preprocessing():
 
     root = "/home/gustav/voxceleb2/train/"
-    folder_root = root+"data_raw/"
+    folder_root = root+"vox2train_raw/"
     dataset_output_folder = root+"vox2train_out5-v15"
     dataset_output_folder_crop = root+"vox2train_crop5-v15"
     dataset_output_folder_filtered = root+"vox2train_crop5-v15"
