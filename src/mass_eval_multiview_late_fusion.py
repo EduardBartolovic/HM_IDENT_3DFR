@@ -117,12 +117,11 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
     del sim_concat, top_idx, y_true_concat, y_pred_concat
 
     # --------- Masked Concat ---------
-    metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=17, mask_by_enrolled=True, mask_by_query=True)
-    all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
-    all_metrics["metrics_concat_masked"] = metrics_concat_masked
-    print(metrics_concat_masked)
-    all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
-    del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
+    #metrics_concat_masked, sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked = concat_mask(embedding_library, disable_bar, euclidean_dist_thresh=17, mask_by_enrolled=True, mask_by_query=True)
+    #all_metrics["emb_dist_concat_masked"] = analyze_embedding_distribution(sim_concat_masked, query_labels, enrolled_labels, "", "concat_masked", plot=False)
+    #all_metrics["metrics_concat_masked"] = metrics_concat_masked
+    #all_metrics["verification_results_concat_masked"] = face_verification_from_similarity(sim_concat_masked, query_labels, enrolled_labels)
+    #del sim_concat_masked, top_idx_masked, y_true_concat_masked, y_pred_concat_masked
 
     # --------- Concat Mean ---------
     metrics_concat_mean, sim_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean = concat(embedding_library, disable_bar, reduce_with="mean")
@@ -134,12 +133,12 @@ def evaluate_mv_emb_1_n(test_path, batch_size, views=None, shuffle_views=False, 
     del sim_concat_mean, top_indices_concat_mean, y_true_concat_mean, y_pred_concat_mean
 
     # --------- Concat Median ---------
-    metrics_concat_median, similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median = concat(embedding_library, disable_bar, reduce_with="median")
+    # metrics_concat_median, similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median = concat(embedding_library, disable_bar, reduce_with="median")
     # plot_cmc(similarity_matrix_concat_median, enrolled_labels, query_labels, dataset_name, "concat_median")
     # plot_rrk_histogram(query_labels, enrolled_labels, similarity_matrix_concat_median, dataset_name, "concat_median")
     # all_metrics["emb_dist_concat_median"] = analyze_embedding_distribution(similarity_matrix_concat_median, query_labels, enrolled_labels, "", "concat_median", plot=False)
-    all_metrics["metrics_concat_median"] = metrics_concat_median
-    del similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median
+    # all_metrics["metrics_concat_median"] = metrics_concat_median
+    # del similarity_matrix_concat_median, top_indices_concat_median, y_true_concat_median, y_pred_concat_median
 
     # --------- Concat PCA ---------
     # metrics_concat_pca, similarity_matrix_concat_pca, top_indices_concat_pca, y_true_concat_pca, y_pred_concat_pca = concat(embedding_library, disable_bar, reduce_with="pca")
@@ -165,45 +164,55 @@ def print_results(neutral_dataset, dataset_enrolled, dataset_query, all_metrics)
     rank_1_front = smart_round(all_metrics["metrics_front"].get('Rank-1 Rate', 'N/A'))
     mrr_front = smart_round(all_metrics["metrics_front"].get('MRR', 'N/A'))
     gbig_front = smart_round(all_metrics["emb_dist_front"].get('gbig', 'N/A'), rounding_prec=8)
+    gaig_front = smart_round(all_metrics["emb_dist_front"].get('gaig', 'N/A'), rounding_prec=8)
     auc_front = smart_round(all_metrics["verification_results_front"].get('auc', 'N/A'), rounding_prec=8)
 
     rank_1_concat = smart_round(all_metrics["metrics_concat"].get('Rank-1 Rate', 'N/A'))
     mrr_concat = smart_round(all_metrics["metrics_concat"].get('MRR', 'N/A'))
     gbig_concat = smart_round(all_metrics["emb_dist_concat"].get('gbig', 'N/A'), rounding_prec=8)
+    gaig_concat = smart_round(all_metrics["emb_dist_concat"].get('gaig', 'N/A'), rounding_prec=8)
     auc_concat = smart_round(all_metrics["verification_results_concat"].get('auc', 'N/A'), rounding_prec=8)
 
-    rank_1_concat_masked = smart_round(all_metrics["metrics_concat_masked"].get('Rank-1 Rate', 'N/A'))
-    mrr_concat_masked = smart_round(all_metrics["metrics_concat_masked"].get('MRR', 'N/A'))
-    gbig_concat_masked = smart_round(all_metrics["emb_dist_concat_masked"].get('gbig', 'N/A'), rounding_prec=8)
-    auc_concat_masked = smart_round(all_metrics["verification_results_concat_masked"].get('auc', 'N/A'), rounding_prec=8)
+    # rank_1_concat_masked = smart_round(all_metrics["metrics_concat_masked"].get('Rank-1 Rate', 'N/A'))
+    # mrr_concat_masked = smart_round(all_metrics["metrics_concat_masked"].get('MRR', 'N/A'))
+    # gbig_concat_masked = smart_round(all_metrics["emb_dist_concat_masked"].get('gbig', 'N/A'), rounding_prec=8)
+    # gaig_concat_masked = smart_round(all_metrics["emb_dist_concat_masked"].get('gaig', 'N/A'), rounding_prec=8)
+    # auc_concat_masked = smart_round(all_metrics["verification_results_concat_masked"].get('auc', 'N/A'), rounding_prec=8)
 
     rank_1_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('Rank-1 Rate', 'N/A'))
     mrr_concat_mean = smart_round(all_metrics["metrics_concat_mean"].get('MRR', 'N/A'))
     gbig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gbig', 'N/A'), rounding_prec=8)
+    gaig_concat_mean = smart_round(all_metrics["emb_dist_concat_mean"].get('gaig', 'N/A'), rounding_prec=8)
     auc_concat_mean = smart_round(all_metrics["verification_results_concat_mean"].get('auc', 'N/A'), rounding_prec=8)
 
-    rank_1_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-1 Rate', 'N/A'))
-    mrr_concat_median = smart_round(all_metrics["metrics_concat_median"].get('MRR', 'N/A'))
+    # rank_1_concat_median = smart_round(all_metrics["metrics_concat_median"].get('Rank-1 Rate', 'N/A'))
+    # mrr_concat_median = smart_round(all_metrics["metrics_concat_median"].get('MRR', 'N/A'))
 
     mrr_score_max = smart_round(all_metrics["metrics_score_max"].get('MRR', 'N/A'))
+    gbig_score_max = smart_round(all_metrics["emb_dist_score_max"].get('gbig', 'N/A'), rounding_prec=8)
+    gaig_score_max = smart_round(all_metrics["emb_dist_score_max"].get('gaig', 'N/A'), rounding_prec=8)
 
     mrr_score_prod = smart_round(all_metrics["metrics_score_product"].get('MRR', 'N/A'))
+    gbig_score_prod = smart_round(all_metrics["emb_dist_score_prod"].get('gbig', 'N/A'), rounding_prec=8)
+    gaig_score_prod = smart_round(all_metrics["emb_dist_score_prod"].get('gaig', 'N/A'), rounding_prec=8)
 
     # mrr_score_mean = smart_round(all_metrics["metrics_score_mean"].get('MRR', 'N/A'))
     # gbig_score_mean = smart_round(all_metrics["emb_dist_score_mean"].get('gbig', 'N/A'), rounding_prec=8)
 
     mrr_score_majority = smart_round(all_metrics["metrics_score_majority"].get('MRR', 'N/A'))
+    gbig_score_majority = smart_round(all_metrics["emb_dist_score_majority"].get('gbig', 'N/A'), rounding_prec=8)
+    gaig_score_majority = smart_round(all_metrics["emb_dist_score_majority"].get('gaig', 'N/A'), rounding_prec=8)
 
     string = (f"{neutral_dataset} E{len(dataset_enrolled)}Q{len(dataset_query)}: " +
-              f"{'Front RR1'}: {rank_1_front} {'MRR'}: {mrr_front} {'GBIG'}: {gbig_front} {'AUC'}: {auc_front} | "  # {bold('GAIG')}: {underscore(gaig_front)} | "
-              f"{'Concat RR1'}: {rank_1_concat} {'MRR'}: {mrr_concat} {'GBIG'}: {gbig_concat} {'AUC'}: {auc_concat} | "  # {bold('GAIG')}: {underscore(gaig_concat)} | "
-              f"{'Concat_Masked RR1'}: {rank_1_concat_masked} {'MRR'}: {mrr_concat_masked} {'GBIG'}: {gbig_concat_masked} {'AUC'}: {auc_concat_masked} | "
-              f"{'Concat_Mean RR1'}: {rank_1_concat_mean} {'MRR'}: {mrr_concat_mean} {'GBIG'}: {gbig_concat_mean} {'AUC'}: {auc_concat_mean} | "
-              f"{'Concat_Median RR1'}: {rank_1_concat_median} {'MRR'}: {mrr_concat_median} | "
-              f"{'Score_prod MRR'}: {mrr_score_prod} | "
-              # f"{'Score_mean MRR'}: {mrr_score_mean} {'GBIG'}: {gbig_score_mean} | "
-              f"{'Score_max MRR'}: {mrr_score_max} | "
-              f"{'Score_maj MRR'}: {mrr_score_majority} | "
+              f"{'Front RR1'}: {rank_1_front} {'MRR'}: {mrr_front} {'GBIG'}: {gbig_front} {'GAIG'}: {gaig_front} {'AUC'}: {auc_front} | "
+              f"{'Concat RR1'}: {rank_1_concat} {'MRR'}: {mrr_concat} {'GBIG'}: {gbig_concat} {'GAIG'}: {gaig_concat} {'AUC'}: {auc_concat} | "
+              # f"{'Concat_Masked RR1'}: {rank_1_concat_masked} {'MRR'}: {mrr_concat_masked} {'GBIG'}: {gbig_concat_masked} {'GAIG'}: {gaig_concat_masked} {'AUC'}: {auc_concat_masked} | "
+              f"{'Concat_Mean RR1'}: {rank_1_concat_mean} {'MRR'}: {mrr_concat_mean} {'GBIG'}: {gbig_concat_mean} {'GAIG'}: {gaig_concat_mean} {'AUC'}: {auc_concat_mean} | "
+              # f"{'Concat_Median RR1'}: {rank_1_concat_median} {'MRR'}: {mrr_concat_median} | "
+              f"{'Score_prod MRR'}: {mrr_score_prod} {'GBIG'}: {gbig_score_prod} {'GAIG'}: {gaig_score_prod} | "
+              # f"{'Score_mean MRR'}: {mrr_score_mean} {'GBIG'}: {gbig_score_mean} {'GAIG'}: {gaig_score_mean} | "
+              f"{'Score_max MRR'}: {mrr_score_max} {'GBIG'}: {gbig_score_max} {'GAIG'}: {gaig_score_max} | "
+              f"{'Score_maj MRR'}: {mrr_score_majority} {'GBIG'}: {gbig_score_majority} {'GAIG'}: {gaig_score_majority} | "
               )
     print(string)
 
@@ -830,19 +839,20 @@ def main_perspective_test():
 
 def dataset_test():
     root = "/home/gustav/dataset15_emb/"  # "F:\\Face\\data\\dataset15_emb\\"
-    TEST_SETS = [root+"test_rgb_bff_crop5E08_emb-glint_r18",
-                 root+"test_rgb_bff_crop5E08_emb-glint_r50",
-                 root+"test_rgb_bff_crop5E08_emb-glint_r100",
-                 root+"test_rgb_bff_crop5E08_emb-ms1mv3_r18",
-                 root+"test_rgb_bff_crop5E08_emb-ms1mv3_r50",
-                 root+"test_rgb_bff_crop5E08_emb-ms1mv3_r100",
-                 root+"test_rgb_bff_crop5E08_emb-adaface_ms1mv3",
-                 root+"test_rgb_bff_crop5E08_emb-adaface_webface12m",
-                 root+"test_rgb_bff_crop5E08_emb-edgeface_xs",
-                 root+"test_rgb_bff_crop5E08_emb-hyperface50k",]
+    TEST_SETS = [root+"test_rgb_ff_crop5E01_emb-glint_r18",
+                 root+"test_rgb_ff_crop5E01_emb-glint_r50",
+                 root+"test_rgb_ff_crop5E01_emb-glint_r100",
+                 root+"test_rgb_ff_crop5E01_emb-ms1mv3_r18",
+                 root+"test_rgb_ff_crop5E01_emb-ms1mv3_r50",
+                 root+"test_rgb_ff_crop5E01_emb-ms1mv3_r100",
+                 root+"test_rgb_ff_crop5E01_emb-adaface_ms1mv3",
+                 root+"test_rgb_ff_crop5E01_emb-adaface_webface12m",
+                 root+"test_rgb_ff_crop5E01_emb-edgeface_xs",
+                 root+"test_rgb_ff_crop5E01_emb-hyperface10k",
+                 root+"test_rgb_ff_crop5E01_emb-hyperface50k",
+                 root+"test_rgb_ff_crop5E01_emb-swinface",
+                 root+"test_rgb_ff_crop5E01_emb-vit",]
 
-
-    print("Shuffle False")
     for DATA_ROOT in TEST_SETS:
         # cfg_yaml = {"TEST_VIEWS": ['0_0', '25_-25', '25_25', '10_-10', '10_10', '0_-25', '0_25', '25_0']}
         cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
@@ -854,9 +864,9 @@ def dataset_test():
 def single_dataset_test():
     cfg_yaml = {"TEST_VIEWS": ['0_-25', '0_-10', '0_0', '0_10', '0_25']}
     BATCH_SIZE = 16  # Batch size
-    root = "F:\\Face\\data\\dataset15_emb\\"
-    DATA_ROOT = root+"test_rgb_bff_crop261_emb-swinface"  # "test_vox2test_crop5-v15_emb-glint_r18"##
-    DATA_ROOT = root+"test_vox2train_crop5-v15_emb-swinface"  # "test_vox2test_crop5-v15_emb-glint_r18"##
+    root = "F:\\Face\\data\\dataset16_emb\\"
+    DATA_ROOT = root+"test_rgb_bff_crop305_emb-vit"  # "test_vox2test_crop5-v15_emb-glint_r18"##
+    #DATA_ROOT = root+"test_vox2train_crop5-v15_emb-swinface"  # "test_vox2test_crop5-v15_emb-glint_r18"##
     evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
     #DATA_ROOT = root+"test_nersemble_crop5-v15_emb-ms1mv3_r18"
     #evaluate_and_log_mv(DATA_ROOT, cfg_yaml['TEST_VIEWS'], BATCH_SIZE, shuffle_views=False, disable_bar=True)
@@ -869,7 +879,7 @@ if __name__ == '__main__':
     SEED = 42
     torch.manual_seed(SEED)
     # main_perspective_test()
-    # dataset_test()
-    single_dataset_test()
+    dataset_test()
+    # single_dataset_test()
 
 
