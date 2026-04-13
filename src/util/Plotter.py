@@ -727,7 +727,7 @@ def plot_weight_evolution(weights_log, save_dir="weights_logs"):
         plt.close()
 
 
-def plot_roc_log_far(fpr, tpr, auc_value, method, far_targets=(1e-1, 1e-2, 1e-3, 1e-4),):
+def plot_roc_log_far(fpr, tpr, auc_value, method, far_targets=(1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6)):
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir = Path(tmp_dir)
         plt.figure(figsize=(10, 6))
