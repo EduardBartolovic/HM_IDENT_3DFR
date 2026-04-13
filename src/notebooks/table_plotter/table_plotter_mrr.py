@@ -5,9 +5,10 @@ from collections import defaultdict
 
 def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
     """
-    Parses a BFF evaluation log file and generates a LaTeX table.
+    Parses a evaluation log file and generates a LaTeX table.
 
     Args:
+        prec:
         name: dataset name
         log_file (str): Path to the log file.
         mode (str): "gain" to display gains vs Front, "absolute" to show absolute MRR.
@@ -17,18 +18,21 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
         lines = f.readlines()
 
     backbone_map = {
-        "ms1mv3-r18": r"Arcface-R18\textsubscript{MSMV3}",
-        "ms1mv3-r50": r"Arcface-R50\textsubscript{MSMV3}",
-        "ms1mv3-r100": r"Arcface-R100\textsubscript{MSMV3}",
+        "ms1mv3-r18": r"Arcface-R18\textsubscript{MSM1V3}",
+        "ms1mv3-r50": r"Arcface-R50\textsubscript{MSM1V3}",
+        "ms1mv3-r100": r"Arcface-R100\textsubscript{MSM1V3}",
         "glint-r18": r"Cosface-R18\textsubscript{Glint}",
         "glint-r50": r"Cosface-R50\textsubscript{Glint}",
         "glint-r100": r"Cosface-R100\textsubscript{Glint}",
         "facenet-casia": r"Facenet512\textsubscript{Casia-Webface}",
         "facenet-vgg": r"Facenet512\textsubscript{VGGFace}",
-        "adaface-ms1mv3": r"Adaface+Aroface\textsubscript{MSMV3}",
+        "adaface-ms1mv3": r"Adaface+Aroface\textsubscript{MSM1V3}",
         "adaface-webface12m": r"Adaface+Aroface\textsubscript{Web12M}",
         "edgeface-xs": r"EdgeFace-XS\textsubscript{Web12M}",
+        "hyperface10k": r"Arcface-R50\textsubscript{HyperFace10K} ",
         "hyperface50k": r"Arcface-R50\textsubscript{HyperFace50K} ",
+        "swinface": r"SwinFace\textsubscript{MSM1V3} ",
+        "vit": r"Adaface-ViT\textsubscript{Web4M} ",
     }
 
     backbone = "Unknown"
@@ -37,13 +41,13 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
 
     # --- Parse log ---
     for line in lines:
-        if skipnext:
-            skipnext = False
-            continue
+        #if skipnext:
+        #    skipnext = False
+        #    continue
         line = line.strip()
-        if "5F" in line or "5R" in line:
-            skipnext = True
-            continue
+        #if "5F" in line or "5R" in line:
+        #    skipnext = True
+        #    continue
 
         if line.startswith("Perform 1:N Evaluation on"):
             backbone_match = re.search(r"/([^/]+)$", line.split(" with")[0])
@@ -54,7 +58,19 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
                                 .replace("test-rgb-bff-crop5E02-emb-", "")
                                 .replace("test-rgb-bff-crop5E03-emb-", "")
                                 .replace("test-rgb-bff-crop5E04-emb-", "")
+                                .replace("test-rgb-ff-crop5-emb-", "")
+                                .replace("test-rgb-ff-crop5E01-emb-", "")
+                                .replace("test-rgb-ff-crop5E02-emb-", "")
+                                .replace("test-rgb-ff-crop5E03-emb-", "")
+                                .replace("test-rgb-ff-crop5E04-emb-", "")
+                                .replace("test-rgb-ff-crop5E06-emb-", "")
+                                .replace("test-rgb-ff-crop5E08-emb-", "")
+                                .replace("test-rgb-ff-crop5E16-emb-", "")
+                                .replace("test-rgb-ff-crop5E32-emb-", "")
                                 .replace("test-nersemble-crop5-v15-emb-", "")
+                                .replace("test-nersemble-crop5R-v15-emb-", "")
+                                .replace("test-nersemble-crop5U-v15-emb-", "")
+                                .replace("test-nersemble-crop5F-v15-emb-", "")
                                 .replace("test-vox2train-crop5-v15-emb-", "")
                                 .replace("test-vox2train-crop5F-v15-emb-", "")
                                 .replace("test-vox2train-crop5d15-v15-emb-", "")
@@ -71,9 +87,9 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
                 r"Concat RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
                 r"Concat_Mean RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
                 r"Score_prod MRR:\s*([\d\.NA]+).*?"
-                r"Score_mean MRR:\s*([\d\.NA]+).*?"
                 r"Score_max MRR:\s*([\d\.NA]+).*?"
-                r"Score_maj MRR:\s*([\d\.NA]+)", line
+                r"Score_maj MRR:\s*([\d\.NA]+)",
+                line
             )
             if not metrics:
                 continue
@@ -83,9 +99,8 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
                 "Concat": float(vals[3]) if vals[3] != "N/A" else np.nan,
                 "Concat_Mean": float(vals[5]) if vals[5] != "N/A" else np.nan,
                 "Score_Prod": float(vals[6]) if vals[6] != "N/A" else np.nan,
-                "Score_Mean": float(vals[7]) if vals[7] != "N/A" else np.nan,
-                "Score_Max": float(vals[8]) if vals[8] != "N/A" else np.nan,
-                "Score_Maj": float(vals[9]) if vals[9] != "N/A" else np.nan,
+                "Score_Max": float(vals[7]) if vals[7] != "N/A" else np.nan,
+                "Score_Maj": float(vals[8]) if vals[8] != "N/A" else np.nan,
             }
             base = avg["Front"]
             gains = {k: avg[k] - base for k in avg.keys() if k != "Front"}
@@ -93,22 +108,26 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
 
     # --- Prepare LaTeX table ---
     def fmt(v, prec=3):
+        if np.isnan(v):
+            return "N/A"
+        if v==100:
+            return "100"
         if prec == 3:
-            return f"{v:.3f}" if not np.isnan(v) else "N/A"
+            return f"{v:.3f}"
         else:
-            return f"{v:.2f}" if not np.isnan(v) else "N/A"
+            return f"{v:.2f}"
 
     print("\\begin{table}[ht]")
     print("\\centering")
     print("\\scriptsize")
     print("\\setlength{\\tabcolsep}{2pt}")
     print("\\renewcommand{\\arraystretch}{0.98} % tighter rows")
-    print("\\begin{tabular}{|l|c|c|c|c|c|c|c|}")
+    print("\\begin{tabular}{|l|c|c|c|c|c|c|}")
     print("\\hline")
-    print("\\textbf{Backbone} & \\textbf{Front} & \\textbf{Average} & \\multicolumn{1}{c|}{\\textbf{Pose}} & \\multicolumn{4}{c|}{\\textbf{Pose-Score}} \\\\")
-    print("\\cline{5-8}")
+    print("\\textbf{Backbone} & \\textbf{Front} & \\textbf{Average} & \\multicolumn{1}{c|}{\\textbf{Pose}} & \\multicolumn{3}{c|}{\\textbf{Pose-Score}} \\\\")
+    print("\\cline{5-7}")
     print("& \\textbf{Only} & \\textbf{Pooling} & \\textbf{Concat} & "
-          "\\textbf{Prod} & \\textbf{Mean} & \\textbf{Max} & \\textbf{Maj} \\\\")
+          "\\textbf{Prod} & \\textbf{Max} & \\textbf{Maj} \\\\")
     print("\\hline")
 
     avg_fronts, avg_gains = [], defaultdict(list)
@@ -138,9 +157,8 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
                 return f"\\cellcolor{{orange!20}}{{{val}}}"
             return val
 
-        # Note the swapped columns: Average (Concat_Mean) <-> Pose (Concat)
         print(f"{backbone} & {fmt(avg['Front'], prec=prec)} & {highlight('Concat_Mean')} & {highlight('Concat')} & "
-              f"{highlight('Score_Prod')} & {highlight('Score_Mean')} & "
+              f"{highlight('Score_Prod')} & "
               f"{highlight('Score_Max')} & {highlight('Score_Maj')}\\\\")
         print("\\hline")
 
@@ -166,28 +184,32 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
     print("\\textbf{Average} & "
           f"{fmt(np.nanmean(avg_fronts), prec=prec)} & "
           f"{highlight_avg('Concat_Mean')} & {highlight_avg('Concat')} & "
-          f"{highlight_avg('Score_Prod')} & {highlight_avg('Score_Mean')} & "
+          f"{highlight_avg('Score_Prod')} & "
           f"{highlight_avg('Score_Max')} & {highlight_avg('Score_Maj')} \\\\")
     print("\\hline")
     print("\\end{tabular}")
-    print("\\caption{" + ("Absolute MRR values" if mode == "absolute" else "Absolute MRR gains") +
-          f" of multiview strategies compared to single-front view on the {name} dataset. Blue marks the best, orange the worst MV method." +"}")
+    print("\\caption{ \\textbf{"+ name +":} " + ("Absolute MRR values" if mode == "absolute" else "Absolute MRR gains") +
+          f" of multiview strategies compared to single-front view. Blue marks the best, orange the worst MV method." +"}")
     print("\\label{tab:" + f"{name}" + "}")
     print("\\end{table}")
 
 
-#generate_mrr_table("test_bff.txt", mode="gain", name="3D-BFF")
-#generate_mrr_table("test_bff.txt", mode="absolute", name="3D-BFF", prec=2)
-#generate_mrr_table("test_bffE01.txt", mode="absolute", name="3D-BFFE01", prec=2)
-#generate_mrr_table("test_bffE02.txt", mode="absolute", name="3D-BFFE02", prec=2)
-generate_mrr_table("test_bffE03.txt", mode="absolute", name="3D-BFFE03", prec=2)
-#generate_mrr_table("test_bffE04.txt", mode="absolute", name="3D-BFFE04", prec=2)
-#generate_mrr_table("test_bffE06.txt", mode="absolute", name="3D-BFFE04", prec=2)
-#generate_mrr_table("test_bffE08.txt", mode="absolute", name="3D-BFFE08", prec=2)
-#generate_mrr_table("test_bffE16.txt", mode="absolute", name="3D-BFFE16", prec=2)
-#generate_mrr_table("test_bffE32.txt", mode="absolute", name="3D-BFFE32", prec=2)
-
-#generate_mrr_table("test_nersemble.txt", mode="absolute", name="Nersemble")
+if False:
+    #generate_mrr_table("test_bff.txt", mode="gain", name="3D-BFF")
+    #generate_mrr_table("test_bff.txt", mode="absolute", name="3D-BFF", prec=2)
+    generate_mrr_table("ffE00.txt", mode="absolute", name="3D-FFE00", prec=3)
+    generate_mrr_table("ffE01.txt", mode="absolute", name="3D-FFE01", prec=3)
+    generate_mrr_table("ffE02.txt", mode="absolute", name="3D-FFE02", prec=3)
+    generate_mrr_table("ffE03.txt", mode="absolute", name="3D-FFE03", prec=3)
+    generate_mrr_table("ffE04.txt", mode="absolute", name="3D-FFE04", prec=3)
+    generate_mrr_table("ffE06.txt", mode="absolute", name="3D-FFE06", prec=3)
+    generate_mrr_table("ffE08.txt", mode="absolute", name="3D-FFE08", prec=3)
+    generate_mrr_table("ffE16.txt", mode="absolute", name="3D-FFE16", prec=3)
+    generate_mrr_table("ffE32.txt", mode="absolute", name="3D-FFE32", prec=3)
+if True:
+    generate_mrr_table("nersemble.txt", mode="absolute", name="Nersemble")
+    generate_mrr_table("nersembleR.txt", mode="absolute", name="NersembleR")
+    generate_mrr_table("nersembleU.txt", mode="absolute", name="NersembleU")
 #generate_mrr_table("test_vox2train.txt", mode="absolute", name="VoxCeleb2", prec=2)
 #generate_mrr_table("test_vox2train_d15.txt", mode="absolute", name="VoxCeleb2d15", prec=2)
 #generate_mrr_table("test_vox2train_d10.txt", mode="absolute", name="VoxCeleb2d10", prec=2)
