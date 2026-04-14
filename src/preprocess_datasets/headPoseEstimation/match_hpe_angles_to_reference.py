@@ -33,9 +33,6 @@ def parse_analysis_file(file_path, correct_angles=False):
     return np.array(parsed_lines, dtype=object)
 
 
-import numpy as np
-import random
-
 def match_hpe_angles_to_references(
     data,
     references,
