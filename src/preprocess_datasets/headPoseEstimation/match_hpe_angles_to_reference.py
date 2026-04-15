@@ -100,7 +100,12 @@ def match_hpe_angles_to_references(
             else:
                 chosen_index = random.randrange(n_data)
         else:
-            chosen_index = int(np.argmin(distances))
+            if len(used_indices) < n_data:
+                masked_distances = distances.copy()
+                masked_distances[list(used_indices)] = np.inf
+                chosen_index = int(np.argmin(masked_distances))
+            else:
+                chosen_index = int(np.argmin(distances))
 
         min_distance = distances[chosen_index]
         was_flipped = bool(better_flip[chosen_index]) if allow_flip else False
