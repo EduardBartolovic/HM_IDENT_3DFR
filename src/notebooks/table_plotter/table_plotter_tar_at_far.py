@@ -81,30 +81,24 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
                 backbone = backbone_map.get(backbone_raw, backbone_raw)
             continue
 
-        if "Front RR1:" in line:
-            metrics = re.search(
-                r"Front RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
-                r"Concat RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
-                r"Concat_Mean RR1:\s*([\d\.NA]+)\s*MRR:\s*([\d\.NA]+).*?"
-                r"Score_prod MRR:\s*([\d\.NA]+).*?"
-                r"Score_max MRR:\s*([\d\.NA]+).*?"
-                r"Score_maj MRR:\s*([\d\.NA]+)",
-                line
-            )
-            if not metrics:
-                continue
-            vals = metrics.groups()
-            avg = {
-                "Front": float(vals[1]) if vals[1] != "N/A" else np.nan,
-                "Concat": float(vals[3]) if vals[3] != "N/A" else np.nan,
-                "Concat_Mean": float(vals[5]) if vals[5] != "N/A" else np.nan,
-                "Score_Prod": float(vals[6]) if vals[6] != "N/A" else np.nan,
-                "Score_Max": float(vals[7]) if vals[7] != "N/A" else np.nan,
-                "Score_Maj": float(vals[8]) if vals[8] != "N/A" else np.nan,
+        if "TAR@FAR1e-6" in line:
+            def extract(pattern):
+                m = re.search(pattern, line)
+                return float(m.group(1)) if m else np.nan
+
+            tar = {
+                "Front": extract(r"Front .*?TAR@FAR1e-6:\s*([\d\.]+)"),
+                "Concat": extract(r"Concat .*?TAR@FAR1e-6:\s*([\d\.]+)"),
+                "Concat_Mean": extract(r"Concat_Mean .*?TAR@FAR1e-6:\s*([\d\.]+)"),
+                "Score_Prod": extract(r"Score_prod .*?TAR@FAR1e-6:\s*([\d\.]+)"),
+                "Score_Max": extract(r"Score_max .*?TAR@FAR1e-6:\s*([\d\.]+)"),
+                "Score_Maj": extract(r"Score_maj .*?TAR@FAR1e-6:\s*([\d\.]+)"),
             }
-            base = avg["Front"]
-            gains = {k: avg[k] - base for k in avg.keys() if k != "Front"}
-            results.append((backbone, avg, gains))
+
+            base = tar["Front"]
+            gains = {k: tar[k] - base for k in tar if k != "Front"}
+
+            results.append((backbone, tar, gains))
 
     # --- Prepare LaTeX table ---
     def fmt(v, prec=3):
@@ -188,22 +182,24 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
           f"{highlight_avg('Score_Max')} & {highlight_avg('Score_Maj')} \\\\")
     print("\\hline")
     print("\\end{tabular}")
-    print("\\caption{ \\textbf{" + name + ":} " + ("Absolute MRR values" if mode == "absolute" else "Absolute MRR gains") +
-          f" of multiview strategies compared to single-front view. Blue marks the best, orange the worst MV method." + "}")
+    print("\\caption{ \\textbf{" + name + ":} " +
+          ("TAR@FAR=1e-5" if mode == "absolute" else "TAR@FAR=1e-5 gains") +
+          " of multiview strategies compared to single-front view. Blue marks the best, orange the worst MV method." + "}")
     print("\\label{tab:" + f"{name}" + "}")
     print("\\end{table}")
 
 
 if True:
-    generate_mrr_table("ffE00.txt", mode="absolute", name="3D-FFE00", prec=3)
-    generate_mrr_table("ffE01.txt", mode="absolute", name="3D-FFE01", prec=3)
-    generate_mrr_table("ffE02.txt", mode="absolute", name="3D-FFE02", prec=3)
-    generate_mrr_table("ffE03.txt", mode="absolute", name="3D-FFE03", prec=3)
-    generate_mrr_table("ffE04.txt", mode="absolute", name="3D-FFE04", prec=3)
-    generate_mrr_table("ffE06.txt", mode="absolute", name="3D-FFE06", prec=3)
-    generate_mrr_table("ffE08.txt", mode="absolute", name="3D-FFE08", prec=3)
-    generate_mrr_table("ffE16.txt", mode="absolute", name="3D-FFE16", prec=3)
-    generate_mrr_table("ffE32.txt", mode="absolute", name="3D-FFE32", prec=3)
+    generate_mrr_table("ff.txt", mode="absolute", name="3D-FFE00", prec=2)
+    exit()
+    generate_mrr_table("ffE01.txt", mode="absolute", name="3D-FFE01", prec=2)
+    generate_mrr_table("ffE02.txt", mode="absolute", name="3D-FFE02", prec=2)
+    generate_mrr_table("ffE03.txt", mode="absolute", name="3D-FFE03", prec=2)
+    generate_mrr_table("ffE04.txt", mode="absolute", name="3D-FFE04", prec=2)
+    generate_mrr_table("ffE06.txt", mode="absolute", name="3D-FFE06", prec=2)
+    generate_mrr_table("ffE08.txt", mode="absolute", name="3D-FFE08", prec=2)
+    generate_mrr_table("ffE16.txt", mode="absolute", name="3D-FFE16", prec=2)
+    generate_mrr_table("ffE32.txt", mode="absolute", name="3D-FFE32", prec=2)
 if False:
     generate_mrr_table("nersemble.txt", mode="absolute", name="Nersemble")
     generate_mrr_table("nersembleR.txt", mode="absolute", name="NersembleR")

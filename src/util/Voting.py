@@ -585,7 +585,7 @@ def face_verification_from_similarity(
     similarity_matrix,
     query_labels,
     enrolled_labels,
-    far_targets=(1e-1, 1e-2, 1e-3, 1e-4),
+    far_targets=(1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6),
 ):
     """
     Perform 1:1 face verification from a similarity matrix.
