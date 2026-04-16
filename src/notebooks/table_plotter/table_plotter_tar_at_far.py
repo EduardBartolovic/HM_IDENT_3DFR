@@ -45,7 +45,7 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
             skipnext = False
             continue
         line = line.strip()
-        if "hyperface10k" in line or "ms1mv3_r50" in line:  #"5F" in line or "5R" in line:
+        if "ms1mv3_r50" in line:  #"5F" in line or "5R" in line: # "hyperface50k" in line or
             skipnext = True
             continue
 
@@ -87,12 +87,12 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
                 return float(m.group(1)) if m else np.nan
 
             tar = {
-                "Front": extract(r"Front .*?TAR@FAR1e-6:\s*([\d\.]+)"),
-                "Concat": extract(r"Concat .*?TAR@FAR1e-6:\s*([\d\.]+)"),
-                "Concat_Mean": extract(r"Concat_Mean .*?TAR@FAR1e-6:\s*([\d\.]+)"),
-                "Score_Prod": extract(r"Score_prod .*?TAR@FAR1e-6:\s*([\d\.]+)"),
-                "Score_Max": extract(r"Score_max .*?TAR@FAR1e-6:\s*([\d\.]+)"),
-                "Score_Maj": extract(r"Score_maj .*?TAR@FAR1e-6:\s*([\d\.]+)"),
+                "Front": extract(r"Front .*?TAR@FAR1e-5:\s*([\d\.]+)"),
+                "Concat": extract(r"Concat .*?TAR@FAR1e-5:\s*([\d\.]+)"),
+                "Concat_Mean": extract(r"Concat_Mean .*?TAR@FAR1e-5:\s*([\d\.]+)"),
+                "Score_Prod": extract(r"Score_prod .*?TAR@FAR1e-5:\s*([\d\.]+)"),
+                "Score_Max": extract(r"Score_max .*?TAR@FAR1e-5:\s*([\d\.]+)"),
+                #"Score_Maj": extract(r"Score_maj .*?TAR@FAR1e-6:\s*([\d\.]+)"),
             }
 
             base = tar["Front"]
@@ -104,7 +104,7 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
     def fmt(v, prec=3):
         if np.isnan(v):
             return "N/A"
-        if v==100:
+        if v == 100:
             return "100"
         if prec == 3:
             return f"{v:.3f}"
@@ -116,12 +116,12 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
     print("\\scriptsize")
     print("\\setlength{\\tabcolsep}{2pt}")
     print("\\renewcommand{\\arraystretch}{0.98} % tighter rows")
-    print("\\begin{tabular}{|l|c|c|c|c|c|c|}")
+    print("\\begin{tabular}{|l|c|c|c|c|c|}")
     print("\\hline")
-    print("\\textbf{Backbone} & \\textbf{Front} & \\textbf{Average} & \\multicolumn{1}{c|}{\\textbf{Pose}} & \\multicolumn{3}{c|}{\\textbf{Pose-Score}} \\\\")
-    print("\\cline{5-7}")
+    print("\\textbf{Backbone} & \\textbf{Front} & \\textbf{Average} & \\multicolumn{1}{c|}{\\textbf{Pose}} & \\multicolumn{2}{c|}{\\textbf{Pose-Score}} \\\\")
+    print("\\cline{5-6}")
     print("& \\textbf{Only} & \\textbf{Pooling} & \\textbf{Concat} & "
-          "\\textbf{Prod} & \\textbf{Max} & \\textbf{Maj} \\\\")
+          "\\textbf{Prod} & \\textbf{Max} \\\\")
     print("\\hline")
 
     avg_fronts, avg_gains = [], defaultdict(list)
@@ -153,7 +153,7 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
 
         print(f"{backbone} & {fmt(avg['Front'], prec=prec)} & {highlight('Concat_Mean')} & {highlight('Concat')} & "
               f"{highlight('Score_Prod')} & "
-              f"{highlight('Score_Max')} & {highlight('Score_Maj')}\\\\")
+              f"{highlight('Score_Max')}\\\\")
         print("\\hline")
 
     # --- Average row ---
@@ -179,7 +179,7 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
           f"{fmt(np.nanmean(avg_fronts), prec=prec)} & "
           f"{highlight_avg('Concat_Mean')} & {highlight_avg('Concat')} & "
           f"{highlight_avg('Score_Prod')} & "
-          f"{highlight_avg('Score_Max')} & {highlight_avg('Score_Maj')} \\\\")
+          f"{highlight_avg('Score_Max')} \\\\")
     print("\\hline")
     print("\\end{tabular}")
     print("\\caption{ \\textbf{" + name + ":} " +
@@ -190,13 +190,13 @@ def generate_mrr_table(log_file: str, mode="gain", name="???", prec=3):
 
 
 if True:
-    generate_mrr_table("ff.txt", mode="absolute", name="3D-FFE00", prec=2)
-    exit()
+    generate_mrr_table("ffE00.txt", mode="absolute", name="3D-FFE00", prec=2)
     generate_mrr_table("ffE01.txt", mode="absolute", name="3D-FFE01", prec=2)
     generate_mrr_table("ffE02.txt", mode="absolute", name="3D-FFE02", prec=2)
     generate_mrr_table("ffE03.txt", mode="absolute", name="3D-FFE03", prec=2)
     generate_mrr_table("ffE04.txt", mode="absolute", name="3D-FFE04", prec=2)
     generate_mrr_table("ffE06.txt", mode="absolute", name="3D-FFE06", prec=2)
+    exit()
     generate_mrr_table("ffE08.txt", mode="absolute", name="3D-FFE08", prec=2)
     generate_mrr_table("ffE16.txt", mode="absolute", name="3D-FFE16", prec=2)
     generate_mrr_table("ffE32.txt", mode="absolute", name="3D-FFE32", prec=2)
